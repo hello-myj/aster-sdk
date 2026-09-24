@@ -2,7 +2,7 @@
 """aster_send — ship a file to the board's SD card over the native USB-CDC.
 
 Protocol (device: firmware/services/aster_file_svc.c):
-    MJXPUT <abs-path> <len> <crc32-hex>\r\n  + raw bytes
+    ASTERPUT <abs-path> <len> <crc32-hex>\r\n  + raw bytes
     -> "OK" | "ERR <code>\r\n"
 Small chunk + inter-chunk pacing because raw CDC has no flow control; the
 device verifies length + crc32, so any glitch fails fast (send_file raises
@@ -32,9 +32,9 @@ class RetryError(Exception):
 
 
 def _probe(s):
-    """send MJXPING, return reply string or None."""
+    """send ASTERPING, return reply string or None."""
     s.reset_input_buffer()
-    s.write(b"MJXPING\r\n")
+    s.write(b"ASTERPING\r\n")
     s.flush()
     t0 = time.time()
     buf = b""
@@ -46,7 +46,7 @@ def _probe(s):
 
 
 def find_port(prefer=None, brd=None):
-    """Return (port, pong) for the first candidate answering MJXPING.
+    """Return (port, pong) for the first candidate answering ASTERPING.
 
     Which device that is is a MODEL fact -- the reference board serves files
     on its native USB-Serial-JTAG (a ttyACM), but a board that puts the file
@@ -58,7 +58,7 @@ def find_port(prefer=None, brd=None):
     the data channel the same way it selects the console -- resolving the
     console from one model and the data port from another is how a selection
     story ends up half-applied. The name is never trusted: every candidate is
-    probed with MJXPING.
+    probed with ASTERPING.
     """
     brd = brd or aster_board.get(None)
     cands = ([prefer] if prefer and prefer != "auto" else [])
@@ -95,7 +95,7 @@ def send_file(port, local, remote=None, chunk=None, gap=None, retries=3,
               wait=None, ack_tmo=30, target=None):
     """Push one file with stop-and-wait flow control + crc32 + resume.
 
-    MJXFS 3: the device answers the PUT header with a go-token "ACK <off>",
+    ASTERFS 3: the device answers the PUT header with a go-token "ACK <off>",
     then one "ACK <cum>" per 512-byte frame it has written. We never have a
     second frame in flight, so a slow fs_write can no longer overflow the CDC
     RX ring (the old dropped-byte/CRC-mismatch root cause). "RESUME <n>"
@@ -124,15 +124,15 @@ def send_file(port, local, remote=None, chunk=None, gap=None, retries=3,
             from target_checks import validate_device
             validate_device(pong or "", target)
         if not pong:
-            raise RuntimeError(f"{port} not answering MJXPING")
+            raise RuntimeError(f"{port} not answering ASTERPING")
         for _step in range(hard_cap):
             s.reset_input_buffer()
-            s.write(f"MJXPUT {remote} {n} {crc:08x} {resume_from}\r\n".encode())
+            s.write(f"ASTERPUT {remote} {n} {crc:08x} {resume_from}\r\n".encode())
             s.flush()
 
             tok = _token(s, ack_tmo)          # go-token (or early verdict)
             if tok is None:
-                raise TimeoutError("no ACK to MJXPUT header")
+                raise TimeoutError("no ACK to ASTERPUT header")
             if tok == "OK":                   # .part already complete+valid
                 return "OK"
             m = re.match(r"RESUME (\d+)", tok)

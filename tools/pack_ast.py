@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Pack app.wasm (+ optional app.aot, icon, assets) into a .mja package.
+"""Pack app.wasm (+ optional app.aot, icon, assets) into a .ast package.
 
-MJA1 layout (see docs/mja-format.md):
-  [64 or 72B header][manifest][app.wasm][app.aot?][icon?][MJR1?]
+ASTP layout (see docs/package-format.md):
+  [64 or 72B header][manifest][app.wasm][app.aot?][icon?][ASTR?]
   4-byte aligned. Header is 72 bytes only when an assets blob is present.
 """
 from __future__ import annotations
@@ -14,7 +14,7 @@ import struct
 import sys
 from pathlib import Path
 
-MAGIC = b"MJA1"
+MAGIC = b"ASTP"
 HDR_SIZE = 64
 HDR_SIZE_ASSETS = 72
 FLAG_SIGNED = 1
@@ -69,7 +69,7 @@ def build_mjr1(files: list[tuple[str, bytes]]) -> bytes:
         payloads += content + b"\0" * (pad4(len(content)) - len(content))
         cursor += pad4(len(content))
     hdr = bytearray(16)
-    hdr[0:4] = b"MJR1"
+    hdr[0:4] = b"ASTR"
     struct.pack_into("<HH", hdr, 4, 1, n)
     table = bytearray()
     for i in range(n):
@@ -114,7 +114,7 @@ def main(argv=None) -> int:
     ap.add_argument("--aot-target", default="xtensa-esp32s3", choices=sorted(AOT_TARGETS))
     ap.add_argument("--icon", type=Path, default=None)
     ap.add_argument("--asset", action="append", default=[], metavar="REL=PATH",
-                    help="extra file bundled into the MJR1 assets blob; repeatable. "
+                    help="extra file bundled into the ASTR assets blob; repeatable. "
                          "REL is the install path under assets/")
     ap.add_argument("--sign", type=Path, default=None, metavar="PEM",
                     help="ECDSA-P256 private key PEM; appends a 64B raw r||s "

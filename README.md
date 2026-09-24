@@ -36,14 +36,14 @@ python tools/aster.py build --all --target lckfb-s3 --aot
 ## 校验和部署
 
 ```bash
-python tools/aster.py verify --target lckfb-s3 dist/lckfb-s3/aster.gfxshow.mja
-python tools/aster.py deploy dist/lckfb-s3/aster.gfxshow.mja \
+python tools/aster.py verify --target lckfb-s3 dist/lckfb-s3/aster.gfxshow.ast
+python tools/aster.py deploy dist/lckfb-s3/aster.gfxshow.ast \
   --target lckfb-s3 --port /dev/ttyACM0 --console /dev/ttyUSB0 --run
 ```
 
 设备须事先安装匹配的 Aster 固件和系统资源。部署先验证包，再通过设备握手确认产品、目标、ABI 与存储状态，接着传输、安装并按需启动 APP。SDK 不构建、烧录或修改固件，不调整硬件配置，不自动连接 USB 设备到 WSL。
 
-未改名称的 MJA1、MJXI 与文件传输标识是沿用的容器/协议格式。新 SDK 的 API 为 `aster_*`，不直接运行旧 `mjx_*` 二进制；请重编应用。新版固件会拒绝旧产品或不同目标的包。
+容器与协议标识在改名中一并改掉了：包魔数 `ASTP`、图标魔数 `ASTI`、资源块 `ASTR`、文件传输 `ASTERFS`。旧 `MJA1`/`MJXI`/`MJR1` 记号一律不再被接受，因此改名前的包与改名前的固件互相拒收——新 SDK 的 API 为 `aster_*`，不直接运行旧 `mjx_*` 二进制，请重编应用。新版固件同样会拒绝旧产品或不同目标的包。
 
 开发用主机 ABI 测试程序可以直接运行 `build/lckfb-s3/aster.hello/app.wasm`，无需新增硬件目标；该程序由固件仓库的 `tools/host.py` 构建，属于独立开发测试工具，不是 SDK 的源码依赖或正式部署设备。
 
@@ -52,7 +52,7 @@ python tools/aster.py deploy dist/lckfb-s3/aster.gfxshow.mja \
 ## 升级接口契约
 
 ```bash
-python tools/import_contract.py /path/to/aster-contract-3.2.0.zip
+python tools/import_contract.py /path/to/aster-contract-3.3.0.zip
 python -m unittest discover -s tests -v
 ```
 

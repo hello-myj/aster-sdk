@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Offline sanity check of a .mja against the firmware's runtime rules.
+"""Offline sanity check of a .ast against the firmware's runtime rules.
 
 Validates, without a device:
-  * MJA1 header (magic/version/bounds, same checks as services/aster_mja.c)
+  * ASTP header (magic/version/bounds, same checks as services/aster_pkg.c)
   * manifest JSON + required fields + ABI major
   * optional sha256 cross-checks
   * wasm import set == firmware "env" natives (runtime/aster_native.c)
@@ -19,7 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import aster_board  # noqa: E402
-import pack_mja  # noqa: E402
+import pack_ast  # noqa: E402
 
 SDK_ROOT = Path(__file__).resolve().parent.parent
 CONTRACT = json.loads((SDK_ROOT / "contract" / "api.json").read_text())
@@ -43,19 +43,19 @@ def firmware_abi_major() -> str:
 def expected_aot_id(board=None) -> int:
     """The AOT target id `board`'s firmware will accept, as a number.
 
-    Derived, not written down: board preset -> wamrc backend -> pack_mja's
-    AOT_TARGETS -> the id aster_mja.c compares against CONFIG_ASTER_AOT_TARGET_ID.
+    Derived, not written down: board preset -> wamrc backend -> pack_ast's
+    AOT_TARGETS -> the id aster_pkg.c compares against CONFIG_ASTER_AOT_TARGET_ID.
     This used to be a literal `assert at == 1`, which was true only while
     Xtensa was the only port and said nothing useful when it fired.
 
     Residual gap, closed in M1 by check_models.py: this chains through the
     *preset*, while the device follows CONFIG_ASTER_CPU_ARCH_* in the board conf
     file. If those two ever disagree, this check passes and the device still
-    refuses the AOT -- which is now loud on-device (see aster_mja.c) rather than
+    refuses the AOT -- which is now loud on-device (see aster_pkg.c) rather than
     silent, but is not caught here.
     """
     backend = aster_board.get(board)["aot_target"]
-    return pack_mja.AOT_TARGETS[aster_board.pack_key_for(backend)]
+    return pack_ast.AOT_TARGETS[aster_board.pack_key_for(backend)]
 
 
 def uleb(b, i):
@@ -128,7 +128,7 @@ def check(path, pub_pem=None, board=None):
         raise RuntimeError("Package verification requires Python without -O")
     target = aster_board.get(board)
     b = open(path, "rb").read()
-    assert b[0:4] == b"MJA1", "magic"
+    assert b[0:4] == b"ASTP", "magic"
     fmt_ver, hdr_size = struct.unpack_from("<HH", b, 4)
     assert fmt_ver == 1 and hdr_size in (64, 72), f"ver/size {fmt_ver}/{hdr_size}"
     flags = struct.unpack_from("<I", b, 8)[0]
@@ -159,7 +159,7 @@ def check(path, pub_pem=None, board=None):
     n_assets = 0
     if asl:
         assert hdr_size == 72, "assets require hdr_size 72"
-        assert bounds(aso, asl, hdr_size) and b[aso:aso + 4] == b"MJR1", "assets bounds/magic"
+        assert bounds(aso, asl, hdr_size) and b[aso:aso + 4] == b"ASTR", "assets bounds/magic"
         n_assets = struct.unpack_from("<H", b, aso + 6)[0]
         assert n_assets <= 64, "too many assets"
 
@@ -168,7 +168,7 @@ def check(path, pub_pem=None, board=None):
         assert k in man, f"manifest.{k}"
     # "orientation" is optional -- absent means "follow the panel", the only
     # way to ask for either one. A value that is neither spelling is DROPPED on
-    # the device (aster_mja_norm_orientation warns, returns ASTER_ORIENT_ANY), and
+    # the device (aster_pkg_norm_orientation warns, returns ASTER_ORIENT_ANY), and
     # a dropped key looks exactly like a package that never carried one: the
     # app follows the panel instead of failing. So the typo has to be caught
     # here, where it is still visible.
@@ -178,7 +178,7 @@ def check(path, pub_pem=None, board=None):
             f"{sorted(aster_board.ORIENTATIONS)}; the device would drop it "
             f"(app follows the panel) rather than reject the package")
     # abi major must equal the firmware's, mirroring the install gate in
-    # services/aster_mja.c. Read it from the header single source of truth.
+    # services/aster_pkg.c. Read it from the header single source of truth.
     assert man["abi"]["min"].split(".")[0] == firmware_abi_major(), "abi major"
 
     import hashlib
@@ -274,6 +274,6 @@ if __name__ == "__main__":
             sys.exit(f"unknown option {args[0]}")
     if not args:
         sys.exit(f"usage: {sys.argv[0]} [--pubkey pub.pem] [--board NAME] "
-                 "<file.mja> [...]")
+                 "<file.ast> [...]")
     for p in args:
         check(p, pub, board)

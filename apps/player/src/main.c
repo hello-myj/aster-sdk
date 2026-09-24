@@ -583,7 +583,7 @@ static void draw_library(void)
 
 /* An eighth note, drawn from primitives: there is no image the app can load
  * through the sprite cache (that decoder takes BMP/PNG/JPEG, and the launcher
- * icon is MJXI), and no album art over the ABI anyway. */
+ * icon is ASTI), and no album art over the ABI anyway. */
 static void draw_note(int32_t cx, int32_t cy, uint16_t col)
 {
 	aster_ge_ellipse(&ge, cx - 12, cy + 10, 15, 11, col, 0);

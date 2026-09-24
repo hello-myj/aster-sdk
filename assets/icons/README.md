@@ -1,7 +1,7 @@
-# App 图标（MJXI）
+# App 图标（ASTI）
 
 每个 App 包根下的 `icon.bin` 是**已生成并入库**的产物，不是构建期生成的：
-`build.py` 只校验它是 MJXI、塞进 `.mja`，从不自己渲染。所以换图标要手动重跑，
+`build.py` 只校验它是 ASTI、塞进 `.ast`，从不自己渲染。所以换图标要手动重跑，
 下面是可复现的对应表和命令。
 
 图标是**全彩 96×96 瓦片**：一块该 App 自己的渐变色圆角方块，上面压白色的
@@ -29,15 +29,15 @@ python3 sdk/tools/app_icons.py --check         # 只比对，不写；文件过�
 
 | App | 源文件 | 颜色 |
 |-----|--------|------|
-| `mjx.apitest` | `lucide/cpu.svg` | 青 `#0891B2 → #22D3EE` |
-| `mjx.gallery` | `lucide/image.svg` | 紫 `#7C3AED → #A855F7` |
-| `mjx.game.2048` | `lucide/layout-grid.svg` | 橙 `#EA580C → #F59E0B` |
-| `mjx.gfxshow` | `lucide/palette.svg` | 品红 `#C026D3 → #E879F9` |
-| `mjx.permdeny` | `lucide/lock.svg` | 红 `#DC2626 → #EF4444` |
-| `mjx.player` | `lucide/music.svg` | 靛蓝 `#4F46E5 → #818CF8` |
-| `mjx.reader` | `lucide/book-open.svg` | 翠绿 `#047857 → #10B981` |
-| `mjx.snake` | `lucide/gamepad-2.svg` | 黄绿 `#4D7C0F → #84CC16` |
-| `mjx.trap` | `lucide/alert.svg` | 琥珀 `#CA8A04 → #FACC15` |
+| `aster.apitest` | `lucide/cpu.svg` | 青 `#0891B2 → #22D3EE` |
+| `aster.gallery` | `lucide/image.svg` | 紫 `#7C3AED → #A855F7` |
+| `aster.game.2048` | `lucide/layout-grid.svg` | 橙 `#EA580C → #F59E0B` |
+| `aster.gfxshow` | `lucide/palette.svg` | 品红 `#C026D3 → #E879F9` |
+| `aster.permdeny` | `lucide/lock.svg` | 红 `#DC2626 → #EF4444` |
+| `aster.player` | `lucide/music.svg` | 靛蓝 `#4F46E5 → #818CF8` |
+| `aster.reader` | `lucide/book-open.svg` | 翠绿 `#047857 → #10B981` |
+| `aster.snake` | `lucide/gamepad-2.svg` | 黄绿 `#4D7C0F → #84CC16` |
+| `aster.trap` | `lucide/alert.svg` | 琥珀 `#CA8A04 → #FACC15` |
 
 色相绕轮均匀铺开，同屏不会有两只图标撞色；`2048` 的橙和 `trap` 的琥珀最近
 （约 20°），靠明度拉开。

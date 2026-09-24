@@ -7,7 +7,7 @@ abi     = "3.0.0"
 abi_min = "3.0"
 optimize = "Os"
 aot     = true
-icon     = "icon.bin"      # palette.svg -> MJXI A8 (see ../assets/icons/README.md)
+icon     = "icon.bin"      # palette.svg -> ASTI A8 (see ../assets/icons/README.md)
 category = "game"
 # See game.2048/app.toml: 256 KB is the canvas path's default, the 150 KB
 # fallback framebuffer is what sets the floor.

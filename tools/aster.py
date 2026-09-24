@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1] in ("build", "verify", "deploy"):
-        scripts = {"build": "build.py", "verify": "verify_mja.py", "deploy": "deploy.py"}
+        scripts = {"build": "build.py", "verify": "verify_ast.py", "deploy": "deploy.py"}
         return subprocess.call([sys.executable, str(ROOT / "tools" / scripts[sys.argv[1]]), *sys.argv[2:]])
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ASTER app build driver: app.toml -> app.wasm -> (default AOT) -> .mja
+"""ASTER app build driver: app.toml -> app.wasm -> (default AOT) -> .ast
 
 Usage (from the sdk/ directory or anywhere):
   python3 tools/build.py apps/gfxshow --target lckfb-s3 # wasm + AOT (app.toml aot=true)
@@ -16,12 +16,12 @@ The app declares itself in app.toml:
   version  = "1.0.0"
   abi      = "3.0.0"            # ABI *target* the app was built against
   abi_min  = "3.0"              # lowest device ABI that can run it. Its MAJOR
-                                # must equal the firmware's: services/aster_mja.c
+                                # must equal the firmware's: services/aster_pkg.c
                                 # rejects anything else at install (ASTER_EABI).
                                 # Both default to this SDK's own ABI, parsed
                                 # from abi/include/aster/system.h.
   aot      = true               # default; LVGL-in-wasm apps must set false
-  icon     = "icon.bin"         # optional MJXI launcher tile (packed into .mja)
+  icon     = "icon.bin"         # optional ASTI launcher tile (packed into .ast)
   category = "tool"             # optional: game / tool / system
   orientation = "portrait"      # optional: portrait / landscape. Absent = the
                                 # app follows whatever the panel is. That
@@ -29,7 +29,7 @@ The app declares itself in app.toml:
                                 # there is no "any" spelling, so a typo cannot
                                 # silently become a request -- the device drops
                                 # an unknown value with a warning instead
-                                # (firmware/services/aster_mja.c)
+                                # (firmware/services/aster_pkg.c)
   optimize = "O2"               # optional: O0..O3 / Os / Oz
   stack    = 16384              # optional: wasm shadow stack bytes
   initial_memory = 262144       # optional: wasm linear memory bytes
@@ -103,9 +103,9 @@ VALID_CAPS = {
 }
 VALID_CATEGORIES = {"game", "tool", "system"}
 # The spellings live in aster_board.ORIENTATIONS -- one copy, shared with
-# verify_mja.py (which cannot import this file: tomllib needs 3.11, and the
+# verify_ast.py (which cannot import this file: tomllib needs 3.11, and the
 # verifier has to run anywhere). Two values and no "any": an absent key is how
-# a package says "follow the panel" (see ASTER_ORIENT_ANY in aster_mja.h).
+# a package says "follow the panel" (see ASTER_ORIENT_ANY in aster_pkg.h).
 VALID_ORIENTATIONS = aster_board.ORIENTATIONS
 VALID_PERMS = {"fs", "kv", "appmgr", "sd"}
 
@@ -174,8 +174,8 @@ def find_builtins(clang: Path) -> list[Path]:
 
 # The ABI this SDK builds against, parsed from the pinned SDK contract
 # (abi/include/aster/system.h -- same header the firmware compiles and
-# verify_mja.py checks), using only the SDK's released copy. Never
-# hard-code it: services/aster_mja.c requires an app's abi_min *major* to EQUAL
+# verify_ast.py checks), using only the SDK's released copy. Never
+# hard-code it: services/aster_pkg.c requires an app's abi_min *major* to EQUAL
 # the firmware major, so a stale literal here ships packages the device
 # refuses with ASTER_EABI(-13).
 ABI_HEADERS = (
@@ -230,7 +230,7 @@ class App:
         self.abi_min: str = str(a.get("abi_min", min_abi))
         if self.abi_min.split(".")[0] != self.abi.split(".")[0]:
             sys.exit(f"error: {toml}: abi_min {self.abi_min!r} major must equal "
-                     f"abi {self.abi!r} major (services/aster_mja.c compares "
+                     f"abi {self.abi!r} major (services/aster_pkg.c compares "
                      f"them for equality at install)")
         self.optimize: str = str(a.get("optimize", "O2"))
         self.stack: int = int(a.get("stack", 16384))
@@ -450,7 +450,7 @@ def make_manifest(app: App) -> dict:
 
 
 def collect_assets(app: App) -> list[tuple[str, Path]]:
-    """app.toml `assets = ["icons/a.bin", ...]` -> [(rel, path)] bundled as MJR1.
+    """app.toml `assets = ["icons/a.bin", ...]` -> [(rel, path)] bundled as ASTR.
 
     Rel paths are install paths under <appdir>/assets/ (see aster_storage.c).
     """
@@ -497,9 +497,9 @@ def build_app(app: App, do_aot: bool, aot_target: str = "xtensa") -> Path:
                              encoding="utf-8")
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    mja = OUT_DIR / f"{app.id}.mja"
-    cmd = [sys.executable, str(TOOLS_DIR / "pack_mja.py"),
-           "--manifest", str(manifest_path), "--wasm", str(wasm_path), "-o", str(mja)]
+    pkg = OUT_DIR / f"{app.id}.ast"
+    cmd = [sys.executable, str(TOOLS_DIR / "pack_ast.py"),
+           "--manifest", str(manifest_path), "--wasm", str(wasm_path), "-o", str(pkg)]
     sign_key = os.environ.get("ASTER_SIGN_KEY")  # PEM path; unset -> unsigned
     if sign_key:
         cmd += ["--sign", sign_key]
@@ -517,11 +517,11 @@ def build_app(app: App, do_aot: bool, aot_target: str = "xtensa") -> Path:
             sys.exit(f"error: {app.id}: icon escapes app dir: {app.icon}")
         if not icon.is_file():
             sys.exit(f"error: {app.id}: icon missing: {icon}")
-        if icon.read_bytes()[:4] != b"MJXI":
-            sys.exit(f"error: {app.id}: icon is not MJXI: {icon}")
+        if icon.read_bytes()[:4] != b"ASTI":
+            sys.exit(f"error: {app.id}: icon is not ASTI: {icon}")
         cmd += ["--icon", str(icon)]
     run(cmd, "pack")
-    return mja
+    return pkg
 
 
 def main(argv=None) -> int:
@@ -580,7 +580,7 @@ def main(argv=None) -> int:
         if args.no_aot:
             want_aot = False
         package = build_app(app, want_aot, args.aot_target)
-        from verify_mja import check
+        from verify_ast import check
         verification_key = None
         if os.environ.get("ASTER_SIGN_KEY"):
             from cryptography.hazmat.primitives import serialization

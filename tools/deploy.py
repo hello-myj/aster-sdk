@@ -9,7 +9,7 @@ from pathlib import Path
 
 import aster_board
 from target_checks import validate_device
-from verify_mja import check
+from verify_ast import check
 
 
 def shell_command(port, command, timeout=30):
@@ -46,7 +46,7 @@ def main():
     if not port:
         raise RuntimeError("no device answered the deployment probe")
     validate_device(pong, target, manifest.get("requires", []))
-    remote = target["deployment"]["package_dir"] + "/" + manifest["id"] + ".mja"
+    remote = target["deployment"]["package_dir"] + "/" + manifest["id"] + ".ast"
     reply = aster_send.send_file(port, args.package, remote, target=target)
     if reply != "OK":
         raise RuntimeError("package transfer failed: " + str(reply))

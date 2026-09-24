@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "product": "aster",
-  "abi": "3.2.0",
+  "abi": "3.3.0",
   "imports": {
     "env": [
       "__cxa_allocate_exception",
@@ -176,7 +176,7 @@
     "aster_timer_create": "(iiii)i",
     "aster_timer_destroy": "(i)i"
   },
-  "package_format": "MJA1",
+  "package_format": "ASTP",
   "runtime": {
     "name": "wamr",
     "version": "2.4.3"

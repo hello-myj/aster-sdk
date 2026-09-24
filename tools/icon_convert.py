@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""PNG/SVG → MJXI icon blob (see docs/mja-format.md).
+"""PNG/SVG → ASTI icon blob (see docs/package-format.md).
 
-MJXI little-endian:
-  16B header: magic "MJXI", ver=1, w, h, cf, reserved, data_size
+ASTI little-endian:
+  16B header: magic "ASTI", ver=1, w, h, cf, reserved, data_size
   payload: I1 packed MSB-first / A8 / RGB565 LE / RGB565 then A8
 
 Default cf is A8 (line-art mask, tinted at runtime from json `color`).
@@ -15,7 +15,7 @@ import struct
 import sys
 from pathlib import Path
 
-MAGIC = b"MJXI"
+MAGIC = b"ASTI"
 CF_I1, CF_A8, CF_RGB565, CF_RGB565A8 = 1, 2, 3, 4
 CF_NAME = {
     "i1": CF_I1,
@@ -124,7 +124,7 @@ def main(argv=None) -> int:
     blob = encode(im, cf)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_bytes(blob)
-    print(f"MJXI {args.out}: {im.size[0]}x{im.size[1]} {args.format} "
+    print(f"ASTI {args.out}: {im.size[0]}x{im.size[1]} {args.format} "
           f"{len(blob)} bytes ({len(blob) - 16} payload)")
     return 0
 
