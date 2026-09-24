@@ -1,0 +1,17 @@
+[app]
+id      = "aster.gallery"
+name    = "相册"
+version = "1.0.1"
+abi     = "3.0.0"
+abi_min = "3.0"
+optimize = "Os"
+aot     = true
+icon     = "icon.bin"
+category = "tool"
+# linear memory must hold a full 240x320 RGB565 surface (~150 KB) + name
+# table (~6 KB) + gfx scratch + wasm heap overhead.
+initial_memory = 262144
+stack   = 16384
+requires = ["display", "touch", "filesystem"]
+permissions = ["fs", "sd"]
+sources = ["src/main.c"]

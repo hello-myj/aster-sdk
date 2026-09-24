@@ -1,0 +1,3 @@
+# Python >= 3.11 (tomllib). App builds and offline verification use stdlib only.
+pyserial==3.5
+cryptography>=41

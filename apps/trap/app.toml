@@ -1,0 +1,12 @@
+[app]
+id       = "aster.trap"
+name     = "Trap Test"
+version  = "1.0.0"
+abi     = "3.0.0"
+abi_min = "3.0"
+optimize = "O0"
+icon     = "icon.bin"
+category = "system"
+initial_memory = 262144
+max_memory     = 262144
+requires   = ["display"]

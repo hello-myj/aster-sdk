@@ -1,0 +1,25 @@
+[app]
+id      = "aster.reader"
+name    = "Reader"
+version = "1.0.0"
+abi     = "3.1.0"
+abi_min = "3.1"
+optimize = "Os"
+aot     = true
+icon     = "icon.bin"
+category = "tool"
+# The one shipped app that asks for a window of its own, and the reason the
+# key exists: a page of text wants a tall page. The runtime turns the panel
+# for the length of the run and turns it back before the launcher returns
+# (runtime/S6), so this is also what keeps that path honest -- a feature no
+# package exercises is a feature that rots. Delete the line to get the old
+# follow-the-panel behaviour back.
+orientation = "portrait"
+# Same headroom as the canvas games (see game.2048/app.toml): no app-side
+# pixels on the panel-canvas path, but the 150 KB fallback framebuffer sets
+# the floor, and this app also keeps an 8 KB text window + a 3 KB dir cache.
+initial_memory = 262144
+stack   = 8192
+requires = ["display", "touch"]
+permissions = ["fs", "sd"]
+sources = ["src/main.c"]

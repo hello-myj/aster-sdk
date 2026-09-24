@@ -1,0 +1,18 @@
+[app]
+id      = "aster.player"
+name    = "Player"
+version = "1.0.0"
+abi     = "3.1.0"
+abi_min = "3.1"
+optimize = "Os"
+aot     = true
+icon     = "icon.bin"
+category = "tool"
+# Same headroom as the canvas games (see game.2048/app.toml): the panel
+# canvas needs no app-side pixels, the 150 KB fallback framebuffer sets the
+# floor. This app adds a 6 KB lyrics blob + a 4 KB track list on top.
+initial_memory = 262144
+stack   = 8192
+requires = ["display", "touch", "audio-out"]
+permissions = ["fs", "sd"]
+sources = ["src/main.c"]

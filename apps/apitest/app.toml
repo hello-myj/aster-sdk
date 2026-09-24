@@ -1,0 +1,16 @@
+[app]
+id      = "aster.apitest"
+name    = "API Test"
+version = "1.0.0"
+# 3.2, not 3.0: this app reads aster_display_info_t.app_width/app_height and
+# aster_audio_get_info(), and both arrived in 3.2. On a 3.0/3.1 device those
+# fields are never written, so the checks below would be reading whatever was
+# in the app's buffer -- a false pass or a confusing false fail, either way not
+# a test. abi_min is the honest statement of "this package needs 3.2".
+abi     = "3.2.0"
+abi_min = "3.2"
+optimize = "Os"
+icon     = "icon.bin"
+category = "system"
+requires = ["filesystem"]
+permissions = ["fs", "kv", "appmgr"]

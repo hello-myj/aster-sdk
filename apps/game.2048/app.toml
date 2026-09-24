@@ -1,0 +1,19 @@
+[app]
+id      = "aster.game.2048"
+name    = "2048"
+version = "1.0.0"
+abi     = "3.0.0"
+abi_min = "3.0"
+optimize = "Os"
+aot     = true
+icon     = "icon.bin"
+category = "game"
+# 256 KB. The panel canvas needs no app-side pixels, but the firmware may
+# refuse it (rotated panel) and then the surface costs 240x320x2 = 150 KB of
+# this region, so the floor is ~166 KB. 256 KB is the SDK default and what
+# gallery already runs an ordinary surface in. Was 384 KB, from ABI 1.5.
+initial_memory = 262144
+stack   = 8192
+requires = ["display", "touch"]
+permissions = ["kv"]
+sources = ["src/main.c"]

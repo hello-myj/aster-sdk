@@ -1,0 +1,17 @@
+[app]
+id      = "aster.snake"
+name    = "Snake"
+version = "1.0.0"
+abi     = "3.0.0"
+abi_min = "3.0"
+optimize = "Os"
+aot     = true
+icon     = "icon.bin"
+category = "game"
+# See game.2048/app.toml: 256 KB is the canvas path's default, the 150 KB
+# fallback framebuffer is what sets the floor.
+initial_memory = 262144
+stack   = 8192
+requires = ["display", "touch"]
+permissions = []
+sources = ["src/main.c"]

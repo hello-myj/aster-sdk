@@ -1,0 +1,13 @@
+[app]
+id      = "aster.permdeny"
+name    = "Perm Deny Test"
+version = "1.0.0"
+abi     = "3.0.0"
+abi_min = "3.0"
+optimize = "Os"
+icon     = "icon.bin"
+category = "system"
+# NOTE: deliberately declares NO permissions -- used to prove ABI 1.2
+# enforcement returns ASTER_EPERM for every gated family (fs/kv/appmgr).
+requires = []
+permissions = []

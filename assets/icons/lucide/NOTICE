@@ -1,0 +1,4 @@
+Icon artwork: Lucide (https://lucide.dev) — ISC license (MIT-compatible).
+Source: lucide-static v1.41.0, fetched verbatim from
+https://unpkg.com/lucide-static@1.41.0/icons/<name>.svg
+These SVGs are re-rendered offline into A8 atlases; no LVGL/GPL kit code or assets are used.
