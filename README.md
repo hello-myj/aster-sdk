@@ -59,3 +59,13 @@ python -m unittest discover -s tests -v
 导入前校验完整文件清单和 SHA-256，拒绝路径穿越和损坏内容。升级后一起审阅、提交 `include/`、`contract/`、`targets/`。正常构建只读取仓库内固定副本，既不会搜索兄弟目录，也不会自动拉取或同步固件源码。
 
 本仓库保留 MIT 许可；工具链、图标等第三方组件保留各自许可，见 [NOTICE.md](NOTICE.md) 和 [toolchain/README.md](toolchain/README.md)。
+
+## APP 屏幕方向
+
+当前 LCKFB ESP32-S3 的 launcher 固定为竖屏。应用在 `app.toml` 的 `[app]` 下配置：
+
+```toml
+orientation = "landscape" # 或 "portrait"；不设置时从竖屏启动
+```
+
+方向在应用初始化前生效；应用应查询实际显示尺寸。退出、停止或启动失败后，固件恢复竖屏 launcher。SDK 和驱动的横屏支持保持可用。
