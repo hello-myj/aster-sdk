@@ -5,10 +5,10 @@
 下面是可复现的对应表和命令。
 
 图标是**全彩 96×96 瓦片**：一块该 App 自己的渐变色圆角方块，上面压白色的
-Lucide 字形。`app_icons.py` 把它们编成 **RGB565A8**（16 字节头 + 96×96×2 的
+Lucide 字形。`tools/app_icons.py` 把它们编成 **RGB565A8**（16 字节头 + 96×96×2 的
 RGB565 平面 + 96×96×1 的 A8 平面 = **27664 字节**），launcher 原样贴上去，
 不染色、不画底——所以一个 App 在五套主题下长得一模一样
-（`firmware/ui/launcher/launcher.c`）。圆角外的像素 alpha=0，露出壁纸。
+（`systems/zephyr/ui/launcher/launcher.c`）。圆角外的像素 alpha=0，露出壁纸。
 
 上游矢量在 `lucide/`（Lucide ISC，锁定 lucide-static v1.41.0；见 `lucide/NOTICE`），
 源文件是 **24×24 矢量**，由 `app_icons.py` 在 96 上直接重绘：24 单位的字形
@@ -17,15 +17,23 @@ RGB565 平面 + 96×96×1 的 A8 平面 = **27664 字节**），launcher 原样�
 ## 生成
 
 ```bash
-python3 sdk/tools/app_icons.py                 # 全部
-python3 sdk/tools/app_icons.py player          # 只重做某几个
-python3 sdk/tools/app_icons.py --sheet /tmp/icons.png   # 另外出一张九宫格预览
-python3 sdk/tools/app_icons.py --check         # 只比对，不写；文件过期则退出码 1
+python3 tools/app_icons.py                 # 全部
+python3 tools/app_icons.py player          # 只重做某几个
+python3 tools/app_icons.py --sheet /tmp/icons.png   # 另外出一张九宫格预览
+python3 tools/app_icons.py --check         # 只比对，不写；文件过期则退出码 1
 ```
 
 颜色表、瓦片尺寸、圆角、字形方框全都写在 `app_icons.py` 顶部，改完重跑即可。
+
+**四个数里只有三个随瓷砖缩放。** `TILE` / `RADIUS` / `GLYPH_BOX` 是瓷砖自己的
+像素空间，尺寸一变就一起变。`STROKE` 不是——它写在 `scale(GLYPH_BOX/24)` 里面，
+属于 Lucide 的 24 单位坐标系，缩放由 SVG 代劳；留在 2.4 才能让描边等比
+（96 时约 5.4 px），跟着改小会把字形描细。
+
 **唯一需要动固件的情况是改 `TILE`**：launcher 的 `LAUNCHER_WELL_PX` 要和它一致，
-否则图标会被缩小或留空。改配色、换字形、调圆角都不需要碰固件。
+否则图标会被缩小或留空。而且 `LAUNCHER_TILE_MIN_H` 是按"图标方块 + 间距 + 一行标题槽"
+算的预算，`TILE` 一变这个预算就要重新核（`launcher.c` 里有 `BUILD_ASSERT` 兜底）。
+改配色、换字形、调圆角都不需要碰固件。
 
 | App | 源文件 | 颜色 |
 |-----|--------|------|
@@ -55,8 +63,8 @@ python3 sdk/tools/app_icons.py --check         # 只比对，不写；文件过�
 它的 SVG 分支是先在黑底上渲染、再拿亮度当 alpha，那是给单色线稿掩膜写的，
 用在彩色稿上会让所有深色像素变透明。彩色图标走 `app_icons.py`。
 
-画布/launcher chrome 用的仍是 24×24 光栅化的 A8 掩膜，由
-`sdk/tools/launcher_font_gen.py` 烤进 rodata（那些**应该**跟主题走）。
+画布/launcher chrome 用的仍是 16×16 光栅化的 A8 掩膜，烤进固件的
+`systems/zephyr/ui/launcher/launcher_icons.inc`（那些**应该**跟主题走）。
 
 抽屉仍然认 A8：老包（launcher 改全彩之前打的）会退化成「中性卡片底 + 主题前景色
 字形」，画得出来但不再是 App 自己的颜色。重打一遍包就升级到全彩。

@@ -12,7 +12,7 @@
     "include/aster/display.h": "324f406354060434933ef7020abeb86960a7abbd671036dc4856a41133d05962",
     "include/aster/error.h": "b5c4b5f3e005b34d7cf0199f557f98caed5b06f0ef94e227957b34a0ae5ed95f",
     "include/aster/event.h": "bd636455b92a309158273ec38a3b17f2bbc159c5ef3ce30b123064d5bc5188af",
-    "include/aster/font_metrics.h": "a84ca326db2bb11614313707209c0a48b8c51a2bbdc85b73860156559c7a8d6c",
+    "include/aster/font_metrics.h": "22d5cf498b2f2adc7605f3655487b98a0b05735fcf332aa672a27924950683e4",
     "include/aster/fs.h": "961140a1b1c4c63f77ded3358048a4525f87637a90dd5b9717372eaec4f6d635",
     "include/aster/gfx.h": "44e929f8968b0fdc9e961459c2dc1d1cd94705adc9dbd722930b89f7b0fa007a",
     "include/aster/icon.h": "f0b618d9ba2b4e2803a79a90482db4ed1127010cbeaaefc2c96ef36c25674751",
