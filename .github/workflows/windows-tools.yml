@@ -1,0 +1,43 @@
+name: Windows SDK tools
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/**'
+      - 'include/**'
+      - 'lib/**'
+      - 'contract/**'
+      - 'targets/**'
+      - 'requirements-windows.txt'
+      - '.github/workflows/windows-tools.yml'
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build both executables
+        shell: pwsh
+        run: ./tools/package_windows.ps1
+      - name: Smoke test AOT and CLI
+        shell: pwsh
+        run: |
+          python -m unittest tests.test_windows_tools -v
+          if ($LASTEXITCODE -ne 0) { throw 'Windows tool unit tests failed' }
+          ./dist/windows/aster-toolchain.exe build apps/hello --target lckfb-s3 --aot
+          if ($LASTEXITCODE -ne 0) { throw 'AOT build failed' }
+          ./dist/windows/aster-toolchain.exe verify dist/lckfb-s3/aster.hello.ast --target lckfb-s3
+          if ($LASTEXITCODE -ne 0) { throw 'package verification failed' }
+          ./dist/windows/aster-device.exe build apps/hello --toolchain ./dist/windows/aster-toolchain.exe --target lckfb-s3
+          if ($LASTEXITCODE -ne 0) { throw 'device build command failed' }
+          ./dist/windows/aster-device.exe --help
+          if ($LASTEXITCODE -ne 0) { throw 'device CLI failed' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aster-windows-tools
+          path: |
+            dist/windows/aster-toolchain.exe
+            dist/windows/aster-device.exe

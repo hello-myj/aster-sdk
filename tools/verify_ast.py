@@ -20,8 +20,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import aster_board  # noqa: E402
 import pack_ast  # noqa: E402
+from runtime_paths import sdk_root
 
-SDK_ROOT = Path(__file__).resolve().parent.parent
+SDK_ROOT = sdk_root()
 CONTRACT = json.loads((SDK_ROOT / "contract" / "api.json").read_text())
 
 REQUIRED_EXPORTS = ["aster_app_init", "aster_app_start", "aster_app_stop",
@@ -127,7 +128,7 @@ def check(path, pub_pem=None, board=None):
     if not __debug__:
         raise RuntimeError("Package verification requires Python without -O")
     target = aster_board.get(board)
-    b = open(path, "rb").read()
+    b = Path(path).read_bytes()
     assert b[0:4] == b"ASTP", "magic"
     fmt_ver, hdr_size = struct.unpack_from("<HH", b, 4)
     assert fmt_ver == 1 and hdr_size in (64, 72), f"ver/size {fmt_ver}/{hdr_size}"

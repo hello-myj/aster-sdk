@@ -53,33 +53,28 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import aster_board  # noqa: E402
+from runtime_paths import sdk_root, output_root
 
-SDK_ROOT = Path(__file__).resolve().parent.parent
-TOOLS_DIR = SDK_ROOT / "tools"
+SDK_ROOT = sdk_root()
 LIB_DIR = SDK_ROOT / "lib" / "aster"
 INCLUDE_DIR = SDK_ROOT / "include"
 APPS_DIR = SDK_ROOT / "apps"
-BUILD_ROOT = SDK_ROOT / "build"
-OUT_DIR = SDK_ROOT / "dist"
+BUILD_ROOT = output_root() / "build"
+OUT_DIR = output_root() / "dist"
 
-# Toolchain search order: ASTER_WASI_SDK/ASTER_WAMRC env -> repo-bundled
-# (toolchain/, shipped for x86-64 Linux) -> /opt/wasi-sdk -> system
-# PATH. Non x86-64-Linux hosts must build wamrc themselves; see
-# docs: toolchain/README.md.
+# Toolchain search order: ASTER_WASI_SDK/ASTER_WAMRC env -> host-specific
+# bundled copy -> /opt/wasi-sdk -> system PATH.
 BUNDLED_TOOLCHAIN = SDK_ROOT / "toolchain"
 
-# bundled clang/wamrc/wasm-opt are x86-64 Linux binaries
-BUNDLED_USABLE = (
-    _platform.system() == "Linux" and _platform.machine() == "x86_64"
-)
+# Native tools are bundled for x86-64 Linux in the source tree and for
+# x86-64 Windows by tools/package_windows.ps1.
+BUNDLED_USABLE = (_platform.system() in ("Linux", "Windows") and
+                  _platform.machine().lower() in ("x86_64", "amd64"))
 
 WAMRC_BUILD_HINT = (
-    "wamrc (native AOT compiler) not available for this platform: the "
-    "bundled one is x86-64 Linux only. Build it from the vendored WAMR "
-    "sources from the WAMR upstream release, "
-    "then cmake the wamr-compiler; see toolchain/README.md), or set "
-    "ASTER_WAMRC=/path/to/wamrc. Apps still build and run interpreted "
-    "without --aot."
+    "wamrc (native AOT compiler) not found. Install the host-specific "
+    "toolchain or set ASTER_WAMRC to a compatible WAMR 2.4.3 executable. "
+    "See toolchain/README.md."
 )
 
 # The wamrc-backend -> package-target map lives in aster_board.AOT_BACKENDS, and
@@ -116,9 +111,11 @@ def find_clang() -> Path:
     env = os.environ.get("ASTER_WASI_SDK")
     cands = []
     if env:
-        cands.append(Path(env) / "bin" / "clang")
+        cands.append(Path(env) / "bin" / ("clang.exe" if os.name == "nt" else "clang"))
     if BUNDLED_USABLE:
-        cands.append(BUNDLED_TOOLCHAIN / "wasi-sdk-24.0-x86_64-linux" / "bin" / "clang")
+        host = "windows" if os.name == "nt" else "linux"
+        name = "clang.exe" if os.name == "nt" else "clang"
+        cands.append(BUNDLED_TOOLCHAIN / f"wasi-sdk-24.0-x86_64-{host}" / "bin" / name)
     cands.append(Path("/opt/wasi-sdk/bin/clang"))
     for c in cands:
         if c.is_file():
@@ -126,8 +123,8 @@ def find_clang() -> Path:
     which = shutil.which("clang")
     if which:
         return Path(which)
-    sys.exit("error: wasi-sdk clang not found (set ASTER_WASI_SDK; "
-             "x86-64 Linux users should have toolchain/ in the repo)")
+    sys.exit("error: wasi-sdk clang not found (set ASTER_WASI_SDK or install "
+             "the host-specific Aster toolchain)")
 
 
 def find_wamrc() -> Path | None:
@@ -136,7 +133,7 @@ def find_wamrc() -> Path | None:
     if env:
         cands.append(Path(env))
     if BUNDLED_USABLE:
-        cands.append(BUNDLED_TOOLCHAIN / "wamrc")
+        cands.append(BUNDLED_TOOLCHAIN / ("wamrc.exe" if os.name == "nt" else "wamrc"))
     for c in cands:
         if c.is_file():
             return c
@@ -146,7 +143,8 @@ def find_wamrc() -> Path | None:
 def find_wasm_opt() -> Path | None:
     cands = []
     if BUNDLED_USABLE:
-        cands.append(BUNDLED_TOOLCHAIN / "binaryen" / "bin" / "wasm-opt")
+        cands.append(BUNDLED_TOOLCHAIN / "binaryen" / "bin" /
+                     ("wasm-opt.exe" if os.name == "nt" else "wasm-opt"))
     for c in cands:
         if c.is_file():
             return c
@@ -350,7 +348,7 @@ def build_wasm(app: App, obj_dir: Path, wasm_path: Path) -> None:
     # ar + whole-archive keeps the weak crt defaults without pulling in the
     # rest of libc; --allow-undefined lets the aster_* env imports stay imports.
     crt_a = obj_dir / "libcrt.a"
-    llvm_ar = clang.parent / "llvm-ar"
+    llvm_ar = clang.parent / ("llvm-ar.exe" if os.name == "nt" else "llvm-ar")
     if not llvm_ar.is_file():
         llvm_ar = Path(shutil.which("llvm-ar") or "llvm-ar")
     run([str(llvm_ar), "rcs", str(crt_a), str(crt)], "ar")
@@ -378,7 +376,7 @@ def build_wasm(app: App, obj_dir: Path, wasm_path: Path) -> None:
     run(ldflags, "link")
 
     # verify every required export really landed
-    nm = clang.parent / "llvm-nm"
+    nm = clang.parent / ("llvm-nm.exe" if os.name == "nt" else "llvm-nm")
     if nm.is_file():
         r = subprocess.run([str(nm), str(wasm_path)], capture_output=True, text=True)
         exported = set()
@@ -498,8 +496,7 @@ def build_app(app: App, do_aot: bool, aot_target: str = "xtensa") -> Path:
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     pkg = OUT_DIR / f"{app.id}.ast"
-    cmd = [sys.executable, str(TOOLS_DIR / "pack_ast.py"),
-           "--manifest", str(manifest_path), "--wasm", str(wasm_path), "-o", str(pkg)]
+    cmd = ["--manifest", str(manifest_path), "--wasm", str(wasm_path), "-o", str(pkg)]
     sign_key = os.environ.get("ASTER_SIGN_KEY")  # PEM path; unset -> unsigned
     if sign_key:
         cmd += ["--sign", sign_key]
@@ -520,7 +517,9 @@ def build_app(app: App, do_aot: bool, aot_target: str = "xtensa") -> Path:
         if icon.read_bytes()[:4] != b"ASTI":
             sys.exit(f"error: {app.id}: icon is not ASTI: {icon}")
         cmd += ["--icon", str(icon)]
-    run(cmd, "pack")
+    import pack_ast
+    if pack_ast.main(cmd) != 0:
+        raise SystemExit("package creation failed")
     return pkg
 
 
@@ -558,8 +557,8 @@ def main(argv=None) -> int:
     if args.aot_target and args.aot_target != target["aot_target"]:
         ap.error("--aot-target conflicts with the selected target")
     args.aot_target = target["aot_target"]
-    BUILD_ROOT = SDK_ROOT / "build" / target["id"]
-    OUT_DIR = SDK_ROOT / "dist" / target["id"]
+    BUILD_ROOT = output_root() / "build" / target["id"]
+    OUT_DIR = output_root() / "dist" / target["id"]
 
     targets: list[Path] = list(args.apps)
     if args.all:

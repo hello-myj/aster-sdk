@@ -2,8 +2,9 @@
 import json
 import os
 from pathlib import Path
+from runtime_paths import sdk_root
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = sdk_root()
 API = json.loads((ROOT / "contract/api.json").read_text())
 AOT_BACKENDS = API["aot_backends"]
 ORIENTATIONS = {"portrait", "landscape"}

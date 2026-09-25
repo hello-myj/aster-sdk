@@ -8,12 +8,15 @@ contract/           API 描述、运行时版本、文件哈希锁
 targets/            发布目标：CPU/AOT、能力、屏幕信息和部署协议
 lib/aster/          APP C runtime、日志、绘图和文字助手
 apps/               11 个示例，含国际象棋和不依赖显示的 hello
-toolchain/          Linux x86_64 应用编译工具链
+toolchain/          Linux x86_64 工具链及 Windows 打包入口
 tools/              创建项目、构建、验证和 APP 部署
 tests/              契约、目标选择、能力、内存、设备身份和构建测试
 ```
 
 ## 编写和构建 APP
+
+Windows x86-64 的 APP 编译、AOT 和独立串口工具见
+[Windows APP 开发与设备工具](docs/windows-tools.md)。
 
 Python 3.11 或更新版本。当前工作区建议激活已有 Python 3.12 `.venv`。基础编译和离线校验只使用 Python 标准库；串口部署需 `pyserial`，签名验证需 `cryptography`，可用 `pip install -r requirements.txt` 安装。
 
@@ -41,7 +44,7 @@ python tools/aster.py deploy dist/lckfb-s3/aster.gfxshow.ast \
   --target lckfb-s3 --port /dev/ttyACM0 --console /dev/ttyUSB0 --run
 ```
 
-设备须事先安装匹配的 Aster 固件和系统资源。部署先验证包，再通过设备握手确认产品、目标、ABI 与存储状态，接着传输、安装并按需启动 APP。SDK 不构建、烧录或修改固件，不调整硬件配置，不自动连接 USB 设备到 WSL。
+设备须事先安装匹配的 Aster 固件和系统资源。部署先验证包，再通过设备握手确认产品、目标、ABI 与存储状态，接着传输、安装并按需启动 APP。SDK 不构建或修改固件；Windows 独立设备工具可按用户指定的串口和偏移烧录已构建的固件镜像。不自动连接 USB 设备到 WSL。
 
 容器与协议标识在改名中一并改掉了：包魔数 `ASTP`、图标魔数 `ASTI`、资源块 `ASTR`、文件传输 `ASTERFS`。旧 `MJA1`/`MJXI`/`MJR1` 记号一律不再被接受，因此改名前的包与改名前的固件互相拒收——新 SDK 的 API 为 `aster_*`，不直接运行旧 `mjx_*` 二进制，请重编应用。新版固件同样会拒绝旧产品或不同目标的包。
 

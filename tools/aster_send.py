@@ -63,7 +63,11 @@ def find_port(prefer=None, brd=None):
     brd = brd or aster_board.get(None)
     cands = ([prefer] if prefer and prefer != "auto" else [])
     if not cands:
-        cands = sorted(glob.glob(brd["data"]["glob"]))
+        if os.name == "nt":
+            from serial.tools import list_ports
+            cands = [port.device for port in list_ports.comports()]
+        else:
+            cands = sorted(glob.glob(brd["data"]["glob"]))
     for p in dict.fromkeys(cands):
         try:
             with serial.Serial(p, 115200, timeout=0.5, write_timeout=3) as s:

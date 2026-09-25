@@ -30,7 +30,7 @@ def shell_command(port, command, timeout=30):
         raise RuntimeError("device shell timed out: " + output.decode(errors="replace"))
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("package", type=Path)
     parser.add_argument("--target", required=True)
@@ -38,7 +38,7 @@ def main():
     parser.add_argument("--console")
     parser.add_argument("--run", action="store_true")
     parser.add_argument("--pubkey", type=Path)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     target = aster_board.get(args.target)
     manifest = check(args.package, args.pubkey, args.target)
     import aster_send
