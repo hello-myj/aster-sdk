@@ -10,6 +10,7 @@
 #include <aster_gfx.h>
 #include <aster_gfx_engine.h>
 #include <aster/kv.h>
+#include <aster/audio.h>
 #include <aster_text.h>
 
 #define N     4
@@ -84,6 +85,106 @@ static int drew;    /* first present logged */
 static uint32_t rng;
 static int32_t down_x = -1, down_y = -1;
 static int32_t ox, oy;
+static int audio_ready, music_on = 1, sfx_on = 1, music_failed;
+enum { AUDIO_NONE, AUDIO_MUSIC, AUDIO_EFFECT };
+static int audio_kind;
+static int32_t effect_handles[4];
+
+static const char *const music_path = "/assets/audio/bgm.mp3";
+static const char *const slide_path = "/assets/audio/slide.wav";
+static const char *const merge_path = "/assets/audio/merge.wav";
+static const char *const win_path = "/assets/audio/win.wav";
+static const char *const over_path = "/assets/audio/over.wav";
+static const char *const effect_paths[4] = {
+	"/assets/audio/slide.wav", "/assets/audio/merge.wav",
+	"/assets/audio/win.wav", "/assets/audio/over.wav",
+};
+
+static void audio_load_effects(void)
+{
+	if (!audio_ready) {
+		return;
+	}
+	for (int i = 0; i < 4; i++) {
+		int32_t handle = aster_audio_effect_load(effect_paths[i],
+			(uint32_t)strlen(effect_paths[i]));
+		effect_handles[i] = handle > 0 ? handle : 0;
+	}
+}
+
+static void audio_start_music(void)
+{
+	if (!audio_ready || !music_on || music_failed) {
+		return;
+	}
+	if (aster_audio_start_file(music_path, (uint32_t)strlen(music_path)) != ASTER_OK) {
+		music_failed = 1;
+		audio_kind = AUDIO_NONE;
+		return;
+	}
+	audio_kind = AUDIO_MUSIC;
+}
+
+static void audio_effect(const char *path)
+{
+	if (!audio_ready || !sfx_on) {
+		return;
+	}
+	for (int i = 0; i < 4; i++) {
+		if (strcmp(path, effect_paths[i]) == 0 && effect_handles[i] > 0) {
+			if (aster_audio_effect_play((uint32_t)effect_handles[i]) == ASTER_OK &&
+			    audio_kind != AUDIO_MUSIC) {
+				audio_kind = AUDIO_EFFECT;
+			}
+			return;
+		}
+	}
+}
+
+static void audio_tick(void)
+{
+	aster_audio_state_t st = { .size = sizeof(st), .version = 2 };
+
+	if (!audio_ready || aster_audio_get_state(&st, sizeof(st)) != ASTER_OK) {
+		return;
+	}
+	if (st.state == ASTER_AUDIO_IDLE) {
+		audio_kind = AUDIO_NONE;
+		audio_start_music(); /* loop BGM after the stream ends */
+	}
+}
+
+static void audio_toggle_music(void)
+{
+	music_on = !music_on;
+	if (music_on) {
+		music_failed = 0;
+	}
+	(void)aster_kv_set("music", 5, &music_on, sizeof(music_on));
+	repaint = 1;
+	if (!audio_ready) {
+		return;
+	}
+	if (!music_on) {
+		if (audio_kind == AUDIO_MUSIC) {
+			(void)aster_audio_stop();
+			audio_kind = AUDIO_NONE;
+		}
+	} else if (audio_kind == AUDIO_EFFECT) {
+		(void)aster_audio_stop();
+		audio_kind = AUDIO_NONE;
+		audio_start_music();
+	} else if (audio_kind == AUDIO_NONE) {
+		audio_start_music();
+	}
+}
+
+static void audio_toggle_sfx(void)
+{
+	sfx_on = !sfx_on;
+	(void)aster_kv_set("sfx", 3, &sfx_on, sizeof(sfx_on));
+	repaint = 1;
+}
 
 static uint32_t rnd(void)
 {
@@ -259,6 +360,7 @@ static int slide4(uint32_t a[N], uint32_t *add)
 static int move(int dir)
 {
 	int i, j, changed = 0;
+	int won_before = has_won();
 	uint32_t add = 0;
 	uint32_t line[N];
 
@@ -309,6 +411,13 @@ static int move(int dir)
 		if (!can_move()) {
 			dead = 1;
 		}
+		if (dead) {
+			audio_effect(over_path);
+		} else if (!won_before && has_won()) {
+			audio_effect(win_path);
+		} else {
+			audio_effect(add ? merge_path : slide_path);
+		}
 	}
 	return changed;
 }
@@ -327,14 +436,19 @@ static void draw_hud(void)
 	aster_snprintf(line, (int)sizeof(line), "BEST %u", (unsigned)best);
 	aster_ge_text(&ge, 8, b1 + ASTER_TEXT_FACES[0].line_h, NUM_PX, COL_MUTED,
 		    ASTER_GFX_NOBG, line);
-	/* The swipe hint rides the second line, right-aligned: "SCORE 12345" is
-	 * ~138 px at this face, so at its old x=148 it would have shared a
-	 * baseline with the score and touched it. */
-	w = aster_gfx_text_w(NUM_PX, "swipe", 5u);
+	/* Two independent controls in the right half of the HUD. */
+	const char *music = music_on ? "BGM ON" : "BGM OFF";
+	w = aster_gfx_text_w(NUM_PX, music, (uint32_t)strlen(music));
+	if (w > 0) {
+		aster_ge_text(&ge, (int32_t)W - 8 - w, b1, NUM_PX,
+			    audio_ready ? COL_HUD : COL_MUTED, ASTER_GFX_NOBG, music);
+	}
+	const char *sfx = sfx_on ? "SFX ON" : "SFX OFF";
+	w = aster_gfx_text_w(NUM_PX, sfx, (uint32_t)strlen(sfx));
 	if (w > 0) {
 		aster_ge_text(&ge, (int32_t)W - 8 - w,
 			    b1 + ASTER_TEXT_FACES[0].line_h, NUM_PX, COL_MUTED,
-			    ASTER_GFX_NOBG, "swipe");
+			    ASTER_GFX_NOBG, sfx);
 	}
 }
 
@@ -414,9 +528,21 @@ static void on_touch(const aster_event_t *ev)
 	}
 	dx = x - down_x;
 	dy = y - down_y;
+	if (down_x >= (int32_t)W - 92 && x >= (int32_t)W - 92 &&
+	    down_y >= 0 && down_y < HUD && y >= 0 && y < HUD &&
+	    dx > -16 && dx < 16 && dy > -16 && dy < 16) {
+		if (y < 30) {
+			audio_toggle_music();
+		} else {
+			audio_toggle_sfx();
+		}
+		down_x = down_y = -1;
+		return;
+	}
 	down_x = down_y = -1;
 	if (dead) {
 		reset_game();
+		audio_effect(slide_path);
 		return;
 	}
 	if (has_won() && !keep_going) {
@@ -470,7 +596,22 @@ ASTER_APP_EXPORT int aster_app_init(void)
 	oy = HUD;
 	rng = aster_time_now_ms() ^ 0x20482048u;
 	load_best();
+	{
+		int value;
+
+		if (aster_kv_get("music", 5, &value, sizeof(value)) == sizeof(value)) {
+			music_on = value != 0;
+		}
+		if (aster_kv_get("sfx", 3, &value, sizeof(value)) == sizeof(value)) {
+			sfx_on = value != 0;
+		}
+	}
+	audio_ready = aster_system_has_feature(ASTER_FEATURE_AUDIO_OUTPUT) > 0;
+	music_failed = 0;
+	audio_kind = AUDIO_NONE;
 	reset_game();
+	audio_load_effects();
+	audio_start_music();
 	aster_logf(ASTER_LOG_INFO, "2048 %ux%u best=%u canvas=%d", W, H,
 		 (unsigned)best, (buf.flags & ASTER_SURFACE_F_PANEL_CANVAS) != 0u);
 	return ASTER_OK;
@@ -479,9 +620,33 @@ ASTER_APP_EXPORT int aster_app_init(void)
 ASTER_APP_EXPORT void aster_app_stop(void)
 {
 	save_best();
+	if (audio_ready) {
+		(void)aster_audio_stop();
+	}
+	for (int i = 0; i < 4; i++) {
+		if (effect_handles[i] > 0) {
+			(void)aster_audio_effect_unload((uint32_t)effect_handles[i]);
+			effect_handles[i] = 0;
+		}
+	}
+	audio_kind = AUDIO_NONE;
 	if (surf != ASTER_HANDLE_INVALID) {
 		aster_surface_destroy(surf);
 		surf = ASTER_HANDLE_INVALID;
+	}
+}
+
+ASTER_APP_EXPORT void aster_app_pause(void)
+{
+	if (audio_ready && audio_kind != AUDIO_NONE) {
+		(void)aster_audio_pause();
+	}
+}
+
+ASTER_APP_EXPORT void aster_app_resume(void)
+{
+	if (audio_ready && audio_kind != AUDIO_NONE) {
+		(void)aster_audio_resume();
 	}
 }
 
@@ -492,6 +657,7 @@ ASTER_APP_EXPORT void aster_app_event(const aster_event_t *ev)
 		on_touch(ev);
 		break;
 	case ASTER_EVENT_FRAME:
+		audio_tick();
 		/* 2048 is turn-based: the board only changes on touch, so an
 		 * idle frame has nothing to say. Skipping the whole draw (not
 		 * just the present) keeps a still board from paying 17 ms of

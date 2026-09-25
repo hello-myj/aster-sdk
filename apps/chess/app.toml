@@ -1,0 +1,17 @@
+[app]
+id      = "aster.chess"
+name    = "Chess"
+version = "1.0.1"
+abi     = "3.4.0"
+abi_min = "3.4"
+optimize = "Os"
+aot     = true
+icon    = "icon.bin"
+category = "game"
+orientation = "portrait"
+initial_memory = 262144
+stack   = 8192
+requires = ["display", "touch"]
+permissions = ["fs"]
+assets = ["audio/move.wav"]
+sources = ["src/main.c", "src/chess.c"]

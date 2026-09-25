@@ -1,9 +1,9 @@
 [app]
 id      = "aster.snake"
 name    = "Snake"
-version = "1.0.0"
-abi     = "3.0.0"
-abi_min = "3.0"
+version = "1.2.1"
+abi     = "3.4.0"
+abi_min = "3.4"
 optimize = "Os"
 aot     = true
 icon     = "icon.bin"
@@ -13,5 +13,6 @@ category = "game"
 initial_memory = 262144
 stack   = 8192
 requires = ["display", "touch"]
-permissions = []
+permissions = ["fs"]
+assets = ["audio/eat.wav", "audio/death.wav", "audio/restart.wav", "audio/move.wav"]
 sources = ["src/main.c"]

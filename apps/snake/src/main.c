@@ -7,6 +7,7 @@
 #include <aster_imports.h>
 #include <aster_gfx.h>
 #include <aster_gfx_engine.h>
+#include <aster/audio.h>
 #include <aster_text.h>
 
 #define CELL 16
@@ -83,6 +84,38 @@ static int dead;
 static int score;
 static uint32_t rng;
 static int32_t down_x = -1, down_y = -1;
+static int audio_ready;
+static int32_t effect_handles[4];
+static const char *const effect_paths[4] = {
+	"/assets/audio/eat.wav", "/assets/audio/death.wav",
+	"/assets/audio/restart.wav", "/assets/audio/move.wav",
+};
+enum { SFX_EAT, SFX_DEATH, SFX_RESTART, SFX_MOVE };
+
+static void play_effect(int id)
+{
+	if (audio_ready && effect_handles[id] > 0) {
+		int32_t rc = aster_audio_effect_play((uint32_t)effect_handles[id]);
+		if (rc != ASTER_OK) {
+			aster_logf(ASTER_LOG_ERROR, "snake sound %d: %d", id, rc);
+		}
+	}
+}
+
+static void load_effects(void)
+{
+	if (!audio_ready) {
+		return;
+	}
+	for (int i = 0; i < 4; i++) {
+		int32_t handle = aster_audio_effect_load(effect_paths[i],
+			(uint32_t)strlen(effect_paths[i]));
+		effect_handles[i] = handle > 0 ? handle : 0;
+		if (handle <= 0) {
+			aster_logf(ASTER_LOG_ERROR, "snake sound load %d: %d", i, handle);
+		}
+	}
+}
 
 static const int8_t DX[4] = { 1, 0, -1, 0 };
 static const int8_t DY[4] = { 0, 1, 0, -1 };
@@ -222,11 +255,13 @@ static void step(void)
 	ny = (int)by[0] + DY[dir];
 	if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) {
 		dead = 1;
+		play_effect(SFX_DEATH);
 		return;
 	}
 	if (nx == food_x && ny == food_y) {
 		if (occupied(nx, ny, 0)) {
 			dead = 1;
+			play_effect(SFX_DEATH);
 			return;
 		}
 		if (len < MAX) {
@@ -242,12 +277,16 @@ static void step(void)
 		place_food();
 		if (food_x < 0) {
 			dead = 1;
+			play_effect(SFX_DEATH);
+		} else {
+			play_effect(SFX_EAT);
 		}
 		return;
 	}
 	if (occupied(nx, ny, 0) && !(bx[len - 1] == (uint8_t)nx &&
 				     by[len - 1] == (uint8_t)ny)) {
 		dead = 1;
+		play_effect(SFX_DEATH);
 		return;
 	}
 	for (i = len - 1; i > 0; i--) {
@@ -256,6 +295,7 @@ static void step(void)
 	}
 	bx[0] = (uint8_t)nx;
 	by[0] = (uint8_t)ny;
+	play_effect(SFX_MOVE);
 }
 
 static void steer(int nd)
@@ -288,6 +328,7 @@ static void on_touch(const aster_event_t *ev)
 	down_x = down_y = -1;
 	if (dead) {
 		reset_game();
+		play_effect(SFX_RESTART);
 		return;
 	}
 	if (dx > 12 && dx >= (dy < 0 ? -dy : dy)) {
@@ -339,13 +380,24 @@ ASTER_APP_EXPORT int aster_app_init(void)
 	aster_ge_init(&ge, surf, W, H, ring, sizeof(ring) / sizeof(ring[0]), arena,
 		    sizeof(arena));
 	rng = aster_time_now_ms() ^ 0xA5A5A5A5u;
+	audio_ready = aster_system_has_feature(ASTER_FEATURE_AUDIO_OUTPUT) > 0;
 	reset_game();
+	load_effects();
 	aster_logf(ASTER_LOG_INFO, "snake %ux%u grid %dx%d", W, H, cols, rows);
 	return ASTER_OK;
 }
 
 ASTER_APP_EXPORT void aster_app_stop(void)
 {
+	if (audio_ready) {
+		(void)aster_audio_stop();
+	}
+	for (int i = 0; i < 4; i++) {
+		if (effect_handles[i] > 0) {
+			(void)aster_audio_effect_unload((uint32_t)effect_handles[i]);
+			effect_handles[i] = 0;
+		}
+	}
 	if (surf != ASTER_HANDLE_INVALID) {
 		aster_surface_destroy(surf);
 		surf = ASTER_HANDLE_INVALID;

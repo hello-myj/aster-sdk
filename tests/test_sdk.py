@@ -21,8 +21,9 @@ from verify_ast import check
 class Compatibility(unittest.TestCase):
     def setUp(self):
         self.target = aster_board.get("lckfb-s3")
+        abi = self.target["abi"]
         self.manifest = {"id": "test.hello", "product": "aster", "target_id": self.target["id"],
-                         "abi": {"min": "3.3", "target": "3.3.0"}, "requires": ["display"],
+                         "abi": {"min": ".".join(abi.split(".")[:2]), "target": abi}, "requires": ["display"],
                          "memory": {"initial": 131072, "max": 262144, "stack": 16384}}
 
     def test_compatible_release(self):
@@ -37,7 +38,8 @@ class Compatibility(unittest.TestCase):
             validate_manifest(self.manifest, dict(self.target, capabilities=[]))
 
     def test_incompatible_abi(self):
-        for version in ("4.0", "3.4", "invalid"):
+        major, minor = map(int, self.target["abi"].split(".")[:2])
+        for version in (f"{major + 1}.0", f"{major}.{minor + 1}", "invalid"):
             with self.subTest(version=version), self.assertRaises(ValueError):
                 self.manifest["abi"]["min"] = version
                 validate_manifest(self.manifest, self.target)
@@ -57,10 +59,11 @@ class Compatibility(unittest.TestCase):
                 validate_manifest(self.manifest, self.target)
 
     def test_device_identity(self):
-        validate_device("PONG sd=1 product=aster target=lckfb-s3 abi=3.3", self.target)
+        abi = self.target["abi"]
+        validate_device(f"PONG sd=1 product=aster target=lckfb-s3 abi={abi}", self.target)
         for pong in ("PONG sd=1", "PONG sd=1 product=mjx target=lckfb-s3 abi=3.2",
-                     "PONG sd=1 product=aster target=different-hardware abi=3.3",
-                     "PONG sd=0 product=aster target=lckfb-s3 abi=3.3"):
+                     f"PONG sd=1 product=aster target=different-hardware abi={abi}",
+                     f"PONG sd=0 product=aster target=lckfb-s3 abi={abi}"):
             with self.subTest(pong=pong), self.assertRaises(ValueError):
                 validate_device(pong, self.target)
 
@@ -116,17 +119,19 @@ class BuildPipeline(unittest.TestCase):
 
     def test_headless_device_rejects_graphical_app(self):
         target = aster_board.get("lckfb-s3")
+        pong = f"PONG sd=1 product=aster target=lckfb-s3 abi={target['abi']} caps="
         with self.assertRaisesRegex(ValueError, "display"):
-            validate_device("PONG sd=1 product=aster target=lckfb-s3 abi=3.3 caps=0", target, ["display"])
-        validate_device("PONG sd=1 product=aster target=lckfb-s3 abi=3.3 caps=1", target, ["display"])
-        validate_device("PONG sd=1 product=aster target=lckfb-s3 abi=3.3 caps=0", target, [])
+            validate_device(pong + "0", target, ["display"])
+        validate_device(pong + "1", target, ["display"])
+        validate_device(pong + "0", target, [])
 
 
 class Deployment(unittest.TestCase):
     def test_failed_transfer_cannot_install_stale_package(self):
         import deploy
+        abi = aster_board.get("lckfb-s3")["abi"]
         sender = SimpleNamespace(find_port=lambda *a, **kw: (
-            "/dev/fake", "PONG sd=1 product=aster target=lckfb-s3 abi=3.3"),
+            "/dev/fake", f"PONG sd=1 product=aster target=lckfb-s3 abi={abi}"),
             send_file=lambda *a, **kw: "ERR -5")
         with patch.object(sys, "argv", ["deploy", "test.ast", "--target", "lckfb-s3"]), \
              patch.object(deploy, "check", return_value={"id": "test.hello"}), \

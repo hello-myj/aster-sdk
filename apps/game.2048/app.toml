@@ -1,9 +1,9 @@
 [app]
 id      = "aster.game.2048"
 name    = "2048"
-version = "1.0.0"
-abi     = "3.0.0"
-abi_min = "3.0"
+version = "1.3.0"
+abi     = "3.4.0"
+abi_min = "3.4"
 optimize = "Os"
 aot     = true
 icon     = "icon.bin"
@@ -15,5 +15,6 @@ category = "game"
 initial_memory = 262144
 stack   = 8192
 requires = ["display", "touch"]
-permissions = ["kv"]
+permissions = ["kv", "fs"]
+assets = ["audio/bgm.mp3", "audio/slide.wav", "audio/merge.wav", "audio/win.wav", "audio/over.wav"]
 sources = ["src/main.c"]

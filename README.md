@@ -7,7 +7,7 @@ include/aster/       固定版本的公开接口副本
 contract/           API 描述、运行时版本、文件哈希锁
 targets/            发布目标：CPU/AOT、能力、屏幕信息和部署协议
 lib/aster/          APP C runtime、日志、绘图和文字助手
-apps/               10 个示例，含不依赖显示的 hello
+apps/               11 个示例，含国际象棋和不依赖显示的 hello
 toolchain/          Linux x86_64 应用编译工具链
 tools/              创建项目、构建、验证和 APP 部署
 tests/              契约、目标选择、能力、内存、设备身份和构建测试
@@ -52,7 +52,7 @@ python tools/aster.py deploy dist/lckfb-s3/aster.gfxshow.ast \
 ## 升级接口契约
 
 ```bash
-python tools/import_contract.py /path/to/aster-contract-3.3.0.zip
+python tools/import_contract.py /path/to/aster-contract-3.4.0.zip
 python -m unittest discover -s tests -v
 ```
 
