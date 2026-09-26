@@ -7,7 +7,7 @@ include/aster/       固定版本的公开接口副本
 contract/           API 描述、运行时版本、文件哈希锁
 targets/            发布目标：CPU/AOT、能力、屏幕信息和部署协议
 lib/aster/          APP C runtime、日志、绘图和文字助手
-apps/               11 个示例，含国际象棋和不依赖显示的 hello
+apps/               12 个示例，含 Star Catch 小游戏、国际象棋和不依赖显示的 hello
 toolchain/          Linux x86_64 工具链及 Windows 打包入口
 tools/              创建项目、构建、验证和 APP 部署
 tests/              契约、目标选择、能力、内存、设备身份和构建测试
@@ -27,6 +27,7 @@ python tools/aster.py targets
 python tools/aster.py new /tmp/my-aster-app --id com.example.hello
 python tools/aster.py build /tmp/my-aster-app --target lckfb-s3 --no-aot
 python tools/aster.py build apps/gfxshow --target lckfb-s3 --aot
+python tools/aster.py build apps/starcatch --target lckfb-s3 --aot
 python tools/aster.py build --all --target lckfb-s3 --aot
 ```
 

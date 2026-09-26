@@ -6,6 +6,21 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+function Invoke-WindowsTool([string]$Command, [string[]]$Arguments) {
+    $quoted = @($Arguments | ForEach-Object {
+        if ($_ -match '[\s"]') { '"' + $_.Replace('"', '\"') + '"' } else { $_ }
+    })
+    $start = New-Object System.Diagnostics.ProcessStartInfo
+    $start.FileName = $Command
+    $start.Arguments = $quoted -join " "
+    $start.UseShellExecute = $false
+    $process = [System.Diagnostics.Process]::Start($start)
+    $process.WaitForExit()
+    $exitCode = $process.ExitCode
+    $process.Dispose()
+    if ($exitCode -ne 0) { throw "$Command failed with exit code $exitCode" }
+}
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 if (-not $Cache) { $Cache = Join-Path $root "build\windows-downloads" }
 New-Item -ItemType Directory -Force $Cache | Out-Null
@@ -25,8 +40,7 @@ if (-not $WasiSdk) {
     $extract = Join-Path $Cache "wasi-sdk"
     if (-not (Test-Path (Join-Path $extract ".complete"))) {
         New-Item -ItemType Directory -Force $extract | Out-Null
-        & tar -xzf $archive -C $extract
-        if ($LASTEXITCODE -ne 0) { throw "wasi-sdk extraction failed" }
+        Invoke-WindowsTool (Get-Command tar.exe).Source @("-xzf", $archive, "-C", $extract)
         New-Item -ItemType File (Join-Path $extract ".complete") | Out-Null
     }
     $clang = Get-ChildItem $extract -Filter clang.exe -Recurse -File | Select-Object -First 1
@@ -59,25 +73,32 @@ foreach ($name in @("MSVCP140.dll", "VCRUNTIME140.dll", "VCRUNTIME140_1.dll")) {
 $WasiSdk = $slim
 
 if (-not $Wamrc) {
-    $archive = Join-Path $Cache "wamrc-2.4.3-x86_64-windows-2022.zip"
-    if (-not (Test-Path $archive)) {
-        Invoke-WebRequest -Uri "https://github.com/wasm-micro-runtime/wasm-micro-runtime/releases/download/WAMR-2.4.3/wamrc-2.4.3-x86_64-windows-2022.zip" -OutFile $archive
+    $Wamrc = Join-Path $Cache "wamrc-xtensa\wamrc.exe"
+    if (-not (Test-Path $Wamrc)) {
+        & (Join-Path $PSScriptRoot "build_wamrc_windows.ps1") -Cache $Cache -Output $Wamrc
     }
-    $digest = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
-    if ($digest -ne "ca6dfb01cf6b40a4afa7afcac07a020f8aca0385616fd1e6d6a5f67f7e30f638") {
-        Remove-Item $archive -Force
-        throw "WAMR archive SHA-256 mismatch; retry the command"
-    }
-    $extract = Join-Path $Cache "wamrc"
-    if (-not (Test-Path (Join-Path $extract "wamrc.exe"))) {
-        Expand-Archive -Path $archive -DestinationPath $extract -Force
-    }
-    $Wamrc = Join-Path $extract "wamrc.exe"
 }
 if (-not (Test-Path $Wamrc)) { throw "wamrc.exe missing: $Wamrc" }
 
-& $Python -m pip install -r (Join-Path $root "requirements-windows.txt")
-if ($LASTEXITCODE -ne 0) { throw "Windows Python dependencies failed to install" }
+# Compile a real Wasm module to check that this Windows wamrc has the Xtensa
+# backend. Upstream's generic 2.4.3 Windows archive lacks that backend.
+$probeSource = Join-Path $Cache "aot-probe.c"
+$probeWasm = Join-Path $Cache "aot-probe.wasm"
+$probeAot = Join-Path $Cache "aot-probe.aot"
+Set-Content -Path $probeSource -Value "void aster_probe(void) {}" -Encoding Ascii
+Invoke-WindowsTool (Join-Path $WasiSdk "bin\clang.exe") @(
+    "--target=wasm32-unknown-unknown", "-nostdlib", "-Wl,--no-entry",
+    "-Wl,--export=aster_probe", "-o", $probeWasm, $probeSource)
+Invoke-WindowsTool $Wamrc @("--target=xtensa", "--size-level=s", "-o", $probeAot, $probeWasm)
+if (-not (Test-Path $probeAot)) { throw "wamrc did not create an Xtensa AOT file: $Wamrc" }
+$probeBytes = [System.IO.File]::ReadAllBytes($probeAot)
+if ($probeBytes.Length -lt 8 -or $probeBytes[0] -ne 0 -or
+    $probeBytes[1] -ne 97 -or $probeBytes[2] -ne 111 -or $probeBytes[3] -ne 116 -or
+    [BitConverter]::ToUInt32($probeBytes, 4) -ne 6) {
+    throw "wamrc returned an AOT file incompatible with firmware format v6: $Wamrc"
+}
+
+Invoke-WindowsTool $Python @("-m", "pip", "install", "-r", (Join-Path $root "requirements-windows.txt"))
 
 $common = @(
     "--noconfirm", "--clean", "--onefile", "--console",
@@ -102,16 +123,14 @@ foreach ($file in $runtimeDlls) {
     $toolData += @("--add-data", "$file;toolchain")
 }
 
-& $Python -m PyInstaller @common @sdkData @toolData `
-    --hidden-import pack_ast --hidden-import verify_ast `
-    --collect-all cryptography --name aster-toolchain `
-    (Join-Path $root "tools\windows_toolchain.py")
-if ($LASTEXITCODE -ne 0) { throw "aster-toolchain.exe packaging failed" }
+Invoke-WindowsTool $Python (@("-m", "PyInstaller") + $common + $sdkData + $toolData + @(
+    "--hidden-import", "pack_ast", "--hidden-import", "verify_ast",
+    "--collect-all", "cryptography", "--name", "aster-toolchain",
+    (Join-Path $root "tools\windows_toolchain.py")))
 
-& $Python -m PyInstaller @common @sdkData `
-    --hidden-import esptool --hidden-import serial.tools.list_ports `
-    --collect-all esptool --collect-all serial --collect-all cryptography `
-    --name aster-device (Join-Path $root "tools\windows_device.py")
-if ($LASTEXITCODE -ne 0) { throw "aster-device.exe packaging failed" }
+Invoke-WindowsTool $Python (@("-m", "PyInstaller") + $common + $sdkData + @(
+    "--hidden-import", "esptool", "--hidden-import", "serial.tools.list_ports",
+    "--collect-all", "esptool", "--collect-all", "serial", "--collect-all", "cryptography",
+    "--name", "aster-device", (Join-Path $root "tools\windows_device.py")))
 
 Write-Host "Windows tools: $out\aster-toolchain.exe and $out\aster-device.exe"

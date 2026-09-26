@@ -12,22 +12,27 @@ from target_checks import validate_device
 from verify_ast import check
 
 
-def shell_command(port, command, timeout=30):
+def shell_command(port, command, timeout=45):
     import serial
-    with serial.Serial(port, 115200, timeout=0.2, write_timeout=5) as connection:
-        connection.write(b"\x03\r\n")
-        time.sleep(0.2)
-        connection.reset_input_buffer()
-        connection.write((command + "\r\n").encode())
-        connection.flush()
-        output = bytearray()
-        deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
-            output.extend(connection.read(4096))
-            text = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", output.decode(errors="replace"))
-            if "aster:~$" in text:
-                return text
-        raise RuntimeError("device shell timed out: " + output.decode(errors="replace"))
+    for attempt in range(3):
+        with serial.Serial(port, 115200, timeout=0.2, write_timeout=5) as connection:
+            connection.write(b"\x03\r\n")
+            time.sleep(0.2)
+            connection.reset_input_buffer()
+            connection.write((command + "\r\n").encode())
+            connection.flush()
+            output = bytearray()
+            deadline = time.monotonic() + timeout / 3
+            while time.monotonic() < deadline:
+                output.extend(connection.read(4096))
+                reply = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", output.decode(errors="replace"))
+                echo = reply.find(command)
+                if echo >= 0 and "aster:~$" in reply[echo + len(command):]:
+                    return reply
+        # Closing the USB data port can reboot the board. Retry a command
+        # sent during startup instead of accepting an old shell prompt.
+        time.sleep(1)
+    raise RuntimeError("device shell timed out waiting for command echo: " + command)
 
 
 def main(argv=None):

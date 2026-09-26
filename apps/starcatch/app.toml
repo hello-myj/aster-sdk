@@ -1,0 +1,15 @@
+[app]
+id = "aster.starcatch"
+name = "Star Catch"
+version = "1.0.0"
+abi = "3.2.0"
+abi_min = "3.2"
+optimize = "Os"
+aot = true
+icon = "icon.bin"
+category = "game"
+initial_memory = 262144
+max_memory = 524288
+stack = 8192
+requires = ["display", "touch"]
+sources = ["src/main.c"]

@@ -32,17 +32,21 @@ class RetryError(Exception):
 
 
 def _probe(s):
-    """send ASTERPING, return reply string or None."""
-    s.reset_input_buffer()
-    s.write(b"ASTERPING\r\n")
-    s.flush()
-    t0 = time.time()
-    buf = b""
-    while time.time() - t0 < 1.0:
-        buf += s.read(64)
-        if b"\r\n" in buf:
-            break
-    return buf.decode(errors="replace").strip() if b"PONG" in buf else None
+    """Send ASTERPING, retrying when USB CDC drops the first write on reopen."""
+    for _ in range(3):
+        s.reset_input_buffer()
+        s.write(b"ASTERPING\r\n")
+        s.flush()
+        deadline = time.monotonic() + 1.0
+        buf = b""
+        while time.monotonic() < deadline:
+            buf += s.read(64)
+            while b"\n" in buf:
+                line, buf = buf.split(b"\n", 1)
+                if line.startswith(b"PONG"):
+                    return line.decode(errors="replace").strip()
+        time.sleep(0.15)
+    return None
 
 
 def find_port(prefer=None, brd=None):
@@ -80,19 +84,17 @@ def find_port(prefer=None, brd=None):
 
 
 def _token(s, tmo):
-    """Read one protocol token line (ACK/OK/ERR/RESUME), skipping junk."""
-    old = s.timeout
-    s.timeout = tmo
-    try:
-        while True:
-            ln = s.readline()
-            if not ln:
-                return None            # timeout: device went silent
-            t = ln.decode(errors="replace").strip()
-            if t.startswith(("ACK ", "OK", "ERR", "RESUME")):
-                return t
-    finally:
-        s.timeout = old
+    """Read a protocol line without reconfiguring a live Windows CDC port."""
+    deadline = time.monotonic() + tmo
+    buf = b""
+    while time.monotonic() < deadline:
+        buf += s.read(64)
+        while b"\n" in buf:
+            raw, buf = buf.split(b"\n", 1)
+            token = raw.decode(errors="replace").strip()
+            if token.startswith(("ACK ", "OK", "ERR", "RESUME")):
+                return token
+    return None
 
 
 def send_file(port, local, remote=None, chunk=None, gap=None, retries=3,
@@ -129,7 +131,11 @@ def send_file(port, local, remote=None, chunk=None, gap=None, retries=3,
             validate_device(pong or "", target)
         if not pong:
             raise RuntimeError(f"{port} not answering ASTERPING")
+        # Give the USB CDC service time to finish its PONG before ASTERPUT.
+        time.sleep(0.5)
         for _step in range(hard_cap):
+            if _step:
+                time.sleep(0.5)
             s.reset_input_buffer()
             s.write(f"ASTERPUT {remote} {n} {crc:08x} {resume_from}\r\n".encode())
             s.flush()

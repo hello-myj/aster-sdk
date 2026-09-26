@@ -9,11 +9,12 @@ on:
       - 'contract/**'
       - 'targets/**'
       - 'requirements-windows.txt'
+      - 'docs/windows-tools.md'
       - '.github/workflows/windows-tools.yml'
 jobs:
   windows:
     runs-on: windows-2022
-    timeout-minutes: 90
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -31,6 +32,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'AOT build failed' }
           ./dist/windows/aster-toolchain.exe verify dist/lckfb-s3/aster.hello.ast --target lckfb-s3
           if ($LASTEXITCODE -ne 0) { throw 'package verification failed' }
+          ./dist/windows/aster-toolchain.exe build apps/gfxshow --target lckfb-s3 --aot
+          if ($LASTEXITCODE -ne 0) { throw 'gfxshow AOT build failed' }
+          ./dist/windows/aster-toolchain.exe verify dist/lckfb-s3/aster.gfxshow.ast --target lckfb-s3
+          if ($LASTEXITCODE -ne 0) { throw 'gfxshow package verification failed' }
           ./dist/windows/aster-device.exe build apps/hello --toolchain ./dist/windows/aster-toolchain.exe --target lckfb-s3
           if ($LASTEXITCODE -ne 0) { throw 'device build command failed' }
           ./dist/windows/aster-device.exe --help
