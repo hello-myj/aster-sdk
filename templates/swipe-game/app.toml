@@ -1,0 +1,18 @@
+[app]
+id = "aster.prismdrop"
+name = "Prism Drop"
+version = "1.0.0"
+abi = "3.4.0"
+abi_min = "3.4"
+optimize = "Os"
+aot = true
+orientation = "portrait"
+category = "game"
+icon = "icon.bin"
+initial_memory = 393216
+max_memory = 524288
+stack = 8192
+requires = ["display", "touch", "audio-out"]
+permissions = ["fs"]
+assets = ["audio/move.wav", "audio/drop.wav", "audio/clear.wav", "audio/over.wav"]
+sources = ["src/main.c", "src/game.c"]

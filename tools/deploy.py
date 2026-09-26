@@ -63,7 +63,9 @@ def main(argv=None):
     if args.run:
         response = shell_command(console, "aster app start " + manifest["id"])
         print(response)
-        if re.search(r"failed|error", response, re.IGNORECASE):
+        # Recoverable driver diagnostics may contain "Error" even when the
+        # shell confirms startup. Require the command result, not log wording.
+        if not re.search(r"(?m)^\s*started " + re.escape(manifest["id"]) + r"\s*$", response):
             raise RuntimeError("device could not start the application")
     return 0
 

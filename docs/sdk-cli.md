@@ -1,0 +1,86 @@
+# 统一 SDK 命令（Windows / Linux）
+
+SDK 提供 `aster` 命令。项目只需要 `app.toml`、源代码和素材，不需要项目专用构建脚本。
+
+## Linux 安装与环境
+
+支持 x86_64 Linux，Python 3.11+，自带 wasi-sdk / Xtensa wamrc。Python 版本太旧时，先通过发行版包管理器安装 Python 3.11+ 和对应 venv 包（例如 Ubuntu 24.04 的 `python3 python3-venv`）。
+
+```bash
+cd /path/to/aster-sdk
+./bin/aster install --add-path
+source ./env.sh
+aster doctor
+```
+
+`install` 把 pyserial 和 cryptography 安装到 SDK 的 `.venv-linux`，不修改系统 Python。`--flash` 额外安装 esptool，用于刷固件。首次安装需要联网访问 Python 包仓库。若 Windows Git 检出把 Linux 工具链符号链接变成小文本文件，安装时会恢复这些链接。
+
+`--add-path` 在当前用户的 `~/.bashrc` 或 `~/.zshrc` 中写入一个可重复更新的 Aster 区块；可用 `--profile /path/to/profile` 指定其他文件。`source env.sh` 立即在当前终端生效；以后交互终端自动生效。登录 shell、CI 可直接 source 该文件。
+
+## Windows 安装与环境
+
+把 `aster.exe`、`aster-toolchain.exe`、`aster-device.exe` 放在同一个固定目录。原生 EXE 内置 Python 依赖、Wasm 编译器和 Xtensa AOT 编译器，不需要 Python、WSL 或 Visual Studio。
+
+```powershell
+cd E:\AsterTools
+.\aster.exe install --add-path
+. .\env.ps1
+aster doctor
+```
+
+`--add-path` 更新当前用户 PATH，不要求管理员权限；新开的终端生效。PowerShell 当前终端使用 `. .\env.ps1`；CMD 使用 `call env.cmd`。移动安装目录后，请在新位置重新执行安装并删除旧 PATH 项。
+
+开发 SDK 源码时，也可使用 `bin\aster.cmd`（优先调用 `dist\windows\aster.exe`，没有 EXE 时调用 Python 3.11+）；源码依赖环境使用 `.venv-windows`，与 Linux 的 venv 分开。源码方式需要本机 Windows wasi-sdk 和 Xtensa wamrc，发布 EXE 已包含这些工具。原生 EXE 打包入口是 `tools/package_windows.ps1`。
+
+## 创建、编译、运行
+
+安装并激活后，两个平台的项目命令完全相同：
+
+```text
+aster templates
+aster init my-game --template swipe-game --id com.example.mygame --name "My Game"
+cd my-game
+aster build
+aster run
+```
+
+- `templates`：列出内置模板。目前有 `hello`（最小生命周期示例）和 `swipe-game`（滑动控制的落块游戏，含图标和四种音效）。
+- `init <目录>`：创建项目，拒绝覆盖已有目录。目录可以在 SDK 之外。
+- `--template`：选择模板，默认 `hello`。
+- `--id`：应用唯一标识，建议使用 `com.example.game`；省略时从目录名生成 `app.<目录名>`。更改名称不必更改 ID。
+- `--name`：安装到设备后显示的应用名称，省略时使用目录名。
+- `--target`：目标板，保存到项目 `app.toml` 的 `[sdk] target` 中，目前为 `lckfb-s3`。
+- `build [项目目录]`：编译并验证 `.ast` 包，省略目录时使用当前目录。模板默认 AOT；`--no-aot` 临时关闭，`--aot` 强制开启。
+- `run [项目目录]`：编译、传输、安装并启动应用。`--no-build` 使用已有包。
+- `--port`：设备的数据串口；`--console`：设备的命令/日志串口。默认均自动发现；多个设备时指定端口。Windows 如 `aster run --port COM22 --console COM24`；Linux 如 `aster run --port /dev/ttyACM0 --console /dev/ttyUSB0`。
+
+Linux 串口需要当前用户具有读写权限；通常由设备所属的 dialout/uucp 组控制，按发行版配置后重新登录。`install` 不自动修改用户组或使用 sudo。
+
+目标板优先级：命令行 `--target` > 项目 `[sdk].target` > `ASTER_TARGET` > SDK 仅有的一个目标板。输出固定在项目的 `build/<target>/` 和 `dist/<target>/<id>.ast`，不依赖当前 SDK 所在位置。新增素材或多个 C 文件在 `app.toml` 的 `assets` / `sources` 中声明。
+
+## 其他命令
+
+```text
+aster targets
+aster doctor
+aster verify dist/lckfb-s3/com.example.mygame.ast
+aster deploy dist/lckfb-s3/com.example.mygame.ast --run
+aster ports
+aster probe --port COM22
+aster debug --console COM24
+aster screenshot screen.png --console COM24
+aster shell --console COM24 aster sys info
+```
+
+`doctor` 检查依赖与工具链位置；`verify` 离线检查包；`deploy` 只传输和安装现成包，`--run` 安装后启动。`debug` 查看串口日志，`screenshot` 保存实机 PNG。设备子命令的其他参数通过 `aster <命令> --help` 查询。
+
+`aster env --shell bash` / `powershell` / `cmd` 输出激活当前 SDK 的命令，`aster source` 是别名。例如 Linux `eval "$(aster env --shell bash)"`，PowerShell `aster env --shell powershell | Out-String | Invoke-Expression`。子进程不能直接修改父终端环境，因此要 source/执行输出的环境脚本。
+
+保留旧命令 `aster new`、`aster build --all --target lckfb-s3`，底层 `tools/build.py` 和原有两种 Windows EXE 也可以继续使用。`aster build --clean` 删除当前项目的整个 build/dist 目录（项目构建产物）；不要在这些目录保存源码。
+
+## 本次验证
+
+- Linux：独立 venv 安装、source 激活、hello / swipe-game 模板在 SDK 外真实编译并验证 Xtensa AOT 包。
+- Windows：原生 EXE 安装、用户 PATH、PowerShell 5 中文路径激活、SDK 外带空格的游戏项目创建及 AOT 编译验证。
+- 实机：COM22 数据口 / COM24 控制台，通过统一 `run --no-build` 完成传输、安装和 AOT 启动，四种音效加载 4/4。
+- SDK 回归测试：30 项通过。

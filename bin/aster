@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+sdk_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ -x "$sdk_dir/.venv-linux/bin/python" ]; then
+    exec "$sdk_dir/.venv-linux/bin/python" "$sdk_dir/tools/aster.py" "$@"
+fi
+if [ -n "${ASTER_PYTHON:-}" ]; then
+    exec "$ASTER_PYTHON" "$sdk_dir/tools/aster.py" "$@"
+fi
+for candidate in python3.14 python3.13 python3.12 python3.11 python3; do
+    if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c 'import sys; sys.exit(sys.version_info < (3,11))' 2>/dev/null; then
+        exec "$candidate" "$sdk_dir/tools/aster.py" "$@"
+    fi
+done
+echo 'Aster requires Python >= 3.11. Install it with your distribution package manager, then run aster install.' >&2
+exit 1

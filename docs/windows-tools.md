@@ -1,3 +1,5 @@
+> 日常开发推荐统一 `aster.exe`：安装、PATH、模板创建和编译运行见 [跨平台命令指南](sdk-cli.md)。下面的两个底层 EXE 仍兼容。
+
 # Windows APP 开发与设备工具
 
 Windows x86-64 使用两个命令行 EXE：

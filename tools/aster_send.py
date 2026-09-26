@@ -88,7 +88,9 @@ def _token(s, tmo):
     deadline = time.monotonic() + tmo
     buf = b""
     while time.monotonic() < deadline:
-        buf += s.read(64)
+        # Keep the port configuration fixed, but return short ACK lines
+        # immediately rather than waiting 0.5 s to fill a 64-byte read.
+        buf += s.read(min(64, s.in_waiting) or 1)
         while b"\n" in buf:
             raw, buf = buf.split(b"\n", 1)
             token = raw.decode(errors="replace").strip()

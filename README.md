@@ -13,25 +13,39 @@ tools/              创建项目、构建、验证和 APP 部署
 tests/              契约、目标选择、能力、内存、设备身份和构建测试
 ```
 
-## 编写和构建 APP
+## 安装与创建独立 APP
 
-Windows x86-64 的 APP 编译、AOT 和独立串口工具见
-[Windows APP 开发与设备工具](docs/windows-tools.md)。
+Windows 和 Linux 共用 `aster` 命令，安装、环境激活、模板、构建和部署详见
+[跨平台 SDK 命令指南](docs/sdk-cli.md)。Windows 原生发布包含三个 EXE，无需 WSL。
 
-Python 3.11 或更新版本。当前工作区建议激活已有 Python 3.12 `.venv`。基础编译和离线校验只使用 Python 标准库；串口部署需 `pyserial`，签名验证需 `cryptography`，可用 `pip install -r requirements.txt` 安装。
-
-以下命令在本仓库执行：
+Linux 首次安装：
 
 ```bash
-python tools/aster.py targets
-python tools/aster.py new /tmp/my-aster-app --id com.example.hello
-python tools/aster.py build /tmp/my-aster-app --target lckfb-s3 --no-aot
-python tools/aster.py build apps/gfxshow --target lckfb-s3 --aot
-python tools/aster.py build apps/starcatch --target lckfb-s3 --aot
-python tools/aster.py build --all --target lckfb-s3 --aot
+./bin/aster install --add-path
+source ./env.sh
 ```
 
-`--target` 选择真实硬件型号，当前只有立创 ESP32-S3 实战派 `lckfb-s3`，也可用 `ASTER_TARGET` 设置。横屏、竖屏、无屏是同一固件的运行模式，不是 SDK 目标。每个目标的中间产物和 APP 包分别放在 `build/<target>/`、`dist/<target>/`，切换目标不会覆盖另一目标。AOT 后端由目标决定，冲突的 `--aot-target` 会被拒绝。显式请求 AOT 却没有编译器时不会静默退回解释执行。
+Windows 在三个 EXE 所在目录执行：
+
+```powershell
+.\aster.exe install --add-path
+. .\env.ps1
+```
+
+激活后可在 SDK 之外开发，不需要项目构建脚本：
+
+```text
+aster doctor
+aster templates
+aster init my-game --template swipe-game --id com.example.mygame
+cd my-game
+aster build
+aster run
+```
+
+`hello` 是最小示例，`swipe-game` 提供滑动触摸控制和四种音效。目标板写入项目 `app.toml`；`build` 的输出在项目的 `build/<target>/` 和 `dist/<target>/`。可通过 `--target` 临时选择板卡，`--no-aot` 关闭 AOT。AOT 后端由目标决定，缺少所需编译器时不会静默退回解释执行。
+
+原有 `python tools/aster.py new/build/verify/deploy` 仍可使用。批量编译 SDK 示例使用 `python tools/aster.py build --all --target lckfb-s3 --aot`。底层 `tools/build.py` 要求显式目标板或 `ASTER_TARGET`；统一 `aster` 入口优先读取项目目标板。
 
 应用在 `app.toml` 声明 `requires` 和 `permissions`；使用 `aster_system_has_feature()` 判断可选能力，用 `aster_display_get_info()` 获取实际 APP 坐标空间和屏幕信息。不要把目标型号、引脚或屏幕尺寸写进业务分支。`apitest` 等已有诊断示例包含特定资源边界测试，不代表所有分辨率都已实机验证。
 

@@ -8,6 +8,8 @@ on:
       - 'lib/**'
       - 'contract/**'
       - 'targets/**'
+      - 'templates/**'
+      - 'bin/**'
       - 'requirements-windows.txt'
       - 'docs/windows-tools.md'
       - '.github/workflows/windows-tools.yml'
@@ -20,13 +22,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Build both executables
+      - name: Build SDK executables
         shell: pwsh
         run: ./tools/package_windows.ps1
       - name: Smoke test AOT and CLI
         shell: pwsh
         run: |
-          python -m unittest tests.test_windows_tools -v
+          python -m unittest tests.test_windows_tools tests.test_cli -v
           if ($LASTEXITCODE -ne 0) { throw 'Windows tool unit tests failed' }
           ./dist/windows/aster-toolchain.exe build apps/hello --target lckfb-s3 --aot
           if ($LASTEXITCODE -ne 0) { throw 'AOT build failed' }
@@ -40,9 +42,20 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'device build command failed' }
           ./dist/windows/aster-device.exe --help
           if ($LASTEXITCODE -ne 0) { throw 'device CLI failed' }
+      - name: Independent project with unified CLI
+        shell: pwsh
+        run: |
+          $project = Join-Path $env:RUNNER_TEMP 'aster game'
+          ./dist/windows/aster.exe init $project --template swipe-game --id test.cli.game
+          if ($LASTEXITCODE -ne 0) { throw 'init failed' }
+          ./dist/windows/aster.exe build $project
+          if ($LASTEXITCODE -ne 0) { throw 'independent AOT build failed' }
+          ./dist/windows/aster.exe verify "$project/dist/lckfb-s3/test.cli.game.ast"
+          if ($LASTEXITCODE -ne 0) { throw 'package verification failed' }
       - uses: actions/upload-artifact@v4
         with:
           name: aster-windows-tools
           path: |
             dist/windows/aster-toolchain.exe
             dist/windows/aster-device.exe
+            dist/windows/aster.exe

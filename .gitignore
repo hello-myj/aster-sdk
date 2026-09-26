@@ -4,3 +4,9 @@ __pycache__/
 *.pyc
 .venv/
 *.log
+
+.venv-linux/
+.venv-windows/
+/env.sh
+/env.ps1
+/env.cmd

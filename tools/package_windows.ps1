@@ -134,3 +134,7 @@ Invoke-WindowsTool $Python (@("-m", "PyInstaller") + $common + $sdkData + @(
     "--name", "aster-device", (Join-Path $root "tools\windows_device.py")))
 
 Write-Host "Windows tools: $out\aster-toolchain.exe and $out\aster-device.exe"
+
+# Unified frontend delegates compilation/device work to the two sibling EXEs.
+& (Join-Path $PSScriptRoot "package_cli_windows.ps1") -Python $Python
+Write-Host "Unified CLI: $out\aster.exe"

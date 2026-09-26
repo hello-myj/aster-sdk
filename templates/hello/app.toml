@@ -1,0 +1,11 @@
+[app]
+id = "aster.hello"
+name = "Hello Aster"
+version = "1.0.0"
+abi = "3.2.0"
+abi_min = "3.2"
+aot = true
+stack = 16384
+initial_memory = 131072
+max_memory = 262144
+requires = []

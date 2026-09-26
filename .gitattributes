@@ -1,0 +1,12 @@
+# These bytes are hashed in contract/lock.json. Keep identical on every host.
+contract/*.json text eol=lf
+include/aster/*.h text eol=lf
+# POSIX launchers must not acquire CRLF through a Windows checkout.
+bin/aster text eol=lf
+*.sh text eol=lf
+targets/*.json text eol=lf
+# Project templates use the same text bytes on Windows and Linux.
+templates/**/*.toml text eol=lf
+templates/**/*.c text eol=lf
+templates/**/*.h text eol=lf
+templates/**/*.md text eol=lf
