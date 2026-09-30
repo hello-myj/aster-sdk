@@ -13,6 +13,12 @@ tools/              创建项目、构建、验证和 APP 部署
 tests/              契约、目标选择、能力、内存、设备身份和构建测试
 ```
 
+## AI 开发手册与 Skill
+
+[APP 开发手册](docs/app-development.md) 是 ABI 3.6 的自包含开发参考，包含完整工程、准确接口签名、资源与内存规则以及构建部署命令。AI 可以只读取这一份手册来创建工程、编写 APP 和执行构建，无需阅读 SDK/固件源码或工具实现。
+
+项目提供 [aster-app-development Skill](.agents/skills/aster-app-development/SKILL.md)，入口引用同一份手册。从 SDK 根目录启动支持项目 Skill 的 AI 工具后，可请求“使用 aster-app-development 创建 APP”；其他工具直接读取手册即可。工程可创建在 SDK 外。复制 Skill 到其他位置时需一并携带手册并修正链接。
+
 ## 安装与创建独立 APP
 
 Windows 和 Linux 共用 `aster` 命令，安装、环境激活、模板、构建和部署详见
