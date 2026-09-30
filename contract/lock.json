@@ -1,12 +1,12 @@
 {
   "schema": 1,
   "product": "aster",
-  "abi": "3.4.0",
+  "abi": "3.6.0",
   "sha256": {
-    "contract/api.json": "e846520b7aa5653032ecd66eac3f27ea7eb1c430d9976d53ad88b3818257f933",
+    "contract/api.json": "e652864abd81f06b24f1c07e5770ac503c6ad428a12566d08948e71fe4d0825c",
     "include/aster/app.h": "9c067bce70ee9d969301975ec310b06c739d7f258136787a0039383ad1069ecf",
     "include/aster/appmgr.h": "77acde65e2cedad625c715e6e9c2814f604e2354a9e8a301e74def80072be64c",
-    "include/aster/aster.h": "8671593c0d52c2504b95006ff27627dbe22d9ea9a703d3290ab0f6c68ebb8901",
+    "include/aster/aster.h": "b389d82ae6c256cc49cbb6d0d6c831a24fec62c5d975827b65c213bd06feeaad",
     "include/aster/audio.h": "bf58a682a051a7e5630449ca534622da39cef9e6e6771806d240e67f08838f98",
     "include/aster/camera.h": "1f0f719f1de70331454fe9743e5c4a3f5d37605ecff660b7a7dc1dff1f82d194",
     "include/aster/display.h": "324f406354060434933ef7020abeb86960a7abbd671036dc4856a41133d05962",
@@ -22,9 +22,11 @@
     "include/aster/log.h": "8c5a616cd2d98f4b635592c5d7142c1c810b029868ef39e0cf3f39ace1319e9f",
     "include/aster/sensor.h": "5d8b2b6f211d1cb06d4e5378f0b083100ad48db40d068f6317ae61fb634aca72",
     "include/aster/surface.h": "5bd9967db19b45d43119b6810c5f8293ad9575e314db59db5437d754da6fb594",
-    "include/aster/system.h": "e6ed3686e838cc85611a83b7d60df08dc92d48cfd124c5ffbf0a40c065ca25f6",
+    "include/aster/system.h": "e23e1ae4789ffeb96f773c1d6335c010ef83a7256c4fbf2a6bbd222c269fff24",
+    "include/aster/time.h": "6f6832715655566df7be77cc878634eb27ce202872bdc656319a680a4ce3e9a9",
     "include/aster/timer.h": "24bc78986dc054fa1cb1af45dc890cf2a046487349bcc33ccb915f23db4aad6a",
     "include/aster/types.h": "0cb93a2d20fd26f58d568584de694aa559a085d239f177b0d14a332ee3764ce2",
-    "targets/lckfb-s3.json": "fdd1881ea72c9c2ffd8c211b4d6245a6bd0deaa60b053f01906c4fd8cd736468"
+    "include/aster/wifi.h": "e9eada9ad04236fee948162054577144c001c2babc6a9516c1683c89d39125e3",
+    "targets/lckfb-s3.json": "859b216decc42755846a48b7a96ab36141370f94d10b5833b0899f2df88d2001"
   }
 }

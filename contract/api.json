@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "product": "aster",
-  "abi": "3.4.0",
+  "abi": "3.6.0",
   "imports": {
     "env": [
       "__cxa_allocate_exception",
@@ -68,9 +68,18 @@
       "aster_surface_present",
       "aster_system_get_abi_version",
       "aster_system_has_feature",
+      "aster_time_get",
       "aster_time_now_ms",
       "aster_timer_create",
       "aster_timer_destroy",
+      "aster_wifi_connect",
+      "aster_wifi_disconnect",
+      "aster_wifi_forget",
+      "aster_wifi_get_saved_ssid",
+      "aster_wifi_reconnect",
+      "aster_wifi_scan_results",
+      "aster_wifi_scan_start",
+      "aster_wifi_status",
       "atoi",
       "calloc",
       "clock",
@@ -178,9 +187,18 @@
     "aster_gfx_bmp_free": "(i)i",
     "aster_system_get_abi_version": "()i",
     "aster_system_has_feature": "(i)i",
+    "aster_time_get": "(ii)i",
     "aster_time_now_ms": "()i",
     "aster_timer_create": "(iiii)i",
-    "aster_timer_destroy": "(i)i"
+    "aster_timer_destroy": "(i)i",
+    "aster_wifi_connect": "(iiii)i",
+    "aster_wifi_disconnect": "()i",
+    "aster_wifi_forget": "()i",
+    "aster_wifi_get_saved_ssid": "(ii)i",
+    "aster_wifi_reconnect": "()i",
+    "aster_wifi_scan_results": "(ii)i",
+    "aster_wifi_scan_start": "()i",
+    "aster_wifi_status": "(ii)i"
   },
   "package_format": "ASTP",
   "runtime": {

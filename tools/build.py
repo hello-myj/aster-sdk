@@ -102,7 +102,7 @@ VALID_CATEGORIES = {"game", "tool", "system"}
 # verifier has to run anywhere). Two values and no "any": an absent key is how
 # a package says "follow the panel" (see ASTER_ORIENT_ANY in aster_pkg.h).
 VALID_ORIENTATIONS = aster_board.ORIENTATIONS
-VALID_PERMS = {"fs", "kv", "appmgr", "sd"}
+VALID_PERMS = {"fs", "kv", "appmgr", "sd", "wifi"}
 
 
 # ---------- toolchain discovery (env -> repo-bundled -> /opt -> PATH) ----------

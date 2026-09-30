@@ -49,6 +49,10 @@ aster run
 
 应用在 `app.toml` 声明 `requires` 和 `permissions`；使用 `aster_system_has_feature()` 判断可选能力，用 `aster_display_get_info()` 获取实际 APP 坐标空间和屏幕信息。不要把目标型号、引脚或屏幕尺寸写进业务分支。`apitest` 等已有诊断示例包含特定资源边界测试，不代表所有分辨率都已实机验证。
 
+Wi-Fi APP 声明 `requires = ["wifi"]` 和 `permissions = ["wifi"]`，然后通过异步扫描、连接和状态接口操作网络。用法与能力边界见 [Wi-Fi API 指南](docs/wifi.md)。
+
+通过 [Wall clock API](docs/time.md) 读取 UTC 毫秒时间戳和设备本地日历时间；SNTP 由固件在后台维护，APP 可检查时间是否已经同步。`aster_time_now_ms()` 继续提供单调运行时间。
+
 构建会检查 ABI、必需能力、内存限制、导入符号和生命周期导出。相同源码可以针对不同目标构建；包内的 `product` 和 `target_id` 用于防止装错设备。
 
 ## 校验和部署
@@ -70,7 +74,7 @@ python tools/aster.py deploy dist/lckfb-s3/aster.gfxshow.ast \
 ## 升级接口契约
 
 ```bash
-python tools/import_contract.py /path/to/aster-contract-3.4.0.zip
+python tools/import_contract.py /path/to/aster-contract-3.6.0.zip
 python -m unittest discover -s tests -v
 ```
 
