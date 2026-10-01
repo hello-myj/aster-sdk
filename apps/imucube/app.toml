@@ -1,0 +1,18 @@
+[app]
+id = "aster.imucube"
+name = "IMU 立方体"
+version = "1.0.0"
+abi = "3.7.0"
+abi_min = "3.7"
+orientation = "portrait"
+category = "tool"
+icon = "icon.bin"
+aot = true
+optimize = "Os"
+initial_memory = 393216
+max_memory = 1048576
+heap = 262144
+stack = 16384
+requires = ["display", "touch", "accelerometer", "gyroscope"]
+permissions = []
+sources = ["src/main.c"]

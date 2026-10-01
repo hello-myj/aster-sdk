@@ -15,7 +15,7 @@ tests/              契约、目标选择、能力、内存、设备身份和构
 
 ## AI 开发手册与 Skill
 
-[APP 开发手册](docs/app-development.md) 是 ABI 3.6 的自包含开发参考，包含完整工程、准确接口签名、资源与内存规则以及构建部署命令。AI 可以只读取这一份手册来创建工程、编写 APP 和执行构建，无需阅读 SDK/固件源码或工具实现。
+[APP 开发手册](docs/app-development.md) 是 ABI 3.7 的自包含开发参考，包含完整工程、准确接口签名、资源与内存规则以及构建部署命令。AI 可以只读取这一份手册来创建工程、编写 APP 和执行构建，无需阅读 SDK/固件源码或工具实现。
 
 项目提供 [aster-app-development Skill](.agents/skills/aster-app-development/SKILL.md)，入口引用同一份手册。从 SDK 根目录启动支持项目 Skill 的 AI 工具后，可请求“使用 aster-app-development 创建 APP”；其他工具直接读取手册即可。工程可创建在 SDK 外。复制 Skill 到其他位置时需一并携带手册并修正链接。
 
@@ -56,6 +56,8 @@ aster run
 应用在 `app.toml` 声明 `requires` 和 `permissions`；使用 `aster_system_has_feature()` 判断可选能力，用 `aster_display_get_info()` 获取实际 APP 坐标空间和屏幕信息。不要把目标型号、引脚或屏幕尺寸写进业务分支。`apitest` 等已有诊断示例包含特定资源边界测试，不代表所有分辨率都已实机验证。
 
 Wi-Fi APP 声明 `requires = ["wifi"]` 和 `permissions = ["wifi"]`，然后通过异步扫描、连接和状态接口操作网络。用法与能力边界见 [Wi-Fi API 指南](docs/wifi.md)。
+
+六轴 IMU APP 使用 ABI 3.7 的 `aster_imu_get_info()` / `aster_imu_read()` 获取同步数据，配合 SDK `aster_imu_filter.h` 做姿态融合。完整规则见开发手册；[IMU 立方体示例](apps/imucube/README.md) 提供随动显示、归零与静置校准。
 
 通过 [Wall clock API](docs/time.md) 读取 UTC 毫秒时间戳和设备本地日历时间；SNTP 由固件在后台维护，APP 可检查时间是否已经同步。`aster_time_now_ms()` 继续提供单调运行时间。
 

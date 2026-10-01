@@ -58,7 +58,9 @@ def main(argv=None):
     console = args.console or target["console"]
     response = shell_command(console, "aster app install " + remote)
     print(response)
-    if not re.search(r"installed", response, re.IGNORECASE) or re.search(r"failed|error", response, re.IGNORECASE):
+    # Background services may report failures during a successful install.
+    # Match the shell command's acknowledgement, not unrelated log wording.
+    if not re.search(r"(?m)^\s*installed OK\s*$", response):
         raise RuntimeError("device did not confirm installation")
     if args.run:
         response = shell_command(console, "aster app start " + manifest["id"])

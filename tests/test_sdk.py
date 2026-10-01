@@ -127,6 +127,27 @@ class BuildPipeline(unittest.TestCase):
 
 
 class Deployment(unittest.TestCase):
+    def test_background_error_does_not_hide_install_result(self):
+        import deploy
+        abi = aster_board.get("lckfb-s3")["abi"]
+        sender = SimpleNamespace(find_port=lambda *a, **kw: (
+            "/dev/fake", f"PONG sd=1 product=aster target=lckfb-s3 abi={abi}"),
+            send_file=lambda *a, **kw: "OK")
+        for response, success in (
+                ("[00:01:05] SNTP sync failed: -11\r\ninstalled OK\r\naster:~$ ", True),
+                ("install failed: -7\r\naster:~$ ", False),
+                ("[00:01:05] another app was installed\r\naster:~$ ", False)):
+            with self.subTest(response=response), \
+                 patch.object(deploy, "check", return_value={"id": "test.hello"}), \
+                 patch.dict(sys.modules, {"aster_send": sender}), \
+                 patch.object(deploy, "shell_command", return_value=response):
+                args = ["test.ast", "--target", "lckfb-s3"]
+                if success:
+                    self.assertEqual(deploy.main(args), 0)
+                else:
+                    with self.assertRaisesRegex(RuntimeError, "did not confirm"):
+                        deploy.main(args)
+
     def test_failed_transfer_cannot_install_stale_package(self):
         import deploy
         abi = aster_board.get("lckfb-s3")["abi"]

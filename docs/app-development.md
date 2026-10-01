@@ -1,6 +1,6 @@
 # Aster APP SDK 开发手册（AI 可直接使用）
 
-适用版本：SDK ABI **3.6.0**；目标 **lckfb-s3**；契约基线 SDK 提交 `4a8e902`，编写日期 2026-10-01。
+适用版本：SDK ABI **3.7.0**；目标 **lckfb-s3**；契约基线为固件导出的 `aster-contract-3.7.0.zip`，编写日期 2026-10-01。
 
 本文是独立开发所需的完整参考：创建工程、配置、生命周期、绘图、输入、资源、设备接口、构建、部署及排错。本文中的类型和函数签名来自此版本 SDK 的公开契约。阅读本文即可编写 APP；不需要再读取固件代码、SDK 头文件、模板代码或工具实现。编译器会自动使用 SDK 自带的头文件和辅助库。
 
@@ -122,8 +122,8 @@ my-counter/
 - `id`：必填，1–63 个 ASCII 字符，首字符是字母或数字，其余允许字母、数字、下划线、点、连字符，不含 `..`。建议反向域名形式。
 - `name`：显示名称，默认 ID。使用 UTF-8，建议短名称。
 - `version`：APP 自身版本字符串，默认 `"0.0.0"`，与 ABI 无关。
-- `abi`：编译目标 ABI，当前填 `"3.6.0"`；省略时使用 SDK 契约版本。
-- `abi_min`：最低固件 ABI，当前新工程填 `"3.6"`。不要为了兼容旧设备而降低它却继续引用新接口。它的主版本必须与 `abi` 相同。
+- `abi`：编译目标 ABI，当前填 `"3.7.0"`；省略时使用 SDK 契约版本。
+- `abi_min`：最低固件 ABI，当前新工程填 `"3.7"`。不要为了兼容旧设备而降低它却继续引用新接口。它的主版本必须与 `abi` 相同。
 - `aot`：默认 `true`，包同时包含 WASM 与目标 CPU 的 AOT；缺少 AOT 编译器会报错。AOT 不是跨 CPU 通用二进制。
 - `optimize`：`"O0"`、`"O1"`、`"O2"`、`"O3"`、`"Os"` 或 `"Oz"`，默认 `"O2"`；设备 APP 推荐 `"Os"`。
 - `orientation`：`"portrait"` 或 `"landscape"`，在初始化前应用。当前设备普通 APP 默认竖屏；需要横屏时明确声明，运行时仍必须查询坐标空间。
@@ -169,8 +169,8 @@ lckfb-s3 的目标最大线性内存为 **2097152 字节（2 MiB）**。可见�
 id = "com.example.counter"
 name = "计数器"
 version = "1.0.0"
-abi = "3.6.0"
-abi_min = "3.6"
+abi = "3.7.0"
+abi_min = "3.7"
 aot = true
 optimize = "Os"
 orientation = "portrait"
@@ -491,7 +491,7 @@ read/write 返回字节数或负错误，read=0 是 EOF。读取/写入可能是
 
 ### KV 配置
 
-声明 `permissions = ["kv"]`。KV 按 APP ID 隔离，适合小型设置、高分和进度。key 使用短 ASCII 名，当前设备原生 key 缓冲为 64 字节，建议不超过 63 字节。set 写入任意字节 blob；get 返回长度或负错误。为固定结构准备足够缓冲，只有长度等于预期时才解读；复杂结构增加版本字段。不存在时使用默认值。不要每 FRAME 写入，应在用户确认、关卡结束等状态变更点保存。
+声明 `permissions = ["kv"]`。KV 按 APP ID 隔离，适合小型设置、高分和进度。key 使用短 ASCII 名，当前固件 KV key 上限为 48 字节，不要超过此长度。set 写入任意字节 blob；get 返回长度或负错误。为固定结构准备足够缓冲，只有长度等于预期时才解读；复杂结构增加版本字段。不存在时使用默认值。不要每 FRAME 写入，应在用户确认、关卡结束等状态变更点保存。
 
 ### 图标
 
@@ -564,19 +564,78 @@ if (rc == ASTER_OK)
 
 检测 ACCELEROMETER/GYROSCOPE 后，用 `float xyz[3]` 和 `sizeof(xyz)` 调用 accel_read/gyro_read。加速度单位 m/s²（包含重力），陀螺仪 rad/s；拉取模式，没有专用传感器事件。按合适帧率采样并处理 ENODEV/EIO。
 
+### 六轴 IMU（ABI 3.7，推荐）
+
+APP 需要 `requires = ["accelerometer", "gyroscope"]`，不需要权限、打开句柄或设备驱动。头文件已由 `<aster_imports.h>` 引入。
+
+`aster_imu_get_info(&info, sizeof(info))` 检查六轴传感器可读性，返回有效通道 flags 和 `min_interval_ms`。当前 10 ms 是原生采样缓存 TTL，不是硬件 ODR，也不保证每 10 ms 自动推送事件。
+
+`aster_imu_read(&sample, sizeof(sample))` 同时读出加速度和角速度：同一次原生 fetch、同一时间戳/序号，避免分别读取六轴造成时间错位。加速度 `accel[3]` 单位 m/s²，包含重力；角速度 `gyro[3]` 单位 rad/s。轴属于传感器坐标，不随 APP 屏幕旋转改写。需要显示方向映射时由 APP 自行处理。
+
+```c
+aster_imu_info_t info = { .size=sizeof(info), .version=1 };
+int32_t rc = aster_imu_get_info(&info, sizeof(info));
+aster_imu_sample_t sample = { .size=sizeof(sample), .version=1 };
+if (rc == ASTER_OK) rc = aster_imu_read(&sample, sizeof(sample));
+if (rc == ASTER_OK) {
+    /* 检查 sequence 再积分。timestamp_ms 是设备单调 uptime，不是 UTC。 */
+}
+```
+
+两个接口 V1 都要求完整结构大小；成功才写输出。EINVAL 为参数/线性内存范围错误，ENODEV 为六轴能力不存在或设备未就绪，EIO 为采样或通道读取失败。调用属于短同步传感器读取，不是后台订阅；在 FRAME/timer 中采样，避免紧循环轮询。缓存窗口内可返回相同 timestamp/sequence，姿态积分必须每序号只处理一次。sequence 为 u32 会回绕；判断是否变化，不使用大小关系判断更新。
+
+### APP 侧姿态辅助库
+
+包含 `<aster_imu_filter.h>`，使用 SDK 的六轴互补滤波，不依赖 `math.h` 或固件私有 API。`aster_imu_pose_t` 的 `q[4]` 为 w/x/y/z 四元数，表示传感器坐标转到世界坐标；`bias[3]` 为 APP 设置的静态陀螺零偏（rad/s）。首次有效样本按重力初始化倾斜，之后用角速度积分和重力修正俯仰/横滚。没有磁力计，无法绝对定位航向，yaw 长期可能漂移。强线性加速度期间暂时跳过重力修正。
+
+```c
+/* 下列为调用参考；不需要在 APP 中复制声明。 */
+typedef struct {
+    float q[4];
+    float bias[3];
+    uint64_t last_ms;
+    uint32_t last_sequence;
+    uint32_t started;
+} aster_imu_pose_t;
+void aster_imu_pose_init(aster_imu_pose_t *pose);
+int32_t aster_imu_pose_update(aster_imu_pose_t *pose, const aster_imu_sample_t *sample);
+void aster_imu_quat_rotate(const float q[4], const float vector[3], float out[3]);
+void aster_imu_pose_relative(const aster_imu_pose_t *pose, const float reference[4], float out[4]);
+```
+
+pose_update 返回 1=已处理新样本、0=重复样本、负值=非法样本。间隔超过 250 ms 或时间倒退时重新建立积分时基，不把旧角速度积分整个间隙。pause/resume 后可以将 last_ms=0 来跳过第一次间隔。quat_rotate 可在输入/输出同数组时使用。pose_relative 返回 reference 的逆旋转乘当前姿态，用于“归零”显示；先将 pose.q 复制到自己保存的 float reference[4]，不会修改传感器原始数据。不要修改 helper 的时基字段来模拟数据更新。
+
+调用模式（init 里 pose_init，每个 FRAME 内）：
+
+```c
+/* pose 为静态 aster_imu_pose_t；sample 为本次输出结构。 */
+if (aster_imu_read(&sample, sizeof(sample)) == ASTER_OK) {
+    int32_t changed = aster_imu_pose_update(&pose, &sample);
+    if (changed > 0) {
+        /* 用 pose.q 旋转 3D 顶点、透视投影、ge_tri/ge_line_aa 绘制。 */
+    }
+}
+```
+
+静置校准由 APP 完成：检查加速度模长接近 9.8 m/s²、角速度接近 0，连续采样约 2 秒，平均 gyro 并写入 pose.bias；运动时清空累计，提示继续静置。归零只是改变显示参考，不替代零偏校准。
+
+立方体示例的显示坐标映射为相对四元数 `[w,x,y,z] → [w,-x,-y,z]`，对应绕 Z 轴 180° 的坐标基变换：反转 roll/pitch、保持 yaw。这只影响绘制，不修改原始六轴读数或滤波状态；其他设备的可视化应按实际安装方向选择映射。
+
+SDK 自带 `apps/imucube`：30 FPS 六轴采样、彩色 3D 立方体、重力修正、静置校准、归零按钮（将当前姿态设为参考，让正面朝向屏幕）；普通表面和 panel-canvas 都完整清屏重画。构建：`aster build /absolute/path/to/aster-sdk/apps/imucube --target lckfb-s3`；产物在该 APP 工程的 dist/lckfb-s3/aster.imucube.ast。读取本节即可开发其他 IMU APP，无需先读取示例代码。
+
 ### 相机
 
 先 cam_info 获取 w/h，再准备至少 w*h*2 字节缓冲，cam_read 取得 RGB565 单帧。读取会阻塞 APP 回调，参考设备可能需 1–2 秒；按按钮触发，避免每帧调用。没有公开视频预览流 API。相机缓冲过大时先评估 2 MiB 线性内存上限，不要随意增加 max_memory。
 
 ## 9. 系统能力与其他接口
 
-`aster_system_has_feature(ASTER_FEATURE_...)` 的参数是**特性索引**，例如 DISPLAY=0、WIFI=7，不是 `1u << index`。返回 1 有、0 没有；错误为负时同样不能使用。`aster_system_get_abi_version()` 返回打包 u32：`0x00MMmmPP`，当前 `0x00030600`。需要额外检查时比较主版本兼容及最低版本，不能强制未来 minor 必须完全相等。
+`aster_system_has_feature(ASTER_FEATURE_...)` 的参数是**特性索引**，例如 DISPLAY=0、WIFI=7，不是 `1u << index`。返回 1 有、0 没有；错误为负时同样不能使用。`aster_system_get_abi_version()` 返回打包 u32：`0x00MMmmPP`，当前 `0x00030700`。需要额外检查时比较主版本兼容及最低版本，不能强制未来 minor 必须完全相等。
 
 虽然头文件声明了 `aster_system_info_t`，当前公开 API 没有 `aster_system_get_info()`。不要为该结构猜测查询函数。
 
 appmgr 需要 appmgr 权限：count 返回安装数；list 用 `aster_app_info_t` version=2 获取 ID、名称、状态、分类和图标信息。start 是单 APP 的切换，调用方会先 stop/destroy，然后启动目标，不是并行启动后台 APP；拒绝启动自己。uninstall 拒绝删除自己或正在运行/暂停的应用。
 
-本次不扩展网络。ABI 3.6 现有 Wi-Fi station 接口仍列在第 12 节：需要 wifi 能力和权限，scan/connect 等只提交请求，轮询 status 确认 operation 结束、last_result 成功；扫描结果最多 16 条。连接提交成功不等于已经获得 IP，检查 status.ipv4。**APP SDK 当前没有公开个人热点、DNS、TCP/UDP socket、HTTP/HTTPS、MQTT、WebSocket API**；固件设置页功能不能直接当作 APP 导入接口。
+本次不扩展网络。ABI 3.7 现有 Wi-Fi station 接口仍列在第 12 节：需要 wifi 能力和权限，scan/connect 等只提交请求，轮询 status 确认 operation 结束、last_result 成功；扫描结果最多 16 条。连接提交成功不等于已经获得 IP，检查 status.ipv4。**APP SDK 当前没有公开个人热点、DNS、TCP/UDP socket、HTTP/HTTPS、MQTT、WebSocket API**；固件设置页功能不能直接当作 APP 导入接口。
 
 其他不存在的接口：没有公开蓝牙通信、线程创建、异步任务通用框架、桌面式文件选择器、原生输入框/键盘、UI 控件树。需要这些功能时在现有能力内自行实现交互，或提出明确 SDK 扩展需求。
 
@@ -597,7 +656,7 @@ aster verify dist/lckfb-s3/com.example.counter.ast --target lckfb-s3
 
 ### 真机部署
 
-设备应已装兼容 ABI 3.6 的 Aster 固件、可用 SD 卡与匹配系统字体。SDK 部署 APP 不等于刷整机固件。
+设备应已装兼容 ABI 3.7 的 Aster 固件、可用 SD 卡与匹配系统字体。SDK 部署 APP 不等于刷整机固件。
 
 自动端口发现：
 
@@ -823,7 +882,7 @@ typedef enum {
 
 ```c
 #define ASTER_ABI_MAJOR 3
-#define ASTER_ABI_MINOR 6
+#define ASTER_ABI_MINOR 7
 #define ASTER_ABI_PATCH 0
 
 #define ASTER_ABI_VERSION \
@@ -1147,6 +1206,36 @@ int32_t aster_audio_get_lyrics(char *buf, uint32_t size);
 ```c
 int32_t aster_accel_read(float *out_xyz, uint32_t size);
 int32_t aster_gyro_read(float *out_xyz, uint32_t size);
+```
+
+### imu.h
+
+```c
+#define ASTER_IMU_ACCEL_VALID (1u << 0)
+#define ASTER_IMU_GYRO_VALID  (1u << 1)
+
+typedef struct {
+    uint32_t size;
+    uint32_t version;
+    uint32_t flags;
+    uint32_t min_interval_ms;
+} aster_imu_info_t;
+
+typedef struct {
+    uint32_t size;
+    uint32_t version;
+    uint64_t timestamp_ms;
+    uint32_t sequence;
+    uint32_t flags;
+    float accel[3];
+    float gyro[3];
+} aster_imu_sample_t;
+
+int32_t aster_imu_get_info(
+    aster_imu_info_t *out, uint32_t out_size);
+
+int32_t aster_imu_read(
+    aster_imu_sample_t *out, uint32_t out_size);
 ```
 
 ### camera.h

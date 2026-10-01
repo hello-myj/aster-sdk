@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "product": "aster",
-  "abi": "3.6.0",
+  "abi": "3.7.0",
   "imports": {
     "env": [
       "__cxa_allocate_exception",
@@ -54,6 +54,8 @@
       "aster_gyro_read",
       "aster_img_probe",
       "aster_img_render",
+      "aster_imu_get_info",
+      "aster_imu_read",
       "aster_input_get_info",
       "aster_input_keys_state",
       "aster_input_touch",
@@ -166,6 +168,8 @@
     "aster_img_render": "(iiii)i",
     "aster_input_get_info": "(ii)i",
     "aster_input_keys_state": "(ii)i",
+    "aster_imu_get_info": "(ii)i",
+    "aster_imu_read": "(ii)i",
     "aster_accel_read": "(ii)i",
     "aster_gyro_read": "(ii)i",
     "aster_cam_info": "(ii)i",
