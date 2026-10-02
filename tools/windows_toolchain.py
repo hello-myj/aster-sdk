@@ -5,10 +5,13 @@ import sys
 
 import build
 from runtime_paths import sdk_root
+from release_identity import version_requested
 
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
+    if version_requested(argv):
+        return 0
     if not argv or argv[0] in ("-h", "--help"):
         print("usage: aster-toolchain.exe build <app-dir> --target lckfb-s3 [--aot|--no-aot]")
         print("       aster-toolchain.exe verify <package.ast> --target lckfb-s3")

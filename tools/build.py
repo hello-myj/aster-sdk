@@ -48,6 +48,7 @@ import re
 import shutil
 import subprocess
 import sys
+import sysconfig
 import tomllib
 from pathlib import Path
 
@@ -68,8 +69,8 @@ BUNDLED_TOOLCHAIN = SDK_ROOT / "toolchain"
 
 # Native tools are bundled for x86-64 Linux in the source tree and for
 # x86-64 Windows by tools/package_windows.ps1.
-BUNDLED_USABLE = (_platform.system() in ("Linux", "Windows") and
-                  _platform.machine().lower() in ("x86_64", "amd64"))
+BUNDLED_USABLE = ((_platform.system() == "Linux" and _platform.machine().lower() in ("x86_64", "amd64")) or
+                  (os.name == "nt" and sysconfig.get_platform().lower() == "win-amd64"))
 
 WAMRC_BUILD_HINT = (
     "wamrc (native AOT compiler) not found. Install the host-specific "

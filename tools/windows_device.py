@@ -13,8 +13,9 @@ import aster_board
 import aster_send
 import deploy
 import screenshot
-from runtime_paths import output_root
+from runtime_paths import output_root, sdk_root
 from target_checks import validate_device
+from release_identity import version_requested, check_sibling
 
 
 def console_port(preferred: str | None, data_port: str | None = None) -> str:
@@ -46,10 +47,14 @@ def toolchain_path(preferred: Path | None) -> Path:
         candidate = preferred.resolve()
     else:
         sibling = Path(sys.executable).with_name("aster-toolchain.exe")
-        candidate = sibling if sibling.is_file() else Path(
-            shutil.which("aster-toolchain.exe") or "aster-toolchain.exe")
+        name = 'aster-toolchain.exe' if os.name=='nt' else 'aster-toolchain'
+        bundled = sdk_root()/name
+        candidate = bundled if bundled.is_file() else (sibling if sibling.is_file() else Path(
+            shutil.which(name) or name))
     if not candidate.is_file():
         raise RuntimeError("aster-toolchain.exe not found; set --toolchain PATH")
+    if getattr(sys, 'frozen', False) or (sdk_root()/'release.json').is_file():
+        check_sibling(candidate)
     return candidate
 
 
@@ -81,6 +86,9 @@ def monitor(port: str, logfile: Path | None = None, seconds: float | None = None
 
 
 def main(argv=None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if version_requested(argv):
+        return 0
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("ports", help="list serial ports")

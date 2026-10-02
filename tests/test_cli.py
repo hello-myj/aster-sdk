@@ -25,11 +25,21 @@ class CLI(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             return aster.main(list(map(str, args)))
 
+    def test_portable_install_reuses_runtime_and_activates_root(self):
+        (self.root/'release.json').write_text('{}')
+        (self.root/'templates').mkdir()
+        with patch.object(aster,'ROOT',self.root), patch.object(aster,'executable',return_value=self.root/'tool.exe'), patch.object(aster.subprocess,'run') as run:
+            self.assertEqual(self.invoke('install'),0)
+            run.assert_not_called()
+        env=(self.root/'env.ps1').read_text(encoding='utf-8-sig')
+        self.assertIn(str(self.root),env)
+        self.assertNotIn(str(self.root/'bin'),env)
+
     def test_scaffold_every_template_with_toml_escaped_name(self):
         for template in ('hello', 'swipe-game'):
             project = self.root / template
             self.invoke('init', project, '--template', template, '--name', '游戏 "A"\nB', '--id', 'test.' + template)
-            cfg = tomllib.loads((project / 'app.toml').read_text())
+            cfg = tomllib.loads((project / 'app.toml').read_text(encoding='utf-8'))
             self.assertEqual(cfg['app']['name'], '游戏 "A"\nB')
             self.assertEqual(cfg['sdk']['target'], 'lckfb-s3')
             self.assertTrue(cfg['app']['aot'])
@@ -57,7 +67,8 @@ class CLI(unittest.TestCase):
     def test_project_target_and_isolated_build_environment(self):
         project = self.root / 'app'
         self.invoke('init', project, '--id', 'test.app')
-        with patch.dict(os.environ, {'ASTER_TARGET': 'invalid'}), patch('aster.subprocess.run') as run:
+        with patch.dict(os.environ, {'ASTER_TARGET': 'invalid'}), patch('aster.subprocess.run') as run, \
+             patch('aster.tool_command', return_value=[sys.executable,str(aster.ROOT/'tools/build.py')]):
             self.invoke('build', project)
         args, options = run.call_args
         self.assertIn(str(project), args[0])

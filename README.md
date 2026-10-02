@@ -21,6 +21,8 @@ tests/              契约、目标选择、能力、内存、设备身份和构
 
 ## 安装与创建独立 APP
 
+发布者推荐使用 [Ubuntu 双平台发布指南](docs/release.md)：`bash release.sh --board lckfb-s3 --hosts linux-x64,windows-x64` 从同一工作区生成 Windows 便携 ZIP 与 Linux 包。接口更新通过固件契约同步，AOT 编译器按开发板绑定并复用。
+
 Windows 和 Linux 共用 `aster` 命令，安装、环境激活、模板、构建和部署详见
 [跨平台 SDK 命令指南](docs/sdk-cli.md)。Windows 原生发布包含三个 EXE，无需 WSL。
 

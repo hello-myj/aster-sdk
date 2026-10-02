@@ -13,8 +13,13 @@ import sys
 import tomllib
 
 from runtime_paths import sdk_root
+from release_identity import version_requested, check_sibling
 
 ROOT = sdk_root()
+
+
+def packaged():
+    return getattr(sys, 'frozen', False) or (ROOT/'release.json').is_file()
 
 
 def home():
@@ -33,7 +38,14 @@ def tool_command(kind):
     if os.name == 'nt':
         binary = executable('aster-toolchain' if kind == 'build' else 'aster-device')
         if binary:
-            return [str(binary)]
+            try:
+                check_sibling(binary)
+            except RuntimeError:
+                if getattr(sys, 'frozen', False) or (ROOT / 'release.json').is_file():
+                    raise
+                # An updated source checkout must not silently use an old frozen contract.
+            else:
+                return [str(binary)]
         if getattr(sys, 'frozen', False):
             raise ValueError('Keep aster.exe, aster-toolchain.exe and aster-device.exe together')
     script = 'build.py' if kind == 'build' else 'windows_device.py'
@@ -92,8 +104,8 @@ def create(args):
 
 def environment(shell):
     base = home()
-    folders = [base] if getattr(sys, 'frozen', False) else [base / 'bin']
-    if not getattr(sys, 'frozen', False):
+    folders = [base] if packaged() else [base / 'bin']
+    if not packaged():
         pybin = base / ('.venv-windows/Scripts' if os.name == 'nt' else '.venv-linux/bin')
         if pybin.is_dir():
             folders.append(pybin)
@@ -108,7 +120,7 @@ def environment(shell):
 def persist_path(profile=None):
     if os.name == 'nt':
         import winreg
-        folder = str(home() if getattr(sys, 'frozen', False) else home() / 'bin')
+        folder = str(home() if packaged() else home() / 'bin')
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, 'Environment') as key:
             try:
                 value, kind = winreg.QueryValueEx(key, 'Path')
@@ -133,11 +145,11 @@ def persist_path(profile=None):
 
 
 def install(args):
-    if os.name == 'posix' and not getattr(sys, 'frozen', False):
+    if os.name == 'posix' and not packaged():
         from sdk_install import repair_linux_links
         for path in repair_linux_links(ROOT / 'toolchain'):
             print('Restored Linux symlink: ' + str(path))
-    if not getattr(sys, 'frozen', False):
+    if not packaged():
         venv = home() / ('.venv-windows' if os.name == 'nt' else '.venv-linux')
         python = venv / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
         if not python.is_file():
@@ -145,7 +157,7 @@ def install(args):
         subprocess.run([str(python), '-m', 'pip', 'install', '-r', str(ROOT / 'requirements.txt')], check=True)
         if args.flash:
             subprocess.run([str(python), '-m', 'pip', 'install', 'esptool>=5,<6'], check=True)
-    elif not executable('aster-toolchain') or not executable('aster-device'):
+    elif os.name=='nt' and (not executable('aster-toolchain') or not executable('aster-device')):
         raise ValueError('Installation requires all three Windows executables in one directory')
     for filename, shell in [('env.sh', 'bash'), ('env.ps1', 'powershell'), ('env.cmd', 'cmd')]:
         (home() / filename).write_text(environment(shell), encoding='utf-8-sig' if shell == 'powershell' else 'utf-8')
@@ -203,6 +215,8 @@ def doctor():
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
+    if version_requested(argv):
+        return 0
     device_commands = {'ports', 'probe', 'push', 'shell', 'debug', 'screenshot', 'flash'}
     if argv and argv[0] in device_commands:
         return subprocess.call(tool_command('device') + argv)
@@ -302,5 +316,5 @@ def main(argv=None):
 if __name__ == '__main__':
     try:
         raise SystemExit(main())
-    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+    except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
         raise SystemExit(str(error)) from error

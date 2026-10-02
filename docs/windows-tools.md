@@ -1,5 +1,11 @@
 > 日常开发推荐统一 `aster.exe`：安装、PATH、模板创建和编译运行见 [跨平台命令指南](sdk-cli.md)。下面的两个底层 EXE 仍兼容。
 
+## 推荐发布流程
+
+现在推荐由 Ubuntu 统一生成 Windows 和 Linux 便携 SDK，Windows 保留 EXE 启动入口。固件契约同步、板级工具链选择、一键发布和 CI 配置见 [发布指南](release.md)。
+
+下文保留旧的 Windows 单文件 EXE 构建方式，供兼容用途；普通 SDK 更新无需使用这条路径。
+
 # Windows APP 开发与设备工具
 
 Windows x86-64 使用两个命令行 EXE：
