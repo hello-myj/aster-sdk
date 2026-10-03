@@ -28,6 +28,7 @@
     "include/aster/timer.h": "24bc78986dc054fa1cb1af45dc890cf2a046487349bcc33ccb915f23db4aad6a",
     "include/aster/types.h": "0cb93a2d20fd26f58d568584de694aa559a085d239f177b0d14a332ee3764ce2",
     "include/aster/wifi.h": "e9eada9ad04236fee948162054577144c001c2babc6a9516c1683c89d39125e3",
-    "targets/lckfb-s3.json": "0938cf85940f006f799c7ff0110708376f61787db6468e1dd311c48ffca8896e"
+    "targets/lckfb-s3.json": "0938cf85940f006f799c7ff0110708376f61787db6468e1dd311c48ffca8896e",
+    "targets/waveshare-35b.json": "eeb570836fb03b543cccbbe5fc728f39e947f14b00762bcea80197a0457a5c7c"
   }
 }

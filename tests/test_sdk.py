@@ -86,14 +86,17 @@ class Compatibility(unittest.TestCase):
 
 
 class BuildPipeline(unittest.TestCase):
-    def test_build_for_the_single_hardware_model(self):
-        subprocess.run([sys.executable, str(ROOT / "tools/build.py"), str(ROOT / "apps/hello"),
-                        "--target", "lckfb-s3", "--no-aot"], check=True, capture_output=True, text=True)
-        manifest = check(ROOT / "dist/lckfb-s3/aster.hello.ast", board="lckfb-s3")
-        self.assertEqual(manifest["target_id"], "lckfb-s3")
-        self.assertEqual(set(aster_board.targets()), {"lckfb-s3"})
-        self.assertEqual(set(aster_board.get("lckfb-s3")["display"]["modes"]),
-                         {"headless", "portrait", "landscape"})
+    def test_build_for_each_hardware_model(self):
+        self.assertEqual(set(aster_board.targets()), {"lckfb-s3", "waveshare-35b"})
+        for target in aster_board.targets():
+            with self.subTest(target=target):
+                subprocess.run([sys.executable, str(ROOT / "tools/build.py"), str(ROOT / "apps/hello"),
+                                "--target", target, "--no-aot"], check=True, capture_output=True, text=True)
+                package = ROOT / f"dist/{target}/aster.hello.ast"
+                manifest = check(package, board=target)
+                self.assertEqual(manifest["target_id"], target)
+                self.assertEqual(set(aster_board.get(target)["display"]["modes"]),
+                                 {"headless", "portrait", "landscape"})
 
     def test_target_is_mandatory(self):
         import os

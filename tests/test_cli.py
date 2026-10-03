@@ -28,7 +28,7 @@ class CLI(unittest.TestCase):
     def test_scaffold_every_template_with_toml_escaped_name(self):
         for template in ('hello', 'swipe-game'):
             project = self.root / template
-            self.invoke('init', project, '--template', template, '--name', '游戏 "A"\nB', '--id', 'test.' + template)
+            self.invoke('init', project, '--template', template, '--name', '游戏 "A"\nB', '--id', 'test.' + template, '--target', 'lckfb-s3')
             cfg = tomllib.loads((project / 'app.toml').read_text())
             self.assertEqual(cfg['app']['name'], '游戏 "A"\nB')
             self.assertEqual(cfg['sdk']['target'], 'lckfb-s3')
@@ -56,7 +56,7 @@ class CLI(unittest.TestCase):
 
     def test_project_target_and_isolated_build_environment(self):
         project = self.root / 'app'
-        self.invoke('init', project, '--id', 'test.app')
+        self.invoke('init', project, '--id', 'test.app', '--target', 'lckfb-s3')
         with patch.dict(os.environ, {'ASTER_TARGET': 'invalid'}), patch('aster.subprocess.run') as run:
             self.invoke('build', project)
         args, options = run.call_args
@@ -65,9 +65,22 @@ class CLI(unittest.TestCase):
         self.assertEqual(options['env']['ASTER_WORKSPACE'], str(project))
         self.assertIn('lckfb-s3', args[0])
 
+    def test_multiple_boards_require_explicit_scaffold_target(self):
+        project = self.root / 'waveshare'
+        with self.assertRaisesRegex(ValueError, 'Select --target'):
+            with patch.dict(os.environ, {'ASTER_TARGET': ''}):
+                self.invoke('init', project, '--id', 'test.board')
+        self.assertFalse(project.exists())
+        self.invoke('init', project, '--id', 'test.board', '--target', 'waveshare-35b')
+        cfg = tomllib.loads((project / 'app.toml').read_text())
+        self.assertEqual(cfg['sdk']['target'], 'waveshare-35b')
+        with patch('aster.subprocess.run') as run:
+            self.invoke('build', project)
+        self.assertIn('waveshare-35b', run.call_args.args[0])
+
     def test_run_no_build_deploys_existing_project_package(self):
         project = self.root / 'game'
-        self.invoke('init', project, '--id', 'test.game')
+        self.invoke('init', project, '--id', 'test.game', '--target', 'lckfb-s3')
         package = project / 'dist/lckfb-s3/test.game.ast'
         package.parent.mkdir(parents=True)
         package.write_bytes(b'existing package')

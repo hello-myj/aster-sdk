@@ -1,6 +1,6 @@
 # Aster APP SDK 开发手册（AI 可直接使用）
 
-适用版本：SDK ABI **3.7.0**；目标 **lckfb-s3**；契约基线为固件导出的 `aster-contract-3.7.0.zip`，编写日期 2026-10-01。
+适用版本：SDK ABI **3.7.0**；目标 **lckfb-s3**、实验性 **waveshare-35b**；契约基线为固件导出的 `aster-contract-3.7.0.zip`，更新日期 2026-10-02。
 
 本文是独立开发所需的完整参考：创建工程、配置、生命周期、绘图、输入、资源、设备接口、构建、部署及排错。本文中的类型和函数签名来自此版本 SDK 的公开契约。阅读本文即可编写 APP；不需要再读取固件代码、SDK 头文件、模板代码或工具实现。编译器会自动使用 SDK 自带的头文件和辅助库。
 
@@ -155,6 +155,8 @@ my-counter/
 `[sdk]`：`target = "lckfb-s3"`，用于独立工程默认目标选择。
 
 `[build]` 可选字段：`source_roots = ["vendor/lib"]` 额外递归编译的 C 源目录；`includes = ["src", "vendor/lib/include"]` 额外包含目录；`defines = ["MY_FEATURE=1"]` 宏；`cflags = []` 和 `ldflags = []` 额外编译/链接参数。路径相对工程根目录。普通 APP 不需要此节。
+
+微雪 ESP32-S3-Touch-LCD-3.5B 对应目标 `waveshare-35b`（实验性，未完成真机验证），ABI 3.7.0、Xtensa AOT，与 `lckfb-s3` 共用 APP 接口。使用 `aster build APP_DIR --target waveshare-35b`，工程 `[sdk] target` 可写 `"waveshare-35b"`。原生竖屏 320×480、横屏 480×320；RGB565 单帧占 307200 字节，最大线性内存 2 MiB。提供 display、touch、keyboard、audio-in/out、wifi、accelerometer、gyroscope、filesystem、storage.app、rtc、psram、framebuffer；不声明 camera、mouse、bluetooth。shell 默认需要外接 USB-TTL（板 TX=43、RX=17，3.3 V），板载 USB Serial/JTAG 用作包传输；部署时可用 --console 指定实际外接串口。该板的 USB 调试固件可将 shell 切到板载 USB（--console /dev/ttyACM0），此时 USB 文件服务暂停，不能直接用 deploy/push 传包；先在文件服务模式传输到 SD，再切回调试模式安装。微雪板已验证 USB shell、SD 挂载、显示尺寸和 IMU 采样，其他外设效果继续实机验证。
 
 lckfb-s3 的目标最大线性内存为 **2097152 字节（2 MiB）**。可见像素缓冲也消耗 APP 内存；240×320 RGB565 单帧需要 153600 字节。不要只计算业务数组而忽略表面、运行时堆和栈；不能把 PSRAM 硬件总量当作 APP 内存上限。
 
