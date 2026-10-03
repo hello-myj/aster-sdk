@@ -1,4 +1,5 @@
 [app]
+description = "让音乐，填满这段时间。"
 id      = "aster.player"
 name    = "Player"
 version = "1.0.0"

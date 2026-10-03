@@ -1,4 +1,5 @@
 [app]
+description = "下一次转弯，交给你。"
 id      = "aster.snake"
 name    = "Snake"
 version = "1.2.1"

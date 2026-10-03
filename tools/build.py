@@ -217,6 +217,12 @@ class App:
         self.dir = app_dir
         self.id: str = a.get("id") or sys.exit(f"error: {toml}: app.id required")
         self.name: str = a.get("name", self.id)
+        self.description = a.get("description", "")
+        if (not isinstance(self.description, str) or
+                len(self.description.encode("utf-8")) > 127 or
+                any(ord(c) < 32 or ord(c) == 127 for c in self.description)):
+            sys.exit(f"error: {toml}: description must be single-line text "
+                     "of at most 127 UTF-8 bytes")
         self.version: str = str(a.get("version", "0.0.0"))
         target, min_abi = sdk_abi()
         self.abi: str = str(a.get("abi", target))
@@ -428,6 +434,8 @@ def make_manifest(app: App) -> dict:
             "stack": app.stack,
         },
     }
+    if app.description:
+        m["description"] = app.description
     if app.max_memory:
         m["memory"]["max"] = app.max_memory
     if app.heap:

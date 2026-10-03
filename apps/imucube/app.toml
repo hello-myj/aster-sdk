@@ -1,4 +1,5 @@
 [app]
+description = "让方向，跟着手掌变化。"
 id = "aster.imucube"
 name = "IMU 立方体"
 version = "1.0.0"

@@ -1,4 +1,5 @@
 [app]
+description = "从光里，找回一段记忆。"
 id      = "aster.gallery"
 name    = "相册"
 version = "1.0.1"

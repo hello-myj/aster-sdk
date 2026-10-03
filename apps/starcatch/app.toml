@@ -1,4 +1,5 @@
 [app]
+description = "伸手，接住下一颗星。"
 id = "aster.starcatch"
 name = "Star Catch"
 version = "1.0.0"

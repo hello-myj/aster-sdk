@@ -167,6 +167,12 @@ def check(path, pub_pem=None, board=None):
     man = json.loads(b[mo:mo + ml].decode("utf-8"))
     for k in ("id", "name", "abi"):
         assert k in man, f"manifest.{k}"
+    if "description" in man:
+        description = man["description"]
+        assert (isinstance(description, str) and
+                len(description.encode("utf-8")) <= 127 and
+                not any(ord(c) < 32 or ord(c) == 127 for c in description)), (
+                    "manifest.description must be single-line text of at most 127 UTF-8 bytes")
     # "orientation" is optional -- absent means "follow the panel", the only
     # way to ask for either one. A value that is neither spelling is DROPPED on
     # the device (aster_pkg_norm_orientation warns, returns ASTER_ORIENT_ANY), and

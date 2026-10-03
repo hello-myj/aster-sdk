@@ -1,4 +1,5 @@
 [app]
+description = "认识这台掌中的设备。"
 id      = "aster.apitest"
 name    = "API Test"
 version = "1.0.0"

@@ -1,5 +1,6 @@
 # ASTER app manifest — gfxshow: gfx-engine demo (ABI 3.0).
 [app]
+description = "让像素，跳出想象。"
 id      = "aster.gfxshow"
 name    = "Gfx Show"
 version = "0.1.0"

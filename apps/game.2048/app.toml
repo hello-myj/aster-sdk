@@ -1,4 +1,5 @@
 [app]
+description = "数字相遇，就有新的可能。"
 id      = "aster.game.2048"
 name    = "2048"
 version = "1.3.0"

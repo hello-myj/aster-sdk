@@ -1,4 +1,5 @@
 [app]
+description = "翻开一页，停留片刻。"
 id      = "aster.reader"
 name    = "Reader"
 version = "1.0.0"

@@ -1,4 +1,6 @@
 [app]
+# Optional introduction shown by the launcher; at most 127 UTF-8 bytes.
+description = ""
 id = "aster.prismdrop"
 name = "Prism Drop"
 version = "1.0.0"
