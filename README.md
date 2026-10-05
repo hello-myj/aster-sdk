@@ -24,12 +24,12 @@ tests/              契约、目标选择、能力、内存、设备身份和构
 发布者推荐使用 [Ubuntu 双平台发布指南](docs/release.md)：`bash release.sh --board lckfb-s3 --hosts linux-x64,windows-x64` 从同一工作区生成 Windows 便携 ZIP 与 Linux 包。接口更新通过固件契约同步，AOT 编译器按开发板绑定并复用。
 
 Windows 和 Linux 共用 `aster` 命令，安装、环境激活、模板、构建和部署详见
-[跨平台 SDK 命令指南](docs/sdk-cli.md)。Windows 原生发布包含三个 EXE，无需 WSL。
+[跨平台 SDK 命令指南](docs/sdk-cli.md)。Windows 原生发布包含三个 EXE、开发手册与 Skill，无需 WSL。构建发布包见 [发布说明](docs/release.md)。
 
-Linux 首次安装：
+Linux 便携包首次安装（Python 3.12；源码仓库改用 `./bin/aster`）：
 
 ```bash
-./bin/aster install --add-path
+./aster install --add-path
 source ./env.sh
 ```
 
@@ -70,8 +70,10 @@ Wi-Fi APP 声明 `requires = ["wifi"]` 和 `permissions = ["wifi"]`，然后通�
 ```bash
 python tools/aster.py verify --target lckfb-s3 dist/lckfb-s3/aster.gfxshow.ast
 python tools/aster.py deploy dist/lckfb-s3/aster.gfxshow.ast \
-  --target lckfb-s3 --port /dev/ttyACM0 --console /dev/ttyUSB0 --run
+  --target lckfb-s3 --port /dev/ttyUSB0 --run
 ```
+
+新固件在 shell 串口同时提供日志与文件服务，SDK 自动共用该端口完成传输、安装和启动；例如 Windows `--port COM24`，Linux `--port /dev/ttyUSB0`。旧固件仍可显式指定独立 `--console`。上传前关闭独立监视器，结束后在同一端口恢复。详见 [单串口指南](docs/serial-console-transfer.md)。
 
 设备须事先安装匹配的 Aster 固件和系统资源。部署先验证包，再通过设备握手确认产品、目标、ABI 与存储状态，接着传输、安装并按需启动 APP。SDK 不构建或修改固件；Windows 独立设备工具可按用户指定的串口和偏移烧录已构建的固件镜像。不自动连接 USB 设备到 WSL。
 

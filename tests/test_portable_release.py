@@ -13,6 +13,21 @@ import toolchain_catalog
 
 
 class PortableReleaseTests(unittest.TestCase):
+    def test_release_carries_self_contained_manual_and_skill(self):
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as folder:
+            out = Path(folder)/'aster-sdk'
+            out.mkdir()
+            package_portable.copy_sdk(out, SimpleNamespace(board='lckfb-s3'), 'windows')
+            source = package_portable.ROOT
+            for name in ('README.md', 'docs/app-development.md', 'docs/serial-console-transfer.md', 'apps/imucube/app.toml',
+                         '.agents/skills/aster-app-development/SKILL.md'):
+                self.assertEqual((out/name).read_bytes(), (source/name).read_bytes())
+            skill = out/'.agents/skills/aster-app-development/SKILL.md'
+            manual = (skill.parent/'../../../docs/app-development.md').resolve()
+            self.assertTrue(manual.is_relative_to(out.resolve()))
+            self.assertTrue(manual.is_file())
+
     def test_contract_import_updates_interfaces_and_rejects_inconsistent_abi(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);bundle=root/'contract.zip'

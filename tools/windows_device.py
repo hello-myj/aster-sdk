@@ -22,7 +22,7 @@ def console_port(preferred: str | None, data_port: str | None = None) -> str:
     if preferred and preferred != "auto":
         return preferred
     from serial.tools import list_ports
-    candidates = [p.device for p in list_ports.comports() if p.device != data_port]
+    candidates = ([data_port] if data_port else []) + [p.device for p in list_ports.comports() if p.device != data_port]
     if os.name != "nt":
         candidates = sorted(candidates, key=lambda name: ("ttyUSB" not in name, name))
     for port in candidates:
@@ -61,7 +61,7 @@ def toolchain_path(preferred: Path | None) -> Path:
 def monitor(port: str, logfile: Path | None = None, seconds: float | None = None,
             interactive: bool = True) -> None:
     import serial
-    with serial.Serial(port, 115200, timeout=0.2) as connection:
+    with aster_send.open_serial(port, timeout=0.2) as connection:
         with logfile.open("ab") if logfile else open(os.devnull, "ab") as output:
             deadline = time.monotonic() + seconds if seconds else None
             print(f"monitoring {port}; Ctrl+C to stop", file=sys.stderr)
@@ -193,7 +193,8 @@ def main(argv=None) -> int:
         subprocess.run([str(tool), "build", str(app), "--target", args.target,
                         "--aot"], check=True)
         args.package = output_root() / "dist" / args.target / (manifest["app"]["id"] + ".ast")
-    console = console_port(args.console, port)
+    console = (port if args.console == "auto" and "serial=shared" in pong
+               else console_port(args.console, port))
     command = [str(args.package), "--port", port, "--console", console,
                "--target", args.target]
     if args.run:

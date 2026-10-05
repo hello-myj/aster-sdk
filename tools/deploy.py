@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Verify device identity, transfer and install an APP; never builds/flashes firmware."""
 import argparse
+from contextlib import nullcontext
 import re
 import subprocess
 import sys
@@ -12,14 +13,15 @@ from target_checks import validate_device
 from verify_ast import check
 
 
-def shell_command(port, command, timeout=45):
-    import serial
-    for attempt in range(3):
-        with serial.Serial(port, 115200, timeout=0.2, write_timeout=5) as connection:
-            connection.write(b"\x03\r\n")
+def shell_command(port, command, timeout=45, connection=None):
+    from aster_send import open_serial
+    with (nullcontext(connection) if connection is not None else
+          open_serial(port, timeout=0.2, write_timeout=5)) as connection:
+        for attempt in range(3):
+            connection.write(b"\x03\n")
             time.sleep(0.2)
             connection.reset_input_buffer()
-            connection.write((command + "\r\n").encode())
+            connection.write((command + "\n").encode())
             connection.flush()
             output = bytearray()
             deadline = time.monotonic() + timeout / 3
@@ -29,9 +31,7 @@ def shell_command(port, command, timeout=45):
                 echo = reply.find(command)
                 if echo >= 0 and "aster:~$" in reply[echo + len(command):]:
                     return reply
-        # Closing the USB data port can reboot the board. Retry a command
-        # sent during startup instead of accepting an old shell prompt.
-        time.sleep(1)
+            time.sleep(1)
     raise RuntimeError("device shell timed out waiting for command echo: " + command)
 
 
@@ -52,23 +52,26 @@ def main(argv=None):
         raise RuntimeError("no device answered the deployment probe")
     validate_device(pong, target, manifest.get("requires", []))
     remote = target["deployment"]["package_dir"] + "/" + manifest["id"] + ".ast"
-    reply = aster_send.send_file(port, args.package, remote, target=target)
-    if reply != "OK":
-        raise RuntimeError("package transfer failed: " + str(reply))
-    console = args.console or target["console"]
-    response = shell_command(console, "aster app install " + remote)
-    print(response)
-    # Background services may report failures during a successful install.
-    # Match the shell command's acknowledgement, not unrelated log wording.
-    if not re.search(r"(?m)^\s*installed OK\s*$", response):
-        raise RuntimeError("device did not confirm installation")
-    if args.run:
-        response = shell_command(console, "aster app start " + manifest["id"])
+    console = args.console or (port if "serial=shared" in pong else target["console"])
+    shared = console == port and "serial=shared" in pong
+    with (aster_send.open_serial(port, timeout=0.2, write_timeout=10)
+          if shared else nullcontext(None)) as connection:
+        reply = aster_send.send_file(port, args.package, remote, target=target, connection=connection)
+        if reply != "OK":
+            raise RuntimeError("package transfer failed: " + str(reply))
+        response = shell_command(console, "aster app install " + remote, connection=connection)
         print(response)
-        # Recoverable driver diagnostics may contain "Error" even when the
-        # shell confirms startup. Require the command result, not log wording.
-        if not re.search(r"(?m)^\s*started " + re.escape(manifest["id"]) + r"\s*$", response):
-            raise RuntimeError("device could not start the application")
+        # Background services may report failures during a successful install.
+        # Match the shell command's acknowledgement, not unrelated log wording.
+        if not re.search(r"(?m)^\s*installed OK\s*$", response):
+            raise RuntimeError("device did not confirm installation")
+        if args.run:
+            response = shell_command(console, "aster app start " + manifest["id"], connection=connection)
+            print(response)
+            # Recoverable driver diagnostics may contain "Error" even when the
+            # shell confirms startup. Require the command result, not log wording.
+            if not re.search(r"(?m)^\s*started " + re.escape(manifest["id"]) + r"\s*$", response):
+                raise RuntimeError("device could not start the application")
     return 0
 
 

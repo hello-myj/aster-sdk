@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     tags: ['sdk-v*']
-    paths: ['tools/**', 'include/**', 'lib/**', 'contract/**', 'targets/**', 'toolchains/**', 'templates/**', 'requirements*.txt', 'release.sh', '.github/workflows/portable-sdk.yml']
+    paths: ['tools/**', 'include/**', 'lib/**', 'contract/**', 'targets/**', 'toolchains/**', 'templates/**', 'docs/**', '.agents/**', 'README.md', 'tests/**', 'requirements*.txt', 'release.sh', '.github/workflows/portable-sdk.yml']
 jobs:
   package:
     runs-on: ubuntu-24.04
@@ -21,7 +21,7 @@ jobs:
           path: build/portable-cache
           key: portable-deps-v1-${{ hashFiles('toolchains/catalog.json') }}
       - name: Unit tests
-        run: python -m unittest tests.test_release_identity tests.test_portable_release tests.test_cli tests.test_windows_tools -v
+        run: python -m unittest tests.test_release_identity tests.test_portable_release tests.test_cli tests.test_windows_tools tests.test_serial_shared -v
       - name: Package both hosts on Ubuntu
         env:
           TOOLCHAIN_URL: ${{ vars.ASTER_WINDOWS_TOOLCHAIN_URL }}

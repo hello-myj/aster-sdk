@@ -51,9 +51,9 @@ def extract_zip(archive, destination):
 
 
 def copy_sdk(out, args, platform):
-    for name in ('tools', 'contract', 'include', 'lib', 'templates', 'toolchains'):
-        shutil.copytree(ROOT / name, out / name, ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
-    for name in ('LICENSE', 'NOTICE.md', 'requirements.txt', 'requirements-windows.txt'):
+    for name in ('tools', 'contract', 'include', 'lib', 'templates', 'toolchains', 'docs', '.agents', 'apps', 'assets'):
+        shutil.copytree(ROOT / name, out / name, ignore=shutil.ignore_patterns('__pycache__', '*.pyc', 'build', 'dist'))
+    for name in ('README.md', 'LICENSE', 'NOTICE.md', 'requirements.txt', 'requirements-windows.txt'):
         shutil.copy2(ROOT / name, out / name)
     (out / 'targets').mkdir()
     shutil.copy2(ROOT / 'targets' / (args.board+'.json'), out / 'targets' / (args.board+'.json'))
@@ -71,8 +71,6 @@ def copy_sdk(out, args, platform):
     (out / 'toolchain').mkdir()
     shutil.copy2(ROOT / 'toolchain/LICENSE', out / 'toolchain/LICENSE')
     shutil.copy2(ROOT / 'toolchain/README.md', out / 'toolchain/README.md')
-    (out/'docs').mkdir()
-    shutil.copy2(ROOT/'docs/release.md', out/'docs/release.md')
     api=json.loads((out/'contract/api.json').read_text(encoding='utf-8'))
     lines=['# Exported API index', '', 'ABI: '+info['abi'], '', 'Public declarations and interface comments: `include/aster/`.', '']
     for module,names in sorted(api['imports'].items()):

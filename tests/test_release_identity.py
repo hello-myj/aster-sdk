@@ -38,6 +38,23 @@ class ReleaseIdentityTests(unittest.TestCase):
             self.assertNotEqual(before['build_id'], after['build_id'])
             self.assertEqual(after['abi'], '3.8.0')
 
+    def test_manual_and_skill_changes_invalidate_release_identity(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root/'contract').mkdir()
+            (root/'contract/lock.json').write_text('{"abi":"3.7.0"}')
+            for name in ('requirements.txt', 'requirements-windows.txt'):
+                (root/name).write_text('')
+            before = release.source_identity(root)
+            for name in ('docs/app-development.md', '.agents/skills/aster-app-development/SKILL.md'):
+                path = root/name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('shared serial deployment')
+                after = release.source_identity(root)
+                self.assertNotEqual(before['build_id'], after['build_id'])
+                self.assertEqual(after['abi'], before['abi'])
+                before = after
+
     def test_mixed_or_legacy_executable_rejected(self):
         expected = {'product':'aster','abi':'3.7.0','commit':'abc','build_id':'new'}
         with patch.object(release, 'identity', return_value=expected), patch.object(release.subprocess, 'run') as run:

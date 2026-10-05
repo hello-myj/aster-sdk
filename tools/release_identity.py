@@ -10,11 +10,11 @@ from runtime_paths import sdk_root
 
 def source_identity(root):
     digest = hashlib.sha256()
-    for folder in ('tools', 'contract', 'targets', 'include', 'lib', 'templates', 'toolchains'):
+    for folder in ('tools', 'contract', 'targets', 'include', 'lib', 'templates', 'toolchains', 'docs', '.agents', 'apps', 'assets'):
         # WindowsPath compares case-insensitively; PosixPath does not. Hash the
         # same explicit relative-name ordering on every build/validation host.
         for path in sorted((root / folder).rglob('*'), key=lambda p:p.relative_to(root).as_posix()):
-            if path.is_file() and '__pycache__' not in path.parts and path.suffix != '.pyc':
+            if path.is_file() and not any(part in ('__pycache__', 'build', 'dist') for part in path.relative_to(root).parts) and path.suffix != '.pyc':
                 name = path.relative_to(root).as_posix().encode()
                 content = path.read_bytes()
                 if path.suffix in ('.py', '.ps1', '.sh', '.json', '.h', '.c', '.toml', '.md', '.txt'):
@@ -22,7 +22,7 @@ def source_identity(root):
                 digest.update(name + b'\0' + hashlib.sha256(content).digest())
     for name in ('requirements.txt', 'requirements-windows.txt'):
         digest.update(name.encode() + (root / name).read_bytes().replace(b'\r\n', b'\n'))
-    for name in ('release.sh','docs/release.md'):
+    for name in ('release.sh', 'README.md', 'LICENSE', 'NOTICE.md'):
         if (root/name).is_file():
             digest.update(name.encode()+(root/name).read_bytes().replace(b'\r\n',b'\n'))
     try:
