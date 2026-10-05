@@ -14,7 +14,7 @@
 
 `/home/myj/zephyrproject/aster/aster-sdk` 是较旧的 WSL SDK 工作区。虽然同步了共享串口功能，但发布流程较旧，不要将它整个覆盖到 Windows 工作区。本文也放了一份在该目录，方便交接；实际发布仍使用 Windows 工作区。
 
-本次发布目标为 `lckfb-s3` 与 `waveshare-35b`（微雪 ESP32-S3-Touch-LCD-3.5B，实验性支持），SDK ABI 为 `3.7.0`，主机为 `windows-x64`、`linux-x64`，AOT 格式为 6；共四个包（两板 × 两主机）。不要仅为主机工具更新修改 ABI。`sdk-v3.7.0-r1`、`sdk-v3.7.0-r2` 标签已存在并指向更早的 lckfb-only 提交（不移动、不删除；r2 轮未建 Release）；本次合并 Release 在本次发布提交上使用标签 `sdk-v3.7.0-r3`，但必须先查远端是否已使用；如果已存在，不覆盖，另定递增标签。
+本次发布目标为 `lckfb-s3` 与 `waveshare-35b`（微雪 ESP32-S3-Touch-LCD-3.5B，实验性支持），SDK ABI 为 `3.7.0`，主机为 `windows-x64`、`linux-x64`，AOT 格式为 6；**每个主机平台一个包，包内携带全部开发板，共两个包**（此前按板拆分四包的设计已作废）。不要仅为主机工具更新修改 ABI。`sdk-v3.7.0-r1`、`sdk-v3.7.0-r2`、`sdk-v3.7.0-r3` 标签已存在并已推送（r3 指向 `336abd4` 的中间态提交，四包方案，未建 Release；不移动、不删除；r1/r2 指向更早的 lckfb-only 提交）。本次发布使用新提交上的递增标签 `sdk-v3.7.0-r4`，但必须先查远端是否已使用；如果已存在，不覆盖，另定递增标签。
 
 当前工作区存在大量未提交改动，其中包括用户和其他代理的改动及换行差异。请审查实际差异，保留有意义的改动，不要直接 `git add .`、丢弃文件、重置工作区或强制推送。调试脚本、预览、构建缓存和发布大包不应顺手提交。本文没有授权修改固件仓库或刷机。
 
@@ -39,7 +39,7 @@ aster-sdk-3.7.0-linux-x64-lckfb-s3-55526d503e4d.tar.gz
 SHA256：1e58ed10754b2b594086144977d05e96066e2d315bcdd9d6d5eb51cdc2efcf40
 ```
 
-**先提交最终发布源码，再重新构建四个包，标签指向该提交。** 不要把旧包挂到新提交的标签，也不要手工修改 ZIP 内的提交信息。`dist/portable/` 中已有的更早 lckfb-only 包（含 r2 轮产物）同样不再用于本次发布。
+**先提交最终发布源码，再重新构建两个包（每个主机平台一个），标签指向该提交。** 不要把旧包挂到新提交的标签，也不要手工修改 ZIP 内的提交信息。`dist/portable/` 中已有的更早 lckfb-only 包（含 r2 轮产物）与 r3 轮按板拆分的四个包（build_id `8cb06c82…`）同样不再用于本次发布。
 
 文档、Skill、示例和素材均参与 `build_id` 计算；加入本文已经改变源码指纹，因此最终包名应以重新构建的输出为准，不再照抄上面的 `55526d503e4d` 文件名。构建期间不要改源码、手册、Skill 或示例。
 
@@ -89,16 +89,15 @@ unset ASTER_RELEASE_COMMIT
 export ASTER_RELEASE_PYTHON=/home/myj/zephyrproject/aster/aster-sdk/.venv-linux/bin/python
 "$ASTER_RELEASE_PYTHON" --version
 "$ASTER_RELEASE_PYTHON" -m unittest discover -s tests -v
-bash release.sh --board lckfb-s3 --hosts linux-x64,windows-x64
-bash release.sh --board waveshare-35b --hosts linux-x64,windows-x64
+bash release.sh --hosts linux-x64,windows-x64
 ```
 
-更换解释器路径时相应调整环境变量。记录本次输出的四个 `Packaged:` 路径（每块板各一个 Windows ZIP 与一个 Linux tar.gz），产物在 `dist/portable/`。目录中可能有旧包或 `.partial` 文件，仅选本次成功生成的四个完整包。
+默认打包 `targets/` 下全部开发板（本次为两块）；`--boards` 只在需要子集时使用。更换解释器路径时相应调整环境变量。记录本次输出的两个 `Packaged:` 路径（一个 Windows ZIP 与一个 Linux tar.gz），产物在 `dist/portable/`。目录中可能有旧包或 `.partial` 文件，仅选本次成功生成的两个完整包。
 
-分别解压到全新的临时目录，核对四个包：
+分别解压到全新的临时目录，核对两个包：
 
-1. `release.json.commit` 均等于发布准备提交的完整 HEAD；`build_id` 四个包相同，ABI 为 3.7.0。
-2. 工具链配置均为 Xtensa / AOT 格式 6（两块板共用同一 profile），且包内 `targets/` 只含本板 target 文件。
+1. `release.json.commit` 均等于发布准备提交的完整 HEAD；两个包 `build_id` 相同，ABI 为 3.7.0；`release.json.boards` 列出两块板。
+2. 包内 `targets/` 同时含 `lckfb-s3.json` 与 `waveshare-35b.json`；`toolchain-profile.json.profiles` 记录同一 Xtensa / AOT 格式 6 配置（`esp32s3-wamr-2.4.3-v6`）覆盖两块板；单配置包的工具链保持平铺 `toolchain/wamrc[.exe]` 布局。
 3. 包含完整工具、运行时、工具链、文档、Skill、示例和素材，以及内部 `SHA256SUMS.txt`。
 4. 内部 SHA256 清单校验通过，三个工具报告的构建身份一致。
 
@@ -108,20 +107,16 @@ Windows 全新解压后，在 `aster-sdk` 根目录运行 PowerShell：
 .\runtime\python.exe .\tools\verify_windows_release.py .
 ```
 
-验证程序检查内部清单、工具身份、依赖、环境安装，以及在 SDK 外部创建应用、编译 AOT、验证 APP 包。Windows 三个 EXE 依赖整个便携目录，不能只测试或分发三个 EXE。Linux 发布器已包含独立应用构建验证；Linux 使用者需要 Python 3.12。
+验证程序检查内部清单、工具身份、依赖、环境安装，以及在 SDK 外部为每块已登记板创建应用、编译 AOT、验证 APP 包。Windows 三个 EXE 依赖整个便携目录，不能只测试或分发三个 EXE。Linux 发布器已包含独立应用构建验证（逐板循环）；Linux 使用者需要 Python 3.12。
 
-给本次四个包各生成一个外部 `.sha256` 文件，下面命令中的文件名替换为本次真实输出名：
+给本次两个包各生成一个外部 `.sha256` 文件，下面命令中的文件名替换为本次真实输出名：
 
 ```bash
 cd '/mnt/e/个人项目资料/aster/aster-sdk/dist/portable'
-sha256sum '本次lckfb Windows包.zip' > '本次lckfb Windows包.zip.sha256'
-sha256sum '本次lckfb Linux包.tar.gz' > '本次lckfb Linux包.tar.gz.sha256'
-sha256sum '本次微雪 Windows包.zip' > '本次微雪 Windows包.zip.sha256'
-sha256sum '本次微雪 Linux包.tar.gz' > '本次微雪 Linux包.tar.gz.sha256'
-sha256sum -c '本次lckfb Windows包.zip.sha256'
-sha256sum -c '本次lckfb Linux包.tar.gz.sha256'
-sha256sum -c '本次微雪 Windows包.zip.sha256'
-sha256sum -c '本次微雪 Linux包.tar.gz.sha256'
+sha256sum '本次 Windows包.zip' > '本次 Windows包.zip.sha256'
+sha256sum '本次 Linux包.tar.gz' > '本次 Linux包.tar.gz.sha256'
+sha256sum -c '本次 Windows包.zip.sha256'
+sha256sum -c '本次 Linux包.tar.gz.sha256'
 ```
 
 校验文件只记录文件名，便于下载后在同一目录检查。不要将实际包名中的中文占位符原样执行。
@@ -132,19 +127,19 @@ sha256sum -c '本次微雪 Linux包.tar.gz.sha256'
 
 ```bash
 cd '/mnt/e/个人项目资料/aster/aster-sdk'
-git tag -a sdk-v3.7.0-r3 <发布提交完整SHA> -m 'Aster SDK 3.7.0 r3: waveshare-35b target and portable host packages'
+git tag -a sdk-v3.7.0-r4 <发布提交完整SHA> -m 'Aster SDK 3.7.0 r4: one portable package per host with every board target'
 git push origin <核实后的当前发布分支>
-git push origin refs/tags/sdk-v3.7.0-r3
-git ls-remote origin refs/tags/sdk-v3.7.0-r3 'refs/tags/sdk-v3.7.0-r3^{}'
+git push origin refs/tags/sdk-v3.7.0-r4
+git ls-remote origin refs/tags/sdk-v3.7.0-r4 'refs/tags/sdk-v3.7.0-r4^{}'
 ```
 
-尖括号内容必须替换成真实值。核对远端带说明标签解引用后的提交等于发布提交。已存在的 `sdk-v3.7.0-r1`/`r2` 标签保持原样，不移动、不删除。若远端分支有新提交，正常处理并重新确定发布快照，必要时重新打包；不使用 `--force` 或推送所有标签。包本身作为 Release 附件，不放进 Git 源码提交。
+尖括号内容必须替换成真实值。核对远端带说明标签解引用后的提交等于发布提交。已存在的 `sdk-v3.7.0-r1`/`r2`/`r3` 标签保持原样，不移动、不删除。若远端分支有新提交，正常处理并重新确定发布快照，必要时重新打包；不使用 `--force` 或推送所有标签。包本身作为 Release 附件，不放进 Git 源码提交。
 
 推送 Gitee 标签不会运行 `.github/workflows/portable-sdk.yml`，也不会自动上传 SDK 包。不要用 GitHub 的 `gh release create` 代替 Gitee 发布。
 
 ## 6. 创建 Gitee Release 并上传附件
 
-最稳妥的可执行路径是 Gitee 网页：进入 SDK 仓库的“发行版 / Releases”，选择已推送的标签，填写标题和下节说明，上传本次四个成品和四个 `.sha256` 文件（合并为**一个** Release，共八个附件），然后发布。`sdk-v3.7.0-r2` 标签保留但不建 Release。不要将网页自动生成的“源码 ZIP”当成可直接开发的便携 SDK。
+最稳妥的可执行路径是 Gitee 网页：进入 SDK 仓库的“发行版 / Releases”，选择已推送的标签，填写标题和下节说明，上传本次两个成品（Windows ZIP、Linux tar.gz）和两个 `.sha256` 文件（合并为**一个** Release，共四个附件），然后发布。`sdk-v3.7.0-r2`、`sdk-v3.7.0-r3` 标签保留但不建 Release。不要将网页自动生成的“源码 ZIP”当成可直接开发的便携 SDK。
 
 若使用 API，先在可访问 Gitee 的环境核对官方文档的当前参数与权限。官方 SDK 文档列出的 v5 接口包括：
 
@@ -158,7 +153,7 @@ git ls-remote origin refs/tags/sdk-v3.7.0-r3 'refs/tags/sdk-v3.7.0-r3^{}'
 
 Git SSH 凭据与 API Access Token 不一定相同。Token 由用户在执行环境私下提供，通过环境变量或安全输入读取；不要写入本文、源码、Release 正文、命令 URL 或日志。请求重试前先检查已有 Release 和附件，避免重复创建。已有同名附件但内容不同，不直接覆盖或删除；报告冲突并确定新版本处理方式。
 
-必须上传以下八个文件：`lckfb-s3` 与 `waveshare-35b` 各自的 Windows ZIP、Linux tar.gz，以及每个包的 SHA256 文件。当前参考包约 83 MiB/77 MiB，先核对账号附件限制（八个附件的总量）；若超限，报告实际错误并与用户确定制品存储方式，不声称发布已完成。
+必须上传以下四个文件：Windows ZIP、Linux tar.gz，以及每个包的 SHA256 文件（每个平台一个包，内含全部开发板）。当前参考包约 82 MiB/76 MiB，先核对账号附件限制（四个附件的总量）；若超限，报告实际错误并与用户确定制品存储方式，不声称发布已完成。
 
 固定 Windows 编译器依赖 ZIP 如需供后续发布者使用，可另附经验证的工具链包及 SHA256，并在说明中标注“发布机器依赖，普通 APP 开发者无需另下”。该依赖包应遵循现有 `docs/release.md` 的获取方式，不把未验证缓存随意打包上传。
 
@@ -167,38 +162,39 @@ Git SSH 凭据与 API Access Token 不一定相同。Token 由用户在执行环
 将下面占位内容替换成最终真实值：
 
 ```markdown
-Aster SDK 3.7.0 r3
+Aster SDK 3.7.0 r4
 
-适用于两块 ESP32-S3 开发板：立创实战派（lckfb-s3）与微雪 ESP32-S3-Touch-LCD-3.5B（waveshare-35b，实验性支持），各提供 Windows x64 与 Linux x64 便携 SDK，共四个包。
+适用于两块 ESP32-S3 开发板：立创实战派（lckfb-s3）与微雪 ESP32-S3-Touch-LCD-3.5B（waveshare-35b，实验性支持）。Windows x64 与 Linux x64 各一个便携 SDK，包内携带全部开发板，构建与烧录用 --target 选板，共两个包。
 源码提交：<完整提交SHA>
 构建指纹：<完整build_id>
 
 更新内容：
-- 新增 waveshare-35b 发布目标：320×480、无 camera 能力、状态 experimental；由固件契约导出，SDK 导入后按板打包。
+- 便携包改为每个主机平台一个：包内同时携带全部已登记开发板（lckfb-s3、waveshare-35b），编译与部署用 --target 选择开发板，编译器自动切换；不再按板拆分下载。
+- 新增 waveshare-35b 发布目标：320×480、无 camera 能力、状态 experimental；由固件契约导出。
 - 两块板共用 Xtensa / AOT 格式 6 的同一编译器配置（esp32s3-wamr-2.4.3-v6），不新增原生编译器。
 - 继承 r2：支持新版固件的共享串口——日志、shell 命令和文件传输使用同一物理串口，部署工具识别 serial=shared 并在同一连接完成上传、安装与运行；保留旧固件的显式双串口兼容方式。
 - 发布包完整携带开发手册、AI Skill、示例应用、素材与工具链，文档及示例纳入构建指纹和校验清单。
 
 兼容性：公开 ABI 仍为 3.7.0，ASTP 应用包和 AOT 格式 6 不变；已有 APP 不需要重编。
-包按开发板区分：APP 的 target_id 必须与所选 SDK 包及设备一致；微雪目标上 APP 需要通过 aster_display_get_info() 读取实际分辨率。
+APP 的 target_id 必须与 --target 及设备一致；微雪目标上 APP 需要通过 aster_display_get_info() 读取实际分辨率。
 单串口能力需要匹配的新版固件；更新 SDK 不会自动更新固件。
 
 使用方法：
-- 下载与你的开发板匹配的包：文件名含 lckfb-s3 或 waveshare-35b。
-- Windows 下载对应 ZIP 完整解压，保留整个目录；自带 Python。Linux 下载对应 tar.gz 完整解压；需要系统 Python 3.12。
-- 按包内手册运行 aster install 并激活环境；构建、部署时使用与包对应的 --target。
+- 下载与电脑平台匹配的包：Windows 用 ZIP，Linux 用 tar.gz，一个包应付全部开发板。
+- Windows ZIP 完整解压，保留整个目录；自带 Python。Linux tar.gz 完整解压；需要系统 Python 3.12。
+- 按包内手册运行 aster install 并激活环境；构建、部署时用 --target 选择开发板（lckfb-s3 / waveshare-35b）。
 - 独立串口监视器在传输、shell 或截图前关闭，操作结束后可重新打开。
 - 校验下载文件：在附件目录运行 sha256sum -c <对应.sha256文件>；Windows 可用 Get-FileHash -Algorithm SHA256 比对。
 
 验证：<填写本次重新构建的单元测试、Linux应用构建验证、Windows成品验证、LCKFB 与微雪实机结果>
-下载附件：<本次四个包及四个校验文件的真实名称>
+下载附件：<本次两个包及两个校验文件的真实名称>
 ```
 
 不要把模板中的测试结果写成未执行的成功，也不要声称解决了所有 IMU 硬件问题。
 
 ## 8. 已有验证证据与最终验收
 
-2026-10-05 的 r2 参考构建完成了 48 项 SDK 单元测试，Linux 独立应用构建、Windows 原生完整包验证，以及 LCKFB 的真实共享串口探测、4101 字节二进制传输 CRC 和 IMU shell 命令验证（Windows 当时端口为 COM24；端口号会随连接改变，不作为发布硬编码配置）。r3 轮在源码层新增 waveshare-35b 目标：单元测试 49 项通过，Linux 包内应用构建与 Windows 成品验证对两块板分别执行；微雪实机部署验证 <填写结果>（用本次 Linux 便携包进行）。
+2026-10-05 的 r2 参考构建完成了 48 项 SDK 单元测试，Linux 独立应用构建、Windows 原生完整包验证，以及 LCKFB 的真实共享串口探测、4101 字节二进制传输 CRC 和 IMU shell 命令验证（Windows 当时端口为 COM24；端口号会随连接改变，不作为发布硬编码配置）。r3/r4 轮在源码层新增 waveshare-35b 目标并把打包改为每平台一包：单元测试通过，Linux 包内应用构建与 Windows 成品验证对两块板分别执行；微雪实机部署验证 <填写结果>（用本次 Linux 便携包进行）。
 
 记录在：
 
@@ -208,13 +204,13 @@ Aster SDK 3.7.0 r3
 
 这些证明参考版本经过验证；新提交重新打包后仍需完成上面的成品校验。测试失败应修复后重新提交、重建，避免标签和包脱节。没有设备时可以说明未重复实机验证，不把构建通过写成设备测试通过。
 
-发布后，从 Gitee 实际下载八个附件到新的空目录，按外部 SHA256 验证四个包；私有仓库按授权方式下载。确认 Release 链接可用、标签与提交一致、附件名与本次构建一致。不能只检查 HTTP 上传成功就宣称交付完成。
+发布后，从 Gitee 实际下载四个附件到新的空目录，按外部 SHA256 验证两个包；私有仓库按授权方式下载。确认 Release 链接可用、标签与提交一致、附件名与本次构建一致。不能只检查 HTTP 上传成功就宣称交付完成。
 
 最终向用户报告：
 
 1. Gitee Release URL、标签名与完整源码提交 SHA。
-2. 四个包共用的完整 build_id。
-3. 八个实际附件名，四个包的大小与 SHA256。
+2. 两个包共用的完整 build_id。
+3. 四个实际附件名，两个包的大小与 SHA256。
 4. 本次构建和成品验证结果、远端下载校验结果。
 5. 未完成项目及原因（如果存在）。
 

@@ -28,7 +28,7 @@ jobs:
           TOOLCHAIN_SHA256: ${{ vars.ASTER_WINDOWS_TOOLCHAIN_SHA256 }}
         run: |
           test -n "$TOOLCHAIN_URL" && test -n "$TOOLCHAIN_SHA256" || { echo "Configure the immutable Windows compiler bundle URL and SHA256 repository variables (docs/release.md)."; exit 1; }
-          bash release.sh --board lckfb-s3 --hosts linux-x64,windows-x64 --windows-toolchain-url "$TOOLCHAIN_URL" --windows-toolchain-sha256 "$TOOLCHAIN_SHA256"
+          bash release.sh --hosts linux-x64,windows-x64 --windows-toolchain-url "$TOOLCHAIN_URL" --windows-toolchain-sha256 "$TOOLCHAIN_SHA256"
       - uses: actions/upload-artifact@v4
         with:
           name: sdk-portable

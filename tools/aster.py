@@ -199,16 +199,26 @@ def doctor():
             good &= found
         # Reuse the builder search order (including ASTER_WASI_SDK/ASTER_WAMRC).
         import build
-        for name, path in [('clang', build.find_clang()), ('wamrc', build.find_wamrc())]:
-            found = bool(path) and Path(path).is_file()
-            print(f'{name}: {path if found else "MISSING"}')
+        clang = build.find_clang()
+        found = bool(clang) and Path(clang).is_file()
+        print(f'clang: {clang if found else "MISSING"}')
+        good &= found
+        if found:
+            try:
+                subprocess.run([str(clang), '--version'], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=True)
+            except (OSError, subprocess.CalledProcessError) as error:
+                print(f'clang cannot execute: {error}; run aster install (repairs Linux symlinks)')
+                good = False
+        # One compiler per AOT backend in multi-CPU packages; a single shared
+        # compiler otherwise (the flat toolchain/ layout every SDK used before).
+        wamrcs = build.bundled_wamrcs()
+        for backend, path in wamrcs.items():
+            print(f'wamrc[{backend}]: {path}')
+        if not wamrcs:
+            wamrc = build.find_wamrc()
+            found = bool(wamrc) and Path(wamrc).is_file()
+            print(f'wamrc: {wamrc if found else "MISSING"}')
             good &= found
-            if found and name == 'clang':
-                try:
-                    subprocess.run([str(path), '--version'], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=True)
-                except (OSError, subprocess.CalledProcessError) as error:
-                    print(f'clang cannot execute: {error}; run aster install (repairs Linux symlinks)')
-                    good = False
     print('Targets: ' + ', '.join(targets()))
     return 0 if good else 1
 

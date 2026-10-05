@@ -679,7 +679,7 @@ aster deploy dist/lckfb-s3/com.example.counter.ast --target lckfb-s3 --port /dev
 aster deploy dist/waveshare-35b/com.example.counter.ast --target waveshare-35b --port /dev/ttyACM0 --run
 ```
 
-Windows 对应 `--port COM24`（替换为实际发现的端口）。便携包按开发板发布：`lckfb-s3` 与 `waveshare-35b` 各一套 Windows/Linux 包，包内只携带自己那块板的 target 文件。SDK 的 `ASTERPING` 握手包含 `serial=shared` 时，安装、运行自动使用文件传输的同一连接，不需要另指定 `--console`。旧固件不返回该标记时仍使用双串口，可显式指定 `--port /dev/ttyACM0 --console /dev/ttyUSB0`。run = 构建、部署并启动；deploy 只装包，带 --run 才启动。
+Windows 对应 `--port COM24`（替换为实际发现的端口）。便携包按主机平台发布：Windows/Linux 各一个包，包内同时携带 `lckfb-s3` 与 `waveshare-35b` 的 target，编译与烧录用 `--target` 选板。SDK 的 `ASTERPING` 握手包含 `serial=shared` 时，安装、运行自动使用文件传输的同一连接，不需要另指定 `--console`。旧固件不返回该标记时仍使用双串口，可显式指定 `--port /dev/ttyACM0 --console /dev/ttyUSB0`。run = 构建、部署并启动；deploy 只装包，带 --run 才启动。
 
 调试与截图：
 

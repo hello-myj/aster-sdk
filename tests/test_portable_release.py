@@ -1,5 +1,6 @@
 import json
 import hashlib
+import os
 import sys
 import tempfile
 import unittest
@@ -14,11 +15,10 @@ import toolchain_catalog
 
 class PortableReleaseTests(unittest.TestCase):
     def test_release_carries_self_contained_manual_and_skill(self):
-        from types import SimpleNamespace
         with tempfile.TemporaryDirectory() as folder:
             out = Path(folder)/'aster-sdk'
             out.mkdir()
-            package_portable.copy_sdk(out, SimpleNamespace(board='lckfb-s3'), 'windows')
+            package_portable.copy_sdk(out, ['lckfb-s3'], 'windows')
             source = package_portable.ROOT
             for name in ('README.md', 'docs/app-development.md', 'docs/serial-console-transfer.md', 'apps/imucube/app.toml',
                          '.agents/skills/aster-app-development/SKILL.md'):
@@ -74,17 +74,62 @@ class PortableReleaseTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'differs'):
                 toolchain_catalog.select(root,'lckfb-s3','linux-x64')
 
-    def test_each_board_package_carries_only_its_target(self):
-        from types import SimpleNamespace
+    def test_package_carries_every_registered_board(self):
         source=package_portable.ROOT
-        for board in ('lckfb-s3','waveshare-35b'):
-            with self.subTest(board=board),tempfile.TemporaryDirectory() as folder:
-                out=Path(folder)/'aster-sdk'
-                out.mkdir()
-                package_portable.copy_sdk(out,SimpleNamespace(board=board),'windows')
+        boards=sorted(p.stem for p in (source/'targets').glob('*.json'))
+        with tempfile.TemporaryDirectory() as folder:
+            out=Path(folder)/'aster-sdk'
+            out.mkdir()
+            package_portable.copy_sdk(out,boards,'windows')
+            self.assertEqual([p.name for p in (out/'targets').glob('*.json')],
+                             [board+'.json' for board in boards])
+            for board in boards:
                 self.assertEqual((out/'targets'/(board+'.json')).read_bytes(),
                                  (source/'targets'/(board+'.json')).read_bytes())
-                self.assertEqual([p.name for p in (out/'targets').glob('*.json')],[board+'.json'])
+
+    def test_one_package_serves_boards_sharing_a_profile(self):
+        plan=package_portable.toolchain_plan(['lckfb-s3','waveshare-35b'],'linux-x64')
+        self.assertEqual(sorted(plan),['esp32s3-wamr-2.4.3-v6'])
+        self.assertEqual(plan['esp32s3-wamr-2.4.3-v6']['backends'],
+                         {'xtensa':['lckfb-s3','waveshare-35b']})
+
+    def test_same_backend_cannot_span_two_profiles(self):
+        def fake_select(root,board,host):
+            name={'lckfb-s3':'p1','waveshare-35b':'p2'}[board]
+            return {}, {'profile':name,'aot_backend':'xtensa'}, {'aot_format':6,'wasi_sdk':'24.0'}, {}
+        with patch.object(package_portable,'select',fake_select):
+            with self.assertRaisesRegex(ValueError,'cannot choose'):
+                package_portable.toolchain_plan(['lckfb-s3','waveshare-35b'],'linux-x64')
+
+    def test_distinct_backends_plan_side_by_side(self):
+        def fake_select(root,board,host):
+            name,backend={'lckfb-s3':('p1','xtensa'),'riscv-demo':('p2','riscv32')}[board]
+            return {}, {'profile':name,'aot_backend':backend}, {'aot_format':6,'wasi_sdk':'24.0'}, {}
+        with patch.object(package_portable,'select',fake_select):
+            plan=package_portable.toolchain_plan(['lckfb-s3','riscv-demo'],'linux-x64')
+        self.assertEqual(sorted(plan),['p1','p2'])
+        self.assertEqual(plan['p2']['backends'],{'riscv32':['riscv-demo']})
+
+    def test_package_requires_one_wasi_version(self):
+        def fake_select(root,board,host):
+            version={'lckfb-s3':'24.0','riscv-demo':'25.0'}[board]
+            backend='xtensa' if board=='lckfb-s3' else 'riscv32'
+            return {}, {'profile':board,'aot_backend':backend}, {'aot_format':6,'wasi_sdk':version}, {}
+        with patch.object(package_portable,'select',fake_select):
+            with self.assertRaisesRegex(ValueError,'wasi-sdk'):
+                package_portable.toolchain_plan(['lckfb-s3','riscv-demo'],'linux-x64')
+
+    def test_target_backend_selects_bundled_compiler(self):
+        import build
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            (root/'backends/riscv32').mkdir(parents=True)
+            flat=root/'wamrc';flat.write_bytes(b'xtensa build')
+            riscv=root/'backends/riscv32/wamrc';riscv.write_bytes(b'riscv build')
+            with patch.dict(os.environ,{'ASTER_WAMRC':''}),patch.object(build,'BUNDLED_TOOLCHAIN',root):
+                self.assertEqual(build.find_wamrc('xtensa'),flat)     # single-CPU packages keep the flat layout
+                self.assertEqual(build.find_wamrc('riscv32'),riscv)   # multi-CPU packages pick per backend
+                self.assertEqual(build.bundled_wamrcs(),{'riscv32':riscv})
 
     def test_wrong_native_compiler_rejected(self):
         with tempfile.TemporaryDirectory() as folder:

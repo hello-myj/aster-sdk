@@ -24,20 +24,23 @@ def verify(directory):
     subprocess.run([str(directory/'runtime/python.exe'),'-c',
                     'import serial, esptool; from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey; key=Ed25519PrivateKey.generate(); key.public_key().verify(key.sign(b"release"), b"release")'],check=True)
     subprocess.run([str(directory/'aster.exe'),'install'],check=True)
+    # One package serves every registered board, so the packaged EXEs must
+    # build an independent project for each --target on their own.
+    metadata=json.loads((directory/'release.json').read_text(encoding='utf-8'))
+    boards=metadata.get('boards') or [metadata.get('board','lckfb-s3')]
+    formats={board: record['aot_format'] for record in json.loads((directory/'toolchain-profile.json').read_text())['profiles'].values() for board in record['boards']}
     with tempfile.TemporaryDirectory(prefix='aster release ') as temporary:
-        project = Path(temporary) / 'example app'
         cli = str(directory / 'aster.exe')
-        metadata=json.loads((directory/'release.json').read_text(encoding='utf-8'))
-        board=metadata.get('board','lckfb-s3')
-        subprocess.run([cli, 'init', str(project), '--template', 'hello', '--id', 'test.release.hello', '--target',board], check=True)
-        subprocess.run([cli, 'build', str(project), '--aot'], check=True)
-        subprocess.run([str(directory/'aster-device.exe'),'build',str(project),'--target',board],check=True)
-        subprocess.run([cli, 'verify', str(project / 'dist'/board/'test.release.hello.ast'), '--target', board], check=True)
-        aot=(project/'build'/board/'test.release.hello/app.aot').read_bytes()
-        profile=json.loads((directory/'toolchain-profile.json').read_text())['profile']
-        if aot[:4]!=b'\0aot' or int.from_bytes(aot[4:8],'little')!=profile['aot_format']:
-            raise RuntimeError('AOT format differs from board profile')
-    print('PASS: all tool identities match source; independent project AOT build and verify succeeded')
+        for board in boards:
+            project = Path(temporary) / board
+            subprocess.run([cli, 'init', str(project), '--template', 'hello', '--id', 'test.release.hello', '--target',board], check=True)
+            subprocess.run([cli, 'build', str(project), '--aot'], check=True)
+            subprocess.run([str(directory/'aster-device.exe'),'build',str(project),'--target',board],check=True)
+            subprocess.run([cli, 'verify', str(project / 'dist'/board/'test.release.hello.ast'), '--target', board], check=True)
+            aot=(project/'build'/board/'test.release.hello/app.aot').read_bytes()
+            if aot[:4]!=b'\0aot' or int.from_bytes(aot[4:8],'little')!=formats[board]:
+                raise RuntimeError('AOT format differs from board profile: '+board)
+    print('PASS: all tool identities match source; independent project AOT build and verify succeeded for '+', '.join(boards))
 
 
 if __name__ == '__main__':

@@ -20,7 +20,7 @@ flowchart LR
 
 发布包中的模板 ABI 自动跟随契约，并生成 `docs/api-index.md`。函数的用途、单位、生命周期和示例仍需在固件公开头文件或手册中维护；只有符号和签名不能推导这些语义。新的通信协议、打包格式或特殊功能逻辑仍需要修改对应工具代码。
 
-`toolchains/catalog.json` 独立定义“开发板 → CPU/AOT 后端 → 编译器配置 → 主机二进制及校验值”。**主机架构决定编译器在哪里执行，板卡架构决定编译器输出什么 AOT。** 当前登记的是 `lckfb-s3` 与 `waveshare-35b` 两块板：同为 Xtensa / AOT 格式 6，共用同一编译器配置；每个便携包只携带所选板卡的 target 与工具链。
+`toolchains/catalog.json` 独立定义“开发板 → CPU/AOT 后端 → 编译器配置 → 主机二进制及校验值”。**主机架构决定编译器在哪里执行，板卡架构决定编译器输出什么 AOT。** 当前登记的是 `lckfb-s3` 与 `waveshare-35b` 两块板：同为 Xtensa / AOT 格式 6，共用同一编译器配置 `esp32s3-wamr-2.4.3-v6`。**每个主机平台只发布一个便携包，包内携带全部已登记开发板；构建与烧录用 `--target` 选板，编译器由所选板卡自动决定。** 包内允许有多个编译器配置，但必须共用同一 wasi-sdk 版本，且一个 AOT 后端只能对应一个配置（否则 `--target` 无从区分）。多后端（如日后新增 RISC-V）时，各后端的 `wamrc` 放在包内 `toolchain/backends/<backend>/`；只有一个编译配置的包保持平铺的 `toolchain/wamrc[.exe]` 布局。
 
 ## 一次性准备
 
@@ -46,18 +46,17 @@ python3.12 -m venv .venv-linux
 ```bash
 bash release.sh \
   --contract /path/to/aster-contract.zip \
-  --board lckfb-s3 \
   --hosts linux-x64,windows-x64 \
   --windows-toolchain-bundle /path/to/windows-x64-esp32s3-wamr-2.4.3-v6.zip
 ```
 
-SDK 内的契约已经更新时，省略 `--contract`。本机已有配置指定的 Windows 编译器缓存时，也可省略 `--windows-toolchain-bundle`。远程依赖使用 `--windows-toolchain-url URL --windows-toolchain-sha256 SHA256`。
+默认打包 `targets/` 下全部开发板；`--boards lckfb-s3,waveshare-35b` 可只打子集。SDK 内的契约已经更新时，省略 `--contract`。本机已有配置指定的 Windows 编译器缓存时，也可省略 `--windows-toolchain-bundle`。远程依赖使用 `--windows-toolchain-url URL --windows-toolchain-sha256 SHA256`（固定编译器包只服务单配置；多后端包需要把每个配置的原生工具预先备好）。
 
 首次联网获取官方 Windows 嵌入式 Python 和 Python wheels，之后通过 `build/portable-cache/` 复用已锁定并校验的文件。更新 Python 依赖版本时需同步更新脚本固定版本并清理对应的 wheel 缓存，以重新生成 `resolved.json`；每个发布包保留依赖清单与校验值。
 
-输出在 `dist/portable/`，文件名包含 ABI、主机、板卡与构建指纹。包内包含 `release.json`、`toolchain-profile.json`、`dependencies.json` 和 `SHA256SUMS.txt`。三个 Windows EXE 必须随整个目录一起替换；统一入口会拒绝混用不同发布版本的工具。
+输出在 `dist/portable/`，每个主机平台一个包，文件名包含 ABI、主机与构建指纹。包内包含 `release.json`（`boards` 列表）、`toolchain-profile.json`（`profiles`：每个编译配置的后端、格式与板卡）、`dependencies.json` 和 `SHA256SUMS.txt`。三个 Windows EXE 必须随整个目录一起替换；统一入口会拒绝混用不同发布版本的工具。
 
-Linux 包生成前会用包内工具创建独立项目，实际编译 WASM、板卡 AOT，并验证 APP 包及 AOT 格式。Windows 包可在 Windows 上运行同一验证：
+Linux 包生成前会用包内工具为每块已登记的板各建一个独立项目，实际编译 WASM 与对应后端的 AOT，并验证 APP 包及 AOT 格式。Windows 包可在 Windows 上运行同一验证（同样逐板循环）：
 
 ```powershell
 .\runtime\python.exe .\tools\verify_windows_release.py .
@@ -67,7 +66,7 @@ Linux 包生成前会用包内工具创建独立项目，实际编译 WASM、板
 
 当前源码仓库为 `https://gitee.com/helloworldmyj/aster-sdk`。先提交并推送源码，再创建 `sdk-v*` 标签，在仓库的发行版页面使用该标签创建版本。把生成的 Windows ZIP、Linux tar.gz 和 SHA256 校验文件作为附件上传。固定 Windows 编译器 ZIP 也需要在发行版或制品库提供下载，以便新 Ubuntu 发布机器取得依赖；克隆 Git 仓库本身不会获得这个 ZIP。
 
-应用开发者从发行版下载与电脑平台、开发板匹配的 SDK 成品，完整解压后运行 `aster install` 生成环境脚本。Windows 成品自带 Python；Linux 成品需要 Python 3.12。无需克隆 SDK 源码或自行编译工具链。接口更新后下载新 SDK、重新激活环境并重编应用，设备固件应与该 SDK 的板卡和 ABI 匹配。
+应用开发者从发行版下载与电脑平台匹配的 SDK 成品（每个平台一个包，内含全部开发板），完整解压后运行 `aster install` 生成环境脚本。Windows 成品自带 Python；Linux 成品需要 Python 3.12。无需克隆 SDK 源码或自行编译工具链。接口更新后下载新 SDK、重新激活环境并重编应用，设备固件应与该 SDK 的板卡和 ABI 匹配。
 
 ## GitHub CI 与后续架构
 
@@ -78,8 +77,8 @@ Linux 包生成前会用包内工具创建独立项目，实际编译 WASM、板
 添加 RISC-V 或其他开发板时：
 
 1. 固件导出新板卡的契约，给出准确 CPU、AOT target、ABI、能力与协议。
-2. 为该架构准备匹配固件运行时的 AOT 编译器，登记 Linux/Windows 主机二进制与 SHA256。两块板共用完全相同的后端和编译参数时可以复用 profile。
-3. 在 `toolchains/catalog.json` 加板卡绑定。缺少主机工具链或架构不一致时发布直接报错。
+2. 为该架构准备匹配固件运行时的 AOT 编译器，登记 Linux/Windows 主机二进制与 SHA256。与既有板卡共用完全相同的后端和编译参数时复用 profile，否则新增一个 profile；新 CPU 家族通常对应新后端，发布包会在 `toolchain/backends/<backend>/` 下与既有后端并列携带，`--target` 自动选择。
+3. 在 `toolchains/catalog.json` 加板卡绑定。缺少主机工具链、架构不一致、同一后端挂两个 profile，或包内 wasi-sdk 版本不一致时，发布直接报错。
 4. 用该板执行独立 APP 构建、设备握手、安装和实机运行，再启用对应的 CI 发布矩阵；需要不同烧录协议时扩展设备工具。
 
 仅添加接口通常更新契约并重新封装；只有 CPU 后端、AOT 格式、运行时兼容性或编译选项改变时才重建对应工具链。当前流程只支持 x86_64 主机，其他主机架构需要增加对应运行时与原生工具配置。
@@ -94,6 +93,6 @@ Linux 包生成前会用包内工具创建独立项目，实际编译 WASM、板
 
 ## waveshare-35b 目标（2026-10-05）
 
-固件契约现同时导出 `lckfb-s3` 与 `waveshare-35b`（微雪 ESP32-S3-Touch-LCD-3.5B，320×480，无 camera 能力，状态为实验性）。SDK 导入契约后按板打包：`bash release.sh --board waveshare-35b --hosts linux-x64,windows-x64` 生成对应的 Windows 便携 ZIP 与 Linux 包，与 `--board lckfb-s3` 的产物并列。两个目标共用 `esp32s3-wamr-2.4.3-v6` 编译配置，不新增原生编译器；`tests/test_sdk.py` 对两块板分别执行独立 APP 构建。
+固件契约现同时导出 `lckfb-s3` 与 `waveshare-35b`（微雪 ESP32-S3-Touch-LCD-3.5B，320×480，无 camera 能力，状态为实验性）。SDK 导入契约后重新运行一次 `bash release.sh --hosts linux-x64,windows-x64`：Windows 便携 ZIP 与 Linux 包各自携带两块板的 target，编译与烧录用 `--target` 选板。两个目标共用 `esp32s3-wamr-2.4.3-v6` 编译配置，不新增原生编译器；`tests/test_sdk.py` 对两块板分别执行独立 APP 构建。
 
-APP 不应写死 240×320：微雪为 320×480，使用 `aster_display_get_info()` 读取实际尺寸并按返回的宽高布局。微雪 usb-debug 固件的 shell 串口使用同一套 `serial=shared` 部署路径，命令与 LCKFB 相同，只把 `--target` 换成 `waveshare-35b`；每个便携包只携带自己那块板的 target 文件，换板需换包。
+APP 不应写死 240×320：微雪为 320×480，使用 `aster_display_get_info()` 读取实际尺寸并按返回的宽高布局。微雪 usb-debug 固件的 shell 串口使用同一套 `serial=shared` 部署路径，命令与 LCKFB 相同，只把 `--target` 换成 `waveshare-35b`；同一个便携包同时携带两块板的 target 文件，换板只需换 `--target`，不必换包。

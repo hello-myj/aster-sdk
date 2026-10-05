@@ -128,17 +128,34 @@ def find_clang() -> Path:
              "the host-specific Aster toolchain)")
 
 
-def find_wamrc() -> Path | None:
+def find_wamrc(backend: str | None = None) -> Path | None:
+    """Locate wamrc. An SDK that serves several CPUs keeps one compiler per
+    backend under toolchain/backends/<backend>/; --target already names the
+    backend, so the right one is picked without any user choice."""
     env = os.environ.get("ASTER_WAMRC")
     cands = []
     if env:
         cands.append(Path(env))
     if BUNDLED_USABLE:
-        cands.append(BUNDLED_TOOLCHAIN / ("wamrc.exe" if os.name == "nt" else "wamrc"))
+        exe = "wamrc.exe" if os.name == "nt" else "wamrc"
+        if backend:
+            cands.append(BUNDLED_TOOLCHAIN / "backends" / backend / exe)
+        cands.append(BUNDLED_TOOLCHAIN / exe)
     for c in cands:
         if c.is_file():
             return c
     return shutil.which("wamrc")
+
+
+def bundled_wamrcs() -> dict[str, Path]:
+    """backend -> bundled compiler, for doctor output in multi-CPU SDKs."""
+    if not BUNDLED_USABLE:
+        return {}
+    exe = "wamrc.exe" if os.name == "nt" else "wamrc"
+    root = BUNDLED_TOOLCHAIN / "backends"
+    if not root.is_dir():
+        return {}
+    return {p.name: p / exe for p in sorted(root.iterdir()) if p.is_dir() and (p / exe).is_file()}
 
 
 def find_wasm_opt() -> Path | None:
@@ -406,7 +423,7 @@ def opt_wasm(wasm_path: Path) -> None:
 
 
 def build_aot(app: App, wasm_path: Path, aot_path: Path, target: str = "xtensa") -> bool:
-    wamrc = find_wamrc()
+    wamrc = find_wamrc(target)
     if not wamrc:
         print(f"[{app.id}] wamrc not found; skipping AOT")
         print(f"  {WAMRC_BUILD_HINT}")
