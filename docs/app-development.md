@@ -1,6 +1,6 @@
 # Aster APP SDK 开发手册（AI 可直接使用）
 
-适用版本：SDK ABI **3.7.0**；目标 **lckfb-s3**；契约基线为固件导出的 `aster-contract-3.7.0.zip`，编写日期 2026-10-01。
+适用版本：SDK ABI **3.7.0**；目标 **lckfb-s3**，另有实验性目标 **waveshare-35b**（差异见第 3、10 节）；契约基线为固件导出的 `aster-contract-3.7.0.zip`，编写日期 2026-10-01。
 
 本文是独立开发所需的完整参考：创建工程、配置、生命周期、绘图、输入、资源、设备接口、构建、部署及排错。本文中的类型和函数签名来自此版本 SDK 的公开契约。阅读本文即可编写 APP；不需要再读取固件代码、SDK 头文件、模板代码或工具实现。编译器会自动使用 SDK 自带的头文件和辅助库。
 
@@ -140,7 +140,7 @@ my-counter/
 - `icon`：可选，工程内 ASTI 格式图标的相对路径，例如 `"icon.bin"`；不能直接填 PNG。
 - `entry`：可选包元数据。普通 C APP 不设置，生命周期函数仍使用固定名称。
 
-支持的能力名称（精确拼写）：`display`、`touch`、`mouse`、`keyboard`、`camera`、`audio-in`、`audio-out`、`wifi`、`bluetooth`、`accelerometer`、`gyroscope`、`filesystem`、`storage.app`、`rtc`、`psram`、`framebuffer`。名字被接受不代表目标硬件具备该能力。当前 lckfb-s3 不声明 mouse、bluetooth。
+支持的能力名称（精确拼写）：`display`、`touch`、`mouse`、`keyboard`、`camera`、`audio-in`、`audio-out`、`wifi`、`bluetooth`、`accelerometer`、`gyroscope`、`filesystem`、`storage.app`、`rtc`、`psram`、`framebuffer`。名字被接受不代表目标硬件具备该能力。当前 lckfb-s3 不声明 mouse、bluetooth；waveshare-35b 不声明 mouse、bluetooth、camera。
 
 支持的权限名称只有：
 
@@ -152,11 +152,11 @@ my-counter/
 
 例如读图片需要 `permissions = ["fs"]`；有文件系统能力不等于有文件权限。显示、触摸、传感器、相机、录音、音量控制通过硬件能力检测，不存在 `"display"`、`"camera"`、`"audio"` 权限。
 
-`[sdk]`：`target = "lckfb-s3"`，用于独立工程默认目标选择。
+`[sdk]`：`target = "lckfb-s3"` 或 `"waveshare-35b"`，用于独立工程默认目标选择。
 
 `[build]` 可选字段：`source_roots = ["vendor/lib"]` 额外递归编译的 C 源目录；`includes = ["src", "vendor/lib/include"]` 额外包含目录；`defines = ["MY_FEATURE=1"]` 宏；`cflags = []` 和 `ldflags = []` 额外编译/链接参数。路径相对工程根目录。普通 APP 不需要此节。
 
-lckfb-s3 的目标最大线性内存为 **2097152 字节（2 MiB）**。可见像素缓冲也消耗 APP 内存；240×320 RGB565 单帧需要 153600 字节。不要只计算业务数组而忽略表面、运行时堆和栈；不能把 PSRAM 硬件总量当作 APP 内存上限。
+lckfb-s3 与 waveshare-35b 的目标最大线性内存都是 **2097152 字节（2 MiB）**。可见像素缓冲也消耗 APP 内存；240×320 RGB565 单帧需要 153600 字节，320×480 单帧需要 307200 字节。不要只计算业务数组而忽略表面、运行时堆和栈；不能把 PSRAM 硬件总量当作 APP 内存上限。
 
 ## 4. 完整可构建示例
 
@@ -673,7 +673,13 @@ aster run --no-build --port /dev/ttyUSB0
 aster deploy dist/lckfb-s3/com.example.counter.ast --target lckfb-s3 --port /dev/ttyUSB0 --run
 ```
 
-Windows 对应 `--port COM24`（替换为实际发现的端口）。当前便携包发布目标为 `lckfb-s3`。SDK 的 `ASTERPING` 握手包含 `serial=shared` 时，安装、运行自动使用文件传输的同一连接，不需要另指定 `--console`。旧固件不返回该标记时仍使用双串口，可显式指定 `--port /dev/ttyACM0 --console /dev/ttyUSB0`。run = 构建、部署并启动；deploy 只装包，带 --run 才启动。
+微雪板（usb-debug 固件，原生 USB）使用同一路径，只换端口与目标：
+
+```text
+aster deploy dist/waveshare-35b/com.example.counter.ast --target waveshare-35b --port /dev/ttyACM0 --run
+```
+
+Windows 对应 `--port COM24`（替换为实际发现的端口）。便携包按开发板发布：`lckfb-s3` 与 `waveshare-35b` 各一套 Windows/Linux 包，包内只携带自己那块板的 target 文件。SDK 的 `ASTERPING` 握手包含 `serial=shared` 时，安装、运行自动使用文件传输的同一连接，不需要另指定 `--console`。旧固件不返回该标记时仍使用双串口，可显式指定 `--port /dev/ttyACM0 --console /dev/ttyUSB0`。run = 构建、部署并启动；deploy 只装包，带 --run 才启动。
 
 调试与截图：
 

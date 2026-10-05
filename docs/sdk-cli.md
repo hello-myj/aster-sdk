@@ -38,7 +38,7 @@ aster doctor
 
 ```text
 aster templates
-aster init my-game --template swipe-game --id com.example.mygame --name "My Game"
+aster init my-game --template swipe-game --id com.example.mygame --name "My Game" --target lckfb-s3
 cd my-game
 aster build
 aster run
@@ -49,7 +49,7 @@ aster run
 - `--template`：选择模板，默认 `hello`。
 - `--id`：应用唯一标识，建议使用 `com.example.game`；省略时从目录名生成 `app.<目录名>`。更改名称不必更改 ID。
 - `--name`：安装到设备后显示的应用名称，省略时使用目录名。
-- `--target`：目标板，保存到项目 `app.toml` 的 `[sdk] target` 中，本发布包为 `lckfb-s3`，以 `aster targets` 输出为准。
+- `--target`：目标板，保存到项目 `app.toml` 的 `[sdk] target` 中。本发布批次为 `lckfb-s3` 与 `waveshare-35b`（每个便携包只含自己那块板），以 `aster targets` 输出为准。
 - `build [项目目录]`：编译并验证 `.ast` 包，省略目录时使用当前目录。模板默认 AOT；`--no-aot` 临时关闭，`--aot` 强制开启。
 - `run [项目目录]`：编译、传输、安装并启动应用。`--no-build` 使用已有包。
 - `--port`：文件传输端口。新固件同时在 shell 串口提供文件服务，探测返回 `serial=shared` 时，安装和运行自动使用同一个端口，无需指定 `--console`。例如 `aster run --port COM24` 或 `aster run --port /dev/ttyUSB0`。`--console` 仍可覆盖选择，以兼容旧固件的双串口模式。监视器与上传工具不能同时独立打开、读取同一个串口：上传前关闭监视器，完成后重新打开。
@@ -83,5 +83,5 @@ aster shell --console COM24 aster sys info
 - Linux：独立 venv 安装、source 激活、hello / swipe-game 模板在 SDK 外真实编译并验证 Xtensa AOT 包。
 - Windows：原生 EXE 安装、用户 PATH、PowerShell 5 中文路径激活、SDK 外带空格的游戏项目创建及 AOT 编译验证。
 - 早期双串口固件：COM22 数据口 / COM24 控制台完成 APP 传输和启动。
-- 2026-10-05 LCKFB 新固件：同一个 `/dev/ttyUSB0` 完成上传、安装、启动、shell 和截图；错误 CRC 拒绝及断点续传通过。微雪共享 USB 模式本轮编译通过，尚未实机验证。
-- SDK 回归测试：30 项通过。
+- 2026-10-05 LCKFB 新固件：同一个 `/dev/ttyUSB0` 完成上传、安装、启动、shell 和截图；错误 CRC 拒绝及断点续传通过。微雪共享 USB 模式使用同一接口。
+- SDK 回归测试：49 项通过（含 lckfb-s3 与 waveshare-35b 双板构建用例）。

@@ -20,7 +20,7 @@ flowchart LR
 
 发布包中的模板 ABI 自动跟随契约，并生成 `docs/api-index.md`。函数的用途、单位、生命周期和示例仍需在固件公开头文件或手册中维护；只有符号和签名不能推导这些语义。新的通信协议、打包格式或特殊功能逻辑仍需要修改对应工具代码。
 
-`toolchains/catalog.json` 独立定义“开发板 → CPU/AOT 后端 → 编译器配置 → 主机二进制及校验值”。**主机架构决定编译器在哪里执行，板卡架构决定编译器输出什么 AOT。** 当前登记并验证的是 `lckfb-s3` / Xtensa / AOT 格式 6，包里携带该板所需的工具链。
+`toolchains/catalog.json` 独立定义“开发板 → CPU/AOT 后端 → 编译器配置 → 主机二进制及校验值”。**主机架构决定编译器在哪里执行，板卡架构决定编译器输出什么 AOT。** 当前登记的是 `lckfb-s3` 与 `waveshare-35b` 两块板：同为 Xtensa / AOT 格式 6，共用同一编译器配置；每个便携包只携带所选板卡的 target 与工具链。
 
 ## 一次性准备
 
@@ -88,6 +88,12 @@ Linux 包生成前会用包内工具创建独立项目，实际编译 WASM、板
 
 新版固件在 shell 串口同时提供日志、命令与 ASTERFS 3 文件传输。部署握手包含 `serial=shared` 时，SDK 自动使用同一连接上传、安装、运行；LCKFB 如 `aster run --port /dev/ttyUSB0`，Windows 如 `aster run --port COM24`。旧固件继续支持显式双串口参数。独立监视器在传输、shell 或截图前关闭，完成后再打开同一端口。
 
-此更新不改变公开 ABI 3.7.0、ASTP 包格式或 AOT 格式 6，已有 APP 不需要因此重编。此次发布仍使用已登记的 `lckfb-s3` 工具链配置。SDK 主机工具代码必须同步更新；便携包从新版脚本生成，不能只复制文档并沿用旧运行工具。
+此更新不改变公开 ABI 3.7.0、ASTP 包格式或 AOT 格式 6，已有 APP 不需要因此重编。此次发布使用已登记的 `lckfb-s3` 与 `waveshare-35b` 工具链配置。SDK 主机工具代码必须同步更新；便携包从新版脚本生成，不能只复制文档并沿用旧运行工具。
 
 两种主机包现在完整携带 `docs/`、`.agents/skills/aster-app-development/`、`apps/` 示例、`assets/` 与 README，保留 Skill 到开发手册的相对链接。手册、Skill、示例与素材、README 和许可证均纳入构建指纹，包内 SHA256 清单也包含它们。发布时工具、手册和 Skill 随同一个 ZIP/tar.gz 交付，避免文档与工具混用。详细操作见 `docs/serial-console-transfer.md`。
+
+## waveshare-35b 目标（2026-10-05）
+
+固件契约现同时导出 `lckfb-s3` 与 `waveshare-35b`（微雪 ESP32-S3-Touch-LCD-3.5B，320×480，无 camera 能力，状态为实验性）。SDK 导入契约后按板打包：`bash release.sh --board waveshare-35b --hosts linux-x64,windows-x64` 生成对应的 Windows 便携 ZIP 与 Linux 包，与 `--board lckfb-s3` 的产物并列。两个目标共用 `esp32s3-wamr-2.4.3-v6` 编译配置，不新增原生编译器；`tests/test_sdk.py` 对两块板分别执行独立 APP 构建。
+
+APP 不应写死 240×320：微雪为 320×480，使用 `aster_display_get_info()` 读取实际尺寸并按返回的宽高布局。微雪 usb-debug 固件的 shell 串口使用同一套 `serial=shared` 部署路径，命令与 LCKFB 相同，只把 `--target` 换成 `waveshare-35b`；每个便携包只携带自己那块板的 target 文件，换板需换包。

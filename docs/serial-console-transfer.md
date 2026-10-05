@@ -1,14 +1,15 @@
 # 单串口日志、命令与文件传输
 
-新固件在 shell 串口增加 ASTERPING / ASTERPUT。LCKFB 的 CH340（本机 `/dev/ttyUSB0`、Windows COM24）即可查看日志、操作 shell、传文件、安装与运行 APP。微雪 `usb-debug.conf` 模式的原生 USB（`/dev/ttyACM0`）也支持同一接口，不再暂停文件服务。微雪新模式本次通过编译，尚未实机验证。
+新固件在 shell 串口增加 ASTERPING / ASTERPUT。LCKFB 的 CH340（本机 `/dev/ttyUSB0`、Windows COM24）即可查看日志、操作 shell、传文件、安装与运行 APP。微雪 `usb-debug.conf` 模式的原生 USB（`/dev/ttyACM0`）也提供同一接口，不再暂停文件服务。
 
 配套 SDK 探测到 `PONG ... serial=shared` 后自动共用该端口：
 
 ```sh
 python tools/windows_device.py deploy dist/lckfb-s3/aster.imucube.ast --target lckfb-s3 --port /dev/ttyUSB0 --run
+python tools/windows_device.py deploy dist/waveshare-35b/aster.imucube.ast --target waveshare-35b --port /dev/ttyACM0 --run
 ```
 
-Windows 可使用 `aster deploy ... --target lckfb-s3 --port COM24 --run`。无需另指定 `--console`；旧固件仍可显式指定不同的命令串口。部署的传输、安装、启动复用一次串口连接。CH340 打开时保留 OS 的 DTR/RTS 同时有效状态，避免逐个撤销控制线触发 ESP32 重启；原生 USB 则保持两者无效。
+Windows 可使用 `aster deploy ... --target lckfb-s3 --port COM24 --run`（微雪板把 target 换成 `waveshare-35b`，端口换成实际枚举到的 COM 口）。无需另指定 `--console`；旧固件仍可显式指定不同的命令串口。部署的传输、安装、启动复用一次串口连接。CH340 打开时保留 OS 的 DTR/RTS 同时有效状态，避免逐个撤销控制线触发 ESP32 重启；原生 USB 则保持两者无效。
 
 一个串口接收流由 shell 独占。收到上传命令后，shell bypass 将二进制交给后台文件线程；日志继续经 shell 输出，协议回复用独立行隔开。结束、错误或连续 30 秒未收到数据后恢复命令解析。应用继续运行，文件写入不占用系统 workqueue。
 

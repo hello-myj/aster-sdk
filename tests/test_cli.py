@@ -38,7 +38,7 @@ class CLI(unittest.TestCase):
     def test_scaffold_every_template_with_toml_escaped_name(self):
         for template in ('hello', 'swipe-game'):
             project = self.root / template
-            self.invoke('init', project, '--template', template, '--name', '游戏 "A"\nB', '--id', 'test.' + template)
+            self.invoke('init', project, '--template', template, '--name', '游戏 "A"\nB', '--id', 'test.' + template, '--target', 'lckfb-s3')
             cfg = tomllib.loads((project / 'app.toml').read_text(encoding='utf-8'))
             self.assertEqual(cfg['app']['name'], '游戏 "A"\nB')
             self.assertEqual(cfg['sdk']['target'], 'lckfb-s3')
@@ -66,7 +66,7 @@ class CLI(unittest.TestCase):
 
     def test_project_target_and_isolated_build_environment(self):
         project = self.root / 'app'
-        self.invoke('init', project, '--id', 'test.app')
+        self.invoke('init', project, '--id', 'test.app', '--target', 'lckfb-s3')
         with patch.dict(os.environ, {'ASTER_TARGET': 'invalid'}), patch('aster.subprocess.run') as run, \
              patch('aster.tool_command', return_value=[sys.executable,str(aster.ROOT/'tools/build.py')]):
             self.invoke('build', project)
@@ -78,7 +78,7 @@ class CLI(unittest.TestCase):
 
     def test_run_no_build_deploys_existing_project_package(self):
         project = self.root / 'game'
-        self.invoke('init', project, '--id', 'test.game')
+        self.invoke('init', project, '--id', 'test.game', '--target', 'lckfb-s3')
         package = project / 'dist/lckfb-s3/test.game.ast'
         package.parent.mkdir(parents=True)
         package.write_bytes(b'existing package')

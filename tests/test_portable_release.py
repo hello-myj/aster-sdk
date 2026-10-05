@@ -68,9 +68,23 @@ class PortableReleaseTests(unittest.TestCase):
         root=package_portable.ROOT
         target,binding,profile,host=toolchain_catalog.select(root,'lckfb-s3','linux-x64')
         self.assertEqual(binding['aot_backend'],'xtensa');self.assertEqual(profile['aot_format'],6)
+        target,binding,profile,host=toolchain_catalog.select(root,'waveshare-35b','linux-x64')
+        self.assertEqual(binding['aot_backend'],'xtensa');self.assertEqual(profile['aot_format'],6)
         with patch.object(toolchain_catalog.json,'loads',side_effect=[{'boards':{'lckfb-s3':{'cpu':'riscv32'}}},{'cpu':'xtensa'}]):
             with self.assertRaisesRegex(ValueError,'differs'):
                 toolchain_catalog.select(root,'lckfb-s3','linux-x64')
+
+    def test_each_board_package_carries_only_its_target(self):
+        from types import SimpleNamespace
+        source=package_portable.ROOT
+        for board in ('lckfb-s3','waveshare-35b'):
+            with self.subTest(board=board),tempfile.TemporaryDirectory() as folder:
+                out=Path(folder)/'aster-sdk'
+                out.mkdir()
+                package_portable.copy_sdk(out,SimpleNamespace(board=board),'windows')
+                self.assertEqual((out/'targets'/(board+'.json')).read_bytes(),
+                                 (source/'targets'/(board+'.json')).read_bytes())
+                self.assertEqual([p.name for p in (out/'targets').glob('*.json')],[board+'.json'])
 
     def test_wrong_native_compiler_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
