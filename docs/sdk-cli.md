@@ -4,7 +4,7 @@ SDK 提供 `aster` 命令。项目只需要 `app.toml`、源代码和素材，�
 
 ## Linux 安装与环境
 
-支持 x86_64 Linux，Python 3.11+，自带 wasi-sdk / Xtensa wamrc。Python 版本太旧时，先通过发行版包管理器安装 Python 3.11+ 和对应 venv 包（例如 Ubuntu 24.04 的 `python3 python3-venv`）。
+当前便携包支持 x86_64 Linux、Python 3.12，包含 Python 依赖及 wasi-sdk / Xtensa wamrc。完整解压后运行 `./aster install`，再 `source env.sh`。以下 `./bin/aster` / venv 安装步骤针对 SDK 源码仓库（Python 3.11+）。Python 版本太旧时，先通过发行版包管理器安装 Python 3.11+ 和对应 venv 包（例如 Ubuntu 24.04 的 `python3 python3-venv`）。
 
 ```bash
 cd /path/to/aster-sdk
@@ -19,7 +19,7 @@ aster doctor
 
 ## Windows 安装与环境
 
-把 `aster.exe`、`aster-toolchain.exe`、`aster-device.exe` 放在同一个固定目录。原生 EXE 内置 Python 依赖、Wasm 编译器和 Xtensa AOT 编译器，不需要 Python、WSL 或 Visual Studio。
+完整解压到固定目录，保留三个 EXE 和 `runtime/`、`tools/`、`toolchain/` 等所有子目录。便携包包含 Python 依赖、Wasm 编译器和 Xtensa AOT 编译器，不需要安装 Python、WSL 或 Visual Studio。
 
 ```powershell
 cd E:\AsterTools
@@ -38,7 +38,7 @@ aster doctor
 
 ```text
 aster templates
-aster init my-game --template swipe-game --id com.example.mygame --name "My Game"
+aster init my-game --template swipe-game --id com.example.mygame --name "My Game" --target lckfb-s3
 cd my-game
 aster build
 aster run
@@ -49,10 +49,10 @@ aster run
 - `--template`：选择模板，默认 `hello`。
 - `--id`：应用唯一标识，建议使用 `com.example.game`；省略时从目录名生成 `app.<目录名>`。更改名称不必更改 ID。
 - `--name`：安装到设备后显示的应用名称，省略时使用目录名。
-- `--target`：目标板，保存到项目 `app.toml` 的 `[sdk] target` 中，目前为 `lckfb-s3`。
+- `--target`：目标板，保存到项目 `app.toml` 的 `[sdk] target` 中。本发布批次为 `lckfb-s3` 与 `waveshare-35b`（同一个便携包内含两块板，按 `--target` 选择），以 `aster targets` 输出为准。
 - `build [项目目录]`：编译并验证 `.ast` 包，省略目录时使用当前目录。模板默认 AOT；`--no-aot` 临时关闭，`--aot` 强制开启。
 - `run [项目目录]`：编译、传输、安装并启动应用。`--no-build` 使用已有包。
-- `--port`：设备的数据串口；`--console`：设备的命令/日志串口。默认均自动发现；多个设备时指定端口。Windows 如 `aster run --port COM22 --console COM24`；Linux 如 `aster run --port /dev/ttyACM0 --console /dev/ttyUSB0`。
+- `--port`：文件传输端口。新固件同时在 shell 串口提供文件服务，探测返回 `serial=shared` 时，安装和运行自动使用同一个端口，无需指定 `--console`。例如 `aster run --port COM24` 或 `aster run --port /dev/ttyUSB0`。`--console` 仍可覆盖选择，以兼容旧固件的双串口模式。监视器与上传工具不能同时独立打开、读取同一个串口：上传前关闭监视器，完成后重新打开。
 
 Linux 串口需要当前用户具有读写权限；通常由设备所属的 dialout/uucp 组控制，按发行版配置后重新登录。`install` 不自动修改用户组或使用 sudo。
 
@@ -66,7 +66,7 @@ aster doctor
 aster verify dist/lckfb-s3/com.example.mygame.ast
 aster deploy dist/lckfb-s3/com.example.mygame.ast --run
 aster ports
-aster probe --port COM22
+aster probe --port COM24
 aster debug --console COM24
 aster screenshot screen.png --console COM24
 aster shell --console COM24 aster sys info
@@ -82,5 +82,6 @@ aster shell --console COM24 aster sys info
 
 - Linux：独立 venv 安装、source 激活、hello / swipe-game 模板在 SDK 外真实编译并验证 Xtensa AOT 包。
 - Windows：原生 EXE 安装、用户 PATH、PowerShell 5 中文路径激活、SDK 外带空格的游戏项目创建及 AOT 编译验证。
-- 实机：COM22 数据口 / COM24 控制台，通过统一 `run --no-build` 完成传输、安装和 AOT 启动，四种音效加载 4/4。
-- SDK 回归测试：30 项通过。
+- 早期双串口固件：COM22 数据口 / COM24 控制台完成 APP 传输和启动。
+- 2026-10-05 LCKFB 新固件：同一个 `/dev/ttyUSB0` 完成上传、安装、启动、shell 和截图；错误 CRC 拒绝及断点续传通过。微雪共享 USB 模式使用同一接口。
+- SDK 回归测试：49 项通过（含 lckfb-s3 与 waveshare-35b 双板构建用例）。

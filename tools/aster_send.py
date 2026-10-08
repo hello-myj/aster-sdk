@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""aster_send — ship a file to the board's SD card over the native USB-CDC.
+"""aster_send — ship a file to SD over the shared shell UART or legacy USB-CDC.
 
 Protocol (device: firmware/services/aster_file_svc.c):
-    ASTERPUT <abs-path> <len> <crc32-hex>\r\n  + raw bytes
+    ASTERPUT <abs-path> <len> <crc32-hex>\n  + raw bytes (only after ACK)
     -> "OK" | "ERR <code>\r\n"
 Small chunk + inter-chunk pacing because raw CDC has no flow control; the
 device verifies length + crc32, so any glitch fails fast (send_file raises
@@ -13,6 +13,7 @@ CLI:
     aster_send.py --ping
 """
 import argparse
+from contextlib import nullcontext
 import glob
 import os
 import re
@@ -31,11 +32,34 @@ class RetryError(Exception):
     """integrity failed (crc/length); safe to resend the whole file."""
 
 
+def open_serial(port, **kwargs):
+    """Open without pulsing ESP32 reset through DTR/RTS transitions."""
+    from serial.tools import list_ports
+    bridge = next((p for p in list_ports.comports() if p.device == port), None)
+    connection = serial.Serial(port=None, baudrate=115200, **kwargs)
+    # CH340 opens with both lines asserted by the OS. Keeping that pair avoids
+    # a reset pulse caused by changing DTR and RTS sequentially. On native USB,
+    # keep both inactive instead. Verified by repeated opens on LCKFB hardware.
+    asserted = bridge is not None and bridge.vid == 0x1a86
+    connection.dtr = asserted
+    connection.rts = asserted
+    connection.port = port
+    connection.open()
+    return connection
+
+
+def protocol_line(raw):
+    text = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", raw.decode(errors="replace"))
+    # Shell may redraw a prompt before a service response; logs are never tokens.
+    text = text.rsplit("aster:~$", 1)[-1].strip()
+    return text
+
+
 def _probe(s):
     """Send ASTERPING, retrying when USB CDC drops the first write on reopen."""
     for _ in range(3):
         s.reset_input_buffer()
-        s.write(b"ASTERPING\r\n")
+        s.write(b"ASTERPING\n")
         s.flush()
         deadline = time.monotonic() + 1.0
         buf = b""
@@ -43,14 +67,15 @@ def _probe(s):
             buf += s.read(64)
             while b"\n" in buf:
                 line, buf = buf.split(b"\n", 1)
-                if line.startswith(b"PONG"):
-                    return line.decode(errors="replace").strip()
+                token = protocol_line(line)
+                if token.startswith("PONG "):
+                    return token
         time.sleep(0.15)
     return None
 
 
 def find_port(prefer=None, brd=None):
-    """Return (port, pong) for the first candidate answering ASTERPING.
+    """Return (port, pong), preferring a shell with shared file service.
 
     Which device that is is a MODEL fact -- the reference board serves files
     on its native USB-Serial-JTAG (a ttyACM), but a board that puts the file
@@ -71,16 +96,20 @@ def find_port(prefer=None, brd=None):
             from serial.tools import list_ports
             cands = [port.device for port in list_ports.comports()]
         else:
-            cands = sorted(glob.glob(brd["data"]["glob"]))
+            cands = [brd["console"]] + sorted(glob.glob(brd["data"]["glob"]))
+    fallback = (None, None)
     for p in dict.fromkeys(cands):
         try:
-            with serial.Serial(p, 115200, timeout=0.5, write_timeout=3) as s:
+            with open_serial(p, timeout=0.5, write_timeout=3) as s:
                 pong = _probe(s)
                 if pong:
-                    return p, pong
+                    if "serial=shared" in pong or (prefer and prefer != "auto"):
+                        return p, pong
+                    if fallback[0] is None:
+                        fallback = (p, pong)
         except Exception:
             continue
-    return None, None
+    return fallback
 
 
 def _token(s, tmo):
@@ -93,14 +122,14 @@ def _token(s, tmo):
         buf += s.read(min(64, s.in_waiting) or 1)
         while b"\n" in buf:
             raw, buf = buf.split(b"\n", 1)
-            token = raw.decode(errors="replace").strip()
-            if token.startswith(("ACK ", "OK", "ERR", "RESUME")):
+            token = protocol_line(raw)
+            if re.fullmatch(r"ACK [0-9]+|OK|ERR .+|RESUME [0-9]+", token):
                 return token
     return None
 
 
 def send_file(port, local, remote=None, chunk=None, gap=None, retries=3,
-              wait=None, ack_tmo=30, target=None):
+              wait=None, ack_tmo=30, target=None, connection=None):
     """Push one file with stop-and-wait flow control + crc32 + resume.
 
     ASTERFS 3: the device answers the PUT header with a go-token "ACK <off>",
@@ -110,7 +139,7 @@ def send_file(port, local, remote=None, chunk=None, gap=None, retries=3,
     mid-stream keeps <n> durable bytes in <remote>.part; we re-PUT from n.
     "ERR retry" (crc mismatch) means the .part was dropped -> restart at 0.
     """
-    data = open(local, "rb").read()
+    data = Path(local).read_bytes()
     if remote is None:
         remote = "/SD:/" + os.path.basename(local)
     n = len(data)
@@ -126,7 +155,8 @@ def send_file(port, local, remote=None, chunk=None, gap=None, retries=3,
     stall = 0
     hard_cap = 20 + 4 * ((n + 65535) // 65536)
     last = ""
-    with serial.Serial(port, 115200, timeout=0.5, write_timeout=10) as s:
+    with (nullcontext(connection) if connection is not None else
+          open_serial(port, timeout=0.5, write_timeout=10)) as s:
         pong = _probe(s)
         if target is not None:
             from target_checks import validate_device
@@ -139,7 +169,7 @@ def send_file(port, local, remote=None, chunk=None, gap=None, retries=3,
             if _step:
                 time.sleep(0.5)
             s.reset_input_buffer()
-            s.write(f"ASTERPUT {remote} {n} {crc:08x} {resume_from}\r\n".encode())
+            s.write(f"ASTERPUT {remote} {n} {crc:08x} {resume_from}\n".encode())
             s.flush()
 
             tok = _token(s, ack_tmo)          # go-token (or early verdict)

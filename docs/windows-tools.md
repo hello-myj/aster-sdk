@@ -1,5 +1,11 @@
 > 日常开发推荐统一 `aster.exe`：安装、PATH、模板创建和编译运行见 [跨平台命令指南](sdk-cli.md)。下面的两个底层 EXE 仍兼容。
 
+## 推荐发布流程
+
+现在推荐由 Ubuntu 统一生成 Windows 和 Linux 便携 SDK，Windows 保留 EXE 启动入口。固件契约同步、板级工具链选择、一键发布和 CI 配置见 [发布指南](release.md)。
+
+下文保留旧的 Windows 单文件 EXE 构建方式，供兼容用途；普通 SDK 更新无需使用这条路径。
+
 # Windows APP 开发与设备工具
 
 Windows x86-64 使用两个命令行 EXE：
@@ -26,8 +32,8 @@ aster-toolchain.exe verify dist\lckfb-s3\my.app.ast --target lckfb-s3
 aster-device.exe build C:\work\my-app --toolchain C:\tools\aster-toolchain.exe --target lckfb-s3
 aster-device.exe ports
 aster-device.exe probe --target lckfb-s3
-aster-device.exe build-deploy C:\work\my-app --toolchain C:\tools\aster-toolchain.exe --port COM5 --console COM6 --run
-aster-device.exe push C:\work\sample.txt /SD:/sample.txt --port COM5
+aster-device.exe build-deploy C:\work\my-app --toolchain C:\tools\aster-toolchain.exe --port COM6 --run
+aster-device.exe push C:\work\sample.txt /SD:/sample.txt --port COM6
 aster-device.exe shell --console COM6 aster app list
 aster-device.exe debug --console COM6 --log C:\work\aster.log
 aster-device.exe screenshot C:\work\screen.png --console COM6
@@ -36,7 +42,7 @@ aster-device.exe flash C:\work\merged-firmware.bin --port COM6 --address 0x0
 
 `build-deploy` 先本机编译，再经 USB 串口传输并安装 APP。没有显式指定数据串口时，
 工具枚举 Windows COM 口并用 `ASTERPING` 识别文件服务；控制台也可自动探测。
-数据串口和控制台通常是两个不同 COM 口。设备在文件传输后可能重启；部署工具会等待控制台的实际命令回显再判定安装结果。固件烧录使用 esptool，必须显式提供
+新固件探测回复包含 `serial=shared`，同一个 COM 口即可传包、安装和运行，部署工具复用同一连接；旧固件仍可用 `--port COM5 --console COM6`。独立监视器应在传包、shell 或截图操作前关闭。CH340 设备工具已调整 DTR/RTS，避免打开串口的控制线切换触发重启。固件烧录使用 esptool，必须显式提供
 烧录串口；`flash` 默认按 ESP32-S3 的合并镜像从 `0x0` 写入，可用 `--address`
 覆盖镜像偏移。`debug` 监视串口日志，也可输入 shell 命令；`shell` 发送单条控制台命令。
 目前不包含源码级 GDB 调试。

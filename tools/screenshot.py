@@ -13,10 +13,10 @@ END = re.compile(rb"SHOT end ([0-9a-fA-F]{8})")
 
 
 def capture(port: str, page: str | None = None, timeout: float = 45) -> tuple[int, int, bytes]:
-    import serial
+    from aster_send import open_serial
 
     command = "aster ui screenshot" + (" " + page if page else "")
-    with serial.Serial(port, 115200, timeout=0.2, write_timeout=5) as connection:
+    with open_serial(port, timeout=0.2, write_timeout=5) as connection:
         connection.write(b"\x03\r\n")
         time.sleep(0.2)
         connection.reset_input_buffer()

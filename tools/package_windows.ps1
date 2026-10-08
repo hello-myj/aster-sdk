@@ -2,7 +2,8 @@ param(
     [string]$Python = "python",
     [string]$WasiSdk = "",
     [string]$Wamrc = "",
-    [string]$Cache = ""
+    [string]$Cache = "",
+    [string]$Output = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -24,7 +25,7 @@ function Invoke-WindowsTool([string]$Command, [string[]]$Arguments) {
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 if (-not $Cache) { $Cache = Join-Path $root "build\windows-downloads" }
 New-Item -ItemType Directory -Force $Cache | Out-Null
-$out = Join-Path $root "dist\windows"
+$out = if ($Output) { [System.IO.Path]::GetFullPath($Output) } else { Join-Path $root "dist\windows" }
 New-Item -ItemType Directory -Force $out | Out-Null
 
 if (-not $WasiSdk) {
@@ -99,6 +100,7 @@ if ($probeBytes.Length -lt 8 -or $probeBytes[0] -ne 0 -or
 }
 
 Invoke-WindowsTool $Python @("-m", "pip", "install", "-r", (Join-Path $root "requirements-windows.txt"))
+Invoke-WindowsTool $Python @((Join-Path $root 'tools/release_identity.py'), (Join-Path $out 'release.json'))
 
 $common = @(
     "--noconfirm", "--clean", "--onefile", "--console",
@@ -108,6 +110,7 @@ $common = @(
     "--specpath", (Join-Path $root "build\windows-spec")
 )
 $sdkData = @(
+    "--add-data", "$(Join-Path $out 'release.json');.",
     "--add-data", "$(Join-Path $root 'contract');contract",
     "--add-data", "$(Join-Path $root 'targets');targets",
     "--add-data", "$(Join-Path $root 'include');include"
@@ -136,5 +139,5 @@ Invoke-WindowsTool $Python (@("-m", "PyInstaller") + $common + $sdkData + @(
 Write-Host "Windows tools: $out\aster-toolchain.exe and $out\aster-device.exe"
 
 # Unified frontend delegates compilation/device work to the two sibling EXEs.
-& (Join-Path $PSScriptRoot "package_cli_windows.ps1") -Python $Python
+& (Join-Path $PSScriptRoot "package_cli_windows.ps1") -Python $Python -Output $out
 Write-Host "Unified CLI: $out\aster.exe"

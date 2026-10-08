@@ -13,15 +13,16 @@ import aster_board
 import aster_send
 import deploy
 import screenshot
-from runtime_paths import output_root
+from runtime_paths import output_root, sdk_root
 from target_checks import validate_device
+from release_identity import version_requested, check_sibling
 
 
 def console_port(preferred: str | None, data_port: str | None = None) -> str:
     if preferred and preferred != "auto":
         return preferred
     from serial.tools import list_ports
-    candidates = [p.device for p in list_ports.comports() if p.device != data_port]
+    candidates = ([data_port] if data_port else []) + [p.device for p in list_ports.comports() if p.device != data_port]
     if os.name != "nt":
         candidates = sorted(candidates, key=lambda name: ("ttyUSB" not in name, name))
     for port in candidates:
@@ -46,17 +47,21 @@ def toolchain_path(preferred: Path | None) -> Path:
         candidate = preferred.resolve()
     else:
         sibling = Path(sys.executable).with_name("aster-toolchain.exe")
-        candidate = sibling if sibling.is_file() else Path(
-            shutil.which("aster-toolchain.exe") or "aster-toolchain.exe")
+        name = 'aster-toolchain.exe' if os.name=='nt' else 'aster-toolchain'
+        bundled = sdk_root()/name
+        candidate = bundled if bundled.is_file() else (sibling if sibling.is_file() else Path(
+            shutil.which(name) or name))
     if not candidate.is_file():
         raise RuntimeError("aster-toolchain.exe not found; set --toolchain PATH")
+    if getattr(sys, 'frozen', False) or (sdk_root()/'release.json').is_file():
+        check_sibling(candidate)
     return candidate
 
 
 def monitor(port: str, logfile: Path | None = None, seconds: float | None = None,
             interactive: bool = True) -> None:
     import serial
-    with serial.Serial(port, 115200, timeout=0.2) as connection:
+    with aster_send.open_serial(port, timeout=0.2) as connection:
         with logfile.open("ab") if logfile else open(os.devnull, "ab") as output:
             deadline = time.monotonic() + seconds if seconds else None
             print(f"monitoring {port}; Ctrl+C to stop", file=sys.stderr)
@@ -81,6 +86,9 @@ def monitor(port: str, logfile: Path | None = None, seconds: float | None = None
 
 
 def main(argv=None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if version_requested(argv):
+        return 0
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("ports", help="list serial ports")
@@ -185,7 +193,8 @@ def main(argv=None) -> int:
         subprocess.run([str(tool), "build", str(app), "--target", args.target,
                         "--aot"], check=True)
         args.package = output_root() / "dist" / args.target / (manifest["app"]["id"] + ".ast")
-    console = console_port(args.console, port)
+    console = (port if args.console == "auto" and "serial=shared" in pong
+               else console_port(args.console, port))
     command = [str(args.package), "--port", port, "--console", console,
                "--target", args.target]
     if args.run:

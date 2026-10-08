@@ -1,20 +1,10 @@
-name: Windows SDK tools
+name: Legacy Windows single-file tools (manual)
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'tools/**'
-      - 'include/**'
-      - 'lib/**'
-      - 'contract/**'
-      - 'targets/**'
-      - 'templates/**'
-      - 'bin/**'
-      - 'requirements-windows.txt'
-      - 'docs/windows-tools.md'
-      - '.github/workflows/windows-tools.yml'
 jobs:
   windows:
+    permissions:
+      contents: read
     runs-on: windows-2022
     timeout-minutes: 240
     steps:
@@ -22,13 +12,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Restore pinned Windows toolchain
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/windows-downloads/wasi-sdk-24.0-x86_64-windows.tar.gz
+            build/windows-downloads/wasi-sdk
+            build/windows-downloads/wamrc-xtensa
+          key: windows-2022-toolchain-${{ hashFiles('tools/build_wamrc_windows.ps1', 'tools/package_windows.ps1') }}
       - name: Build SDK executables
         shell: pwsh
         run: ./tools/package_windows.ps1
       - name: Smoke test AOT and CLI
         shell: pwsh
         run: |
-          python -m unittest tests.test_windows_tools tests.test_cli -v
+          python -m unittest tests.test_windows_tools tests.test_cli tests.test_release_identity tests.test_serial_shared -v
           if ($LASTEXITCODE -ne 0) { throw 'Windows tool unit tests failed' }
           ./dist/windows/aster-toolchain.exe build apps/hello --target lckfb-s3 --aot
           if ($LASTEXITCODE -ne 0) { throw 'AOT build failed' }
@@ -56,6 +54,4 @@ jobs:
         with:
           name: aster-windows-tools
           path: |
-            dist/windows/aster-toolchain.exe
-            dist/windows/aster-device.exe
-            dist/windows/aster.exe
+            dist/windows/*

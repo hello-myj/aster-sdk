@@ -1,0 +1,5 @@
+/build/
+/dist/
+/tests/combat-test
+/tests/*.png
+/tests/*.json
