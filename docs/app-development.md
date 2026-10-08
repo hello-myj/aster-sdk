@@ -157,7 +157,7 @@ my-counter/
 
 `[build]` 可选字段：`source_roots = ["vendor/lib"]` 额外递归编译的 C 源目录；`includes = ["src", "vendor/lib/include"]` 额外包含目录；`defines = ["MY_FEATURE=1"]` 宏；`cflags = []` 和 `ldflags = []` 额外编译/链接参数。路径相对工程根目录。普通 APP 不需要此节。
 
-微雪 ESP32-S3-Touch-LCD-3.5B 对应目标 `waveshare-35b`，ABI 3.7.0、Xtensa AOT，与 `lckfb-s3` 共用 APP 接口。使用 `aster build APP_DIR --target waveshare-35b`。原生竖屏 320×480、横屏 480×320；RGB565 单帧占 307200 字节。打包允许的最大线性内存是 **4194304 字节（4 MiB）**。设备启动应用时按当时最大的连续空闲块分配，并先留出 1 MiB 给画布，实际拿到的是 `min(声明值, 空闲块 − 1 MiB)`，再按 64 KiB 向下取整；应用退出后释放。提供 display、touch、keyboard、audio-in/out、wifi、filesystem、storage.app、rtc、psram、framebuffer；不声明 camera、mouse、bluetooth、accelerometer、gyroscope。需要六轴的 APP 用 `lckfb-s3`。应用显示名由设备字库绘制。shell 和文件传输都在板载 USB 上，使用 `--port /dev/ttyACM0`。截图以 zlib 压缩的 RGB565 传输，主机再写成 PNG。
+微雪 ESP32-S3-Touch-LCD-3.5B 对应目标 `waveshare-35b`，ABI 3.7.0、Xtensa AOT，与 `lckfb-s3` 共用 APP 接口。使用 `aster build APP_DIR --target waveshare-35b`。原生竖屏 320×480、横屏 480×320；RGB565 单帧占 307200 字节。打包允许的最大线性内存是 **7864320 字节（7.5 MiB）**，等于这块板的外部堆，开机不预留。设备启动应用时按当时最大的连续空闲块分配，并先留出 1 MiB 给画布，实际拿到的是 `min(声明值, 空闲块 − 1 MiB)`，再按 64 KiB 向下取整；应用退出后释放。提供 display、touch、keyboard、audio-in/out、wifi、filesystem、storage.app、rtc、psram、framebuffer；不声明 camera、mouse、bluetooth、accelerometer、gyroscope。需要六轴的 APP 用 `lckfb-s3`。应用显示名由设备字库绘制。shell 和文件传输都在板载 USB 上，使用 `--port /dev/ttyACM0`。截图以 zlib 压缩的 RGB565 传输，主机再写成 PNG。
 
 lckfb-s3 的目标最大线性内存为 **2097152 字节（2 MiB）**。可见像素缓冲也消耗 APP 内存；240×320 RGB565 单帧需要 153600 字节。不要只计算业务数组而忽略表面、运行时堆和栈；不能把 PSRAM 硬件总量当作 APP 内存上限。
 
