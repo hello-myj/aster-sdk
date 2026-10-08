@@ -141,7 +141,7 @@ my-counter/
 - `icon`：可选，工程内 ASTI 格式图标的相对路径，例如 `"icon.bin"`；不能直接填 PNG。
 - `entry`：可选包元数据。普通 C APP 不设置，生命周期函数仍使用固定名称。
 
-支持的能力名称（精确拼写）：`display`、`touch`、`mouse`、`keyboard`、`camera`、`audio-in`、`audio-out`、`wifi`、`bluetooth`、`accelerometer`、`gyroscope`、`filesystem`、`storage.app`、`rtc`、`psram`、`framebuffer`。名字被接受不代表目标硬件具备该能力。当前 lckfb-s3 不声明 mouse、bluetooth；waveshare-35b 不声明 mouse、bluetooth、camera。
+支持的能力名称（精确拼写）：`display`、`touch`、`mouse`、`keyboard`、`camera`、`audio-in`、`audio-out`、`wifi`、`bluetooth`、`accelerometer`、`gyroscope`、`filesystem`、`storage.app`、`rtc`、`psram`、`framebuffer`。名字被接受不代表目标硬件具备该能力。当前 lckfb-s3 不声明 mouse、bluetooth；waveshare-35b 不声明 mouse、bluetooth、camera、accelerometer、gyroscope。
 
 支持的权限名称只有：
 
