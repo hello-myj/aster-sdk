@@ -157,7 +157,7 @@ my-counter/
 
 `[build]` 可选字段：`source_roots = ["vendor/lib"]` 额外递归编译的 C 源目录；`includes = ["src", "vendor/lib/include"]` 额外包含目录；`defines = ["MY_FEATURE=1"]` 宏；`cflags = []` 和 `ldflags = []` 额外编译/链接参数。路径相对工程根目录。普通 APP 不需要此节。
 
-微雪 ESP32-S3-Touch-LCD-3.5B 对应目标 `waveshare-35b`（实验性，未完成真机验证），ABI 3.7.0、Xtensa AOT，与 `lckfb-s3` 共用 APP 接口。使用 `aster build APP_DIR --target waveshare-35b`，工程 `[sdk] target` 可写 `"waveshare-35b"`。原生竖屏 320×480、横屏 480×320；RGB565 单帧占 307200 字节，最大线性内存 2 MiB。提供 display、touch、keyboard、audio-in/out、wifi、accelerometer、gyroscope、filesystem、storage.app、rtc、psram、framebuffer；不声明 camera、mouse、bluetooth。shell 默认需要外接 USB-TTL（板 TX=43、RX=17，3.3 V），板载 USB Serial/JTAG 用作包传输；部署时可用 --console 指定实际外接串口。该板的 USB 调试固件可将 shell 切到板载 USB（--console /dev/ttyACM0），此时 USB 文件服务暂停，不能直接用 deploy/push 传包；先在文件服务模式传输到 SD，再切回调试模式安装。微雪板已验证 USB shell、SD 挂载、显示尺寸和 IMU 采样，其他外设效果继续实机验证。
+微雪 ESP32-S3-Touch-LCD-3.5B 对应目标 `waveshare-35b`，ABI 3.7.0、Xtensa AOT，与 `lckfb-s3` 共用 APP 接口。使用 `aster build APP_DIR --target waveshare-35b`，工程 `[sdk] target` 可写 `"waveshare-35b"`。原生竖屏 320×480、横屏 480×320；RGB565 单帧占 307200 字节。打包允许的最大线性内存是 **4194304 字节（4 MiB）**，和固件里的单应用上限一致。设备启动应用时按当时最大的连续空闲块分配，并先留出 1 MiB 给画布，所以实际拿到的是 `min(声明值, 空闲块 − 1 MiB)`，再按 64 KiB 向下取整。这块内存在应用退出时释放，开机不驻留。提供 display、touch、keyboard、audio-in/out、wifi、filesystem、storage.app、rtc、psram、framebuffer；不声明 camera、mouse、bluetooth、accelerometer、gyroscope。当前微雪固件关闭了 IMU，需要六轴的 APP 用 `lckfb-s3`。应用显示名由设备字库绘制，不要依赖包内名字位图。shell 和文件传输都在板载 USB Serial/JTAG 上，使用 `--port /dev/ttyACM0`。截图命令仍是 `aster screenshot`，图像以 zlib 压缩的 RGB565 传输，主机再写成 PNG。
 
 lckfb-s3 的目标最大线性内存为 **2097152 字节（2 MiB）**。可见像素缓冲也消耗 APP 内存；240×320 RGB565 单帧需要 153600 字节。不要只计算业务数组而忽略表面、运行时堆和栈；不能把 PSRAM 硬件总量当作 APP 内存上限。
 
@@ -668,28 +668,28 @@ aster ports
 aster run
 ```
 
-显式指定 Linux 的文件传输和命令端口：
+新固件的文件传输、安装与启动共用 shell 串口。显式指定 Linux 的 LCKFB 端口：
 
 ```text
-aster run --port /dev/ttyACM0 --console /dev/ttyUSB0
-aster run --no-build --port /dev/ttyACM0 --console /dev/ttyUSB0
-aster deploy dist/lckfb-s3/com.example.counter.ast --target lckfb-s3 --port /dev/ttyACM0 --console /dev/ttyUSB0 --run
+aster run --port /dev/ttyUSB0
+aster run --no-build --port /dev/ttyUSB0
+aster deploy dist/lckfb-s3/com.example.counter.ast --target lckfb-s3 --port /dev/ttyUSB0 --run
 ```
 
-Windows 对应 `--port COM22 --console COM24`（替换为实际发现的端口）。数据口和日志 shell 口可能是两个端口，不能互换。run = 构建、部署并启动；deploy 只装包，带 --run 才启动。
+Windows 对应 `--port COM24`（替换为实际发现的端口）；微雪 USB 调试固件使用 `--port /dev/ttyACM0` 或对应的 Windows COM 口。SDK 的 `ASTERPING` 握手包含 `serial=shared` 时，安装、运行自动使用文件传输的同一连接，不需要另指定 `--console`。旧固件不返回该标记时仍使用双串口，可显式指定 `--port /dev/ttyACM0 --console /dev/ttyUSB0`。run = 构建、部署并启动；deploy 只装包，带 --run 才启动。
 
 调试与截图：
 
 ```text
-aster probe --port /dev/ttyACM0 --target lckfb-s3
+aster probe --port /dev/ttyUSB0 --target lckfb-s3
 aster shell --console /dev/ttyUSB0 aster sys info
 aster debug --console /dev/ttyUSB0 --seconds 10 --read-only
 aster screenshot screen.png --console /dev/ttyUSB0
 ```
 
-console 已被串口监控占用时先协调释放或复用现有会话；不要同时启动两个读者造成日志丢失。截图与 shell 也是串口操作，需要设备响应。日志推荐 init 完成、关键操作、失败码，不要每 FRAME 连续输出大量文本。
+上传、安装、截图前关闭独立串口监视器，完成后可在同一端口恢复。一个接收流不能由两个独立程序同时读取。传文件期间固件日志继续输出，SDK 自动识别协议回复；APP 不需要实现传输协议。截图与 shell 也是串口操作，需要设备响应。日志推荐 init 完成、关键操作、失败码，不要每 FRAME 连续输出大量文本。
 
-仅需复制额外文件到设备时：`aster push LOCAL_FILE /SD:/destination --port DATA_PORT --target lckfb-s3`。普通 APP 资源优先用 assets 随包交付，不依赖开发机临时目录或手动复制。
+仅需复制额外文件到设备时：`aster push LOCAL_FILE /SD:/destination --port SERIAL_PORT --target lckfb-s3`。普通 APP 资源优先用 assets 随包交付，不依赖开发机临时目录或手动复制。
 
 ### 常见问题
 
@@ -1505,3 +1505,7 @@ int32_t aster_gfx_bmp_free(uint32_t handle);
 ## 13. 手册维护约定
 
 此文件是开发知识的唯一正文；Skill 入口只引用本文。维护者在公开 ABI、模板、CLI、资源或目标限制变化时同步更新本文，用正文完整示例实际构建并验证包。不能只更新版本号或把新能力加入标题而缺少类型、参数、错误和生命周期说明。构建验证不能替代设备运行验证。
+
+### SDK 升级与发布兼容性
+
+本次单串口升级只修改 SDK 主机端设备工具及固件传输入口，公开 APP ABI 仍为 3.7.0、包格式仍为 ASTP、传输版本仍为 ASTERFS 3。已有 APP 工程与已安装 `.ast` 不需要重编。发布 SDK 时同步交付新版设备工具、本文和 `.agents/skills/aster-app-development/SKILL.md`；保留二者目录结构，使 Skill 相对链接可用。Windows 发布 EXE 必须从更新后的工具源码重新生成，不能只复制手册并沿用旧设备 EXE。旧固件继续支持显式双串口参数；串口功能升级不要求手工修改 APP 契约或目标文件。

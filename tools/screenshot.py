@@ -7,22 +7,23 @@ import zlib
 from pathlib import Path
 
 
-HEADER = re.compile(rb"SHOT hdr (\d+)x(\d+) raw (\d+)")
+HEADER = re.compile(rb"SHOT hdr (\d+)x(\d+) (raw|zlib) (\d+)")
 CHUNK = re.compile(rb"SHOT b64 (\d+) ([A-Za-z0-9+/=]+)")
 END = re.compile(rb"SHOT end ([0-9a-fA-F]{8})")
 
 
 def capture(port: str, page: str | None = None, timeout: float = 45) -> tuple[int, int, bytes]:
-    import serial
+    from aster_send import open_serial
 
     command = "aster ui screenshot" + (" " + page if page else "")
-    with serial.Serial(port, 115200, timeout=0.2, write_timeout=5) as connection:
+    with open_serial(port, timeout=0.2, write_timeout=5) as connection:
         connection.write(b"\x03\r\n")
         time.sleep(0.2)
         connection.reset_input_buffer()
         connection.write((command + "\r\n").encode("ascii"))
         connection.flush()
         width = height = length = None
+        codec = None
         chunks: dict[int, bytes] = {}
         crc = None
         line_buffer = bytearray()
@@ -39,9 +40,15 @@ def capture(port: str, page: str | None = None, timeout: float = 45) -> tuple[in
                     raise RuntimeError(line.decode(errors="replace"))
                 match = HEADER.search(line)
                 if match:
-                    width, height, length = map(int, match.groups())
-                    if not (0 < width <= 1024 and 0 < height <= 1024 and
-                            length == width * height * 2):
+                    width, height = int(match[1]), int(match[2])
+                    codec = match[3]
+                    length = int(match[4])
+                    raw_len = width * height * 2
+                    if not (0 < width <= 1024 and 0 < height <= 1024 and 0 < length):
+                        raise RuntimeError("invalid screenshot dimensions")
+                    if codec == b"raw" and length != raw_len:
+                        raise RuntimeError("invalid screenshot dimensions")
+                    if codec == b"zlib" and length > raw_len + 64:
                         raise RuntimeError("invalid screenshot dimensions")
                     chunks.clear()
                     continue
@@ -68,9 +75,12 @@ def capture(port: str, page: str | None = None, timeout: float = 45) -> tuple[in
         count = (length + 479) // 480
         if len(chunks) != count or any(i not in chunks for i in range(count)):
             raise RuntimeError(f"missing screenshot chunks: {len(chunks)}/{count}")
-        raw = b"".join(chunks[i] for i in range(count))
-        if len(raw) != length or zlib.crc32(raw) != crc:
+        payload = b"".join(chunks[i] for i in range(count))
+        if len(payload) != length or zlib.crc32(payload) != crc:
             raise RuntimeError("screenshot length or CRC mismatch")
+        raw = zlib.decompress(payload) if codec == b"zlib" else payload
+        if len(raw) != width * height * 2:
+            raise RuntimeError("screenshot inflated size mismatch")
         return width, height, raw
 
 

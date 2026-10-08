@@ -53,12 +53,13 @@ class WindowsTools(unittest.TestCase):
 
     def test_screenshot_stream_and_png(self):
         raw = bytes.fromhex("00f8e007")  # red, green RGB565LE
-        payload = base64.b64encode(raw)
-        stream = (b"console noise\nSHOT hdr 2x1 raw 4\n"
+        payload_raw = zlib.compress(raw)
+        payload = base64.b64encode(payload_raw)
+        stream = (b"console noise\nSHOT hdr 2x1 zlib " + str(len(payload_raw)).encode() + b"\n"
                   b"SHOT b64 0000 " + payload + b"\nSHOT end " +
-                  f"{zlib.crc32(raw):08x}".encode() + b"\n")
+                  f"{zlib.crc32(payload_raw):08x}".encode() + b"\n")
         fake = FakeSerial(stream)
-        with patch.dict(sys.modules, {"serial": SimpleNamespace(Serial=lambda *_a, **_k: fake)}), \
+        with patch.object(windows_device.aster_send, "open_serial", return_value=fake), \
              patch.object(screenshot.time, "sleep"):
             width, height, captured = screenshot.capture("COM5")
         self.assertEqual((width, height, captured), (2, 1, raw))
@@ -77,7 +78,7 @@ class WindowsTools(unittest.TestCase):
     def test_screenshot_rejects_bad_crc(self):
         stream = b"SHOT hdr 1x1 raw 2\nSHOT b64 0000 AAA=\nSHOT end deadbeef\n"
         fake = FakeSerial(stream)
-        with patch.dict(sys.modules, {"serial": SimpleNamespace(Serial=lambda *_a, **_k: fake)}), \
+        with patch.object(windows_device.aster_send, "open_serial", return_value=fake), \
              patch.object(screenshot.time, "sleep"):
             with self.assertRaisesRegex(RuntimeError, "CRC"):
                 screenshot.capture("COM5")
