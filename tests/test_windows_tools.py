@@ -53,10 +53,11 @@ class WindowsTools(unittest.TestCase):
 
     def test_screenshot_stream_and_png(self):
         raw = bytes.fromhex("00f8e007")  # red, green RGB565LE
-        payload = base64.b64encode(raw)
-        stream = (b"console noise\nSHOT hdr 2x1 raw 4\n"
+        payload_raw = zlib.compress(raw)
+        payload = base64.b64encode(payload_raw)
+        stream = (b"console noise\nSHOT hdr 2x1 zlib " + str(len(payload_raw)).encode() + b"\n"
                   b"SHOT b64 0000 " + payload + b"\nSHOT end " +
-                  f"{zlib.crc32(raw):08x}".encode() + b"\n")
+                  f"{zlib.crc32(payload_raw):08x}".encode() + b"\n")
         fake = FakeSerial(stream)
         with patch.object(windows_device.aster_send, "open_serial", return_value=fake), \
              patch.object(screenshot.time, "sleep"):
