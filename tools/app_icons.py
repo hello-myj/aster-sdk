@@ -4,7 +4,7 @@
 Each icon is a full-colour 96x96 tile: a rounded gradient square in the app's
 own colour with the app's Lucide glyph stroked white on top. The drawer
 launcher blits it as-is -- no theme tint, no well drawn by the firmware -- so
-an app's identity survives every theme (see firmware/ui/launcher/launcher.c).
+an app's identity survives every theme (see firmware launcher/flux.c).
 
 Two things live here and nowhere else:
 
@@ -12,10 +12,7 @@ Two things live here and nowhere else:
   * the composition recipe (tile size, corner radius, glyph box, stroke).
 
 Changing either only means re-running this script: the firmware takes whatever
-96x96 RGB565A8 blob it finds on disk. Only a change to TILE makes the launcher
-care, because that is where the tile is placed -- and the launcher's label
-slot is budgeted around it, so a new TILE means re-checking
-LAUNCHER_TILE_MIN_H there.
+RGB565A8 blob it finds on disk and scales it onto the ribbon.
 
 Rasterising is cairosvg straight to RGBA. Do not route this through
 icon_convert.load_rgba(): its SVG branch renders on a black backdrop and uses

@@ -8,7 +8,7 @@
 Lucide 字形。`tools/app_icons.py` 把它们编成 **RGB565A8**（16 字节头 + 96×96×2 的
 RGB565 平面 + 96×96×1 的 A8 平面 = **27664 字节**），launcher 原样贴上去，
 不染色、不画底——所以一个 App 在五套主题下长得一模一样
-（`systems/zephyr/ui/launcher/launcher.c`）。圆角外的像素 alpha=0，露出壁纸。
+（`systems/zephyr/ui/launcher/flux.c`）。圆角外的像素 alpha=0，露出壁纸。
 
 上游矢量在 `lucide/`（Lucide ISC，锁定 lucide-static v1.41.0；见 `lucide/NOTICE`），
 源文件是 **24×24 矢量**，由 `app_icons.py` 在 96 上直接重绘：24 单位的字形
@@ -30,10 +30,8 @@ python3 tools/app_icons.py --check         # 只比对，不写；文件过期�
 属于 Lucide 的 24 单位坐标系，缩放由 SVG 代劳；留在 2.4 才能让描边等比
 （96 时约 5.4 px），跟着改小会把字形描细。
 
-**唯一需要动固件的情况是改 `TILE`**：launcher 的 `LAUNCHER_WELL_PX` 要和它一致，
-否则图标会被缩小或留空。而且 `LAUNCHER_TILE_MIN_H` 是按"图标方块 + 间距 + 一行标题槽"
-算的预算，`TILE` 一变这个预算就要重新核（`launcher.c` 里有 `BUILD_ASSERT` 兜底）。
-改配色、换字形、调圆角都不需要碰固件。
+流光桌面把这张图缩放到光带上的固定显示尺寸，改 `TILE` 不必再改固件常量。
+改配色、换字形、调圆角也不需要碰固件。
 
 | App | 源文件 | 颜色 |
 |-----|--------|------|
@@ -63,8 +61,8 @@ python3 tools/app_icons.py --check         # 只比对，不写；文件过期�
 它的 SVG 分支是先在黑底上渲染、再拿亮度当 alpha，那是给单色线稿掩膜写的，
 用在彩色稿上会让所有深色像素变透明。彩色图标走 `app_icons.py`。
 
-画布/launcher chrome 用的仍是 16×16 光栅化的 A8 掩膜，烤进固件的
-`systems/zephyr/ui/launcher/launcher_icons.inc`（那些**应该**跟主题走）。
+流光桌面自己的按钮图标烤在固件的
+`systems/zephyr/ui/launcher/flux_icons.inc`，和应用的全彩 `icon.bin` 分开。
 
 抽屉仍然认 A8：老包（launcher 改全彩之前打的）会退化成「中性卡片底 + 主题前景色
 字形」，画得出来但不再是 App 自己的颜色。重打一遍包就升级到全彩。
