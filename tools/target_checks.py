@@ -16,7 +16,7 @@ def validate_manifest(manifest, target):
     if manifest.get("product") != "aster":
         raise ValueError("package is not an Aster application")
     if manifest.get("target_id") != target["id"]:
-        raise ValueError("package target does not match selected hardware")
+        raise ValueError("package target does not match selected platform")
     minimum = version(manifest["abi"]["min"])
     built = version(manifest["abi"]["target"])
     device = version(target["abi"])
@@ -27,10 +27,11 @@ def validate_manifest(manifest, target):
         raise ValueError("target lacks required capabilities: " + ", ".join(sorted(missing)))
     memory = manifest.get("memory", {})
     initial, maximum, stack = (int(memory.get(k, 0)) for k in ("initial", "max", "stack"))
-    limit = target["memory"]["max_linear"]
-    if initial <= 0 or initial % 65536 or initial > limit or stack <= 0 or stack >= initial:
+    # Alignment only. Each board's firmware config is the memory ceiling;
+    # packaging does not impose one maximum on every board.
+    if initial <= 0 or initial % 65536 or stack <= 0 or stack >= initial:
         raise ValueError("invalid initial memory/stack for target")
-    if maximum and (maximum % 65536 or maximum < initial or maximum > limit):
+    if maximum and (maximum <= 0 or maximum % 65536 or maximum < initial):
         raise ValueError("invalid maximum memory for target")
 
 
@@ -49,7 +50,7 @@ def validate_device(pong, target, requires=()):
     if not pong.startswith("PONG ") or fields.get("product") != "aster":
         raise ValueError("connected device is not Aster firmware")
     if fields.get("target") != target["id"]:
-        raise ValueError("connected device target does not match selected hardware")
+        raise ValueError("connected device target does not match selected platform")
     device, required = version(fields.get("abi", "")), version(target["abi"])
     if device[0] != required[0] or device < required:
         raise ValueError("connected firmware ABI differs from target release")

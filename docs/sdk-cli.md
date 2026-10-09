@@ -38,7 +38,7 @@ aster doctor
 
 ```text
 aster templates
-aster init my-game --template swipe-game --id com.example.mygame --name "My Game" --target lckfb-s3
+aster init my-game --template swipe-game --id com.example.mygame --name "My Game" --target xtensa
 cd my-game
 aster build
 aster run
@@ -49,22 +49,22 @@ aster run
 - `--template`：选择模板，默认 `hello`。
 - `--id`：应用唯一标识，建议使用 `com.example.game`；省略时从目录名生成 `app.<目录名>`。更改名称不必更改 ID。
 - `--name`：安装到设备后显示的应用名称，省略时使用目录名。
-- `--target`：目标板，保存到项目 `app.toml` 的 `[sdk] target` 中。本发布批次为 `lckfb-s3` 与 `waveshare-35b`（同一个便携包内含两块板，按 `--target` 选择），以 `aster targets` 输出为准。
+- `--target`：CPU 平台，保存到项目 `app.toml` 的 `[sdk] target` 中。当前为 `xtensa`（工具链目录只能编译 Xtensa，所以没有 riscv/arm 目标文件）。SDK 不提供开发板选择，也不接受 `--board`。以 `aster targets` 输出为准。
 - `build [项目目录]`：编译并验证 `.ast` 包，省略目录时使用当前目录。模板默认 AOT；`--no-aot` 临时关闭，`--aot` 强制开启。
 - `run [项目目录]`：编译、传输、安装并启动应用。`--no-build` 使用已有包。
 - `--port`：文件传输端口。新固件同时在 shell 串口提供文件服务，探测返回 `serial=shared` 时，安装和运行自动使用同一个端口，无需指定 `--console`。例如 `aster run --port COM24` 或 `aster run --port /dev/ttyUSB0`。`--console` 仍可覆盖选择，以兼容旧固件的双串口模式。监视器与上传工具不能同时独立打开、读取同一个串口：上传前关闭监视器，完成后重新打开。
 
 Linux 串口需要当前用户具有读写权限；通常由设备所属的 dialout/uucp 组控制，按发行版配置后重新登录。`install` 不自动修改用户组或使用 sudo。
 
-目标板优先级：命令行 `--target` > 项目 `[sdk].target` > `ASTER_TARGET` > SDK 仅有的一个目标板。输出固定在项目的 `build/<target>/` 和 `dist/<target>/<id>.ast`，不依赖当前 SDK 所在位置。新增素材或多个 C 文件在 `app.toml` 的 `assets` / `sources` 中声明。
+平台优先级：命令行 `--target` > 项目 `[sdk].target` > `ASTER_TARGET` > SDK 仅有的一个平台。输出固定在项目的 `build/<target>/` 和 `dist/<target>/<id>.ast`。部署必须同时给出 `--port`，不要从板号推断端口或面板尺寸。新增素材或多个 C 文件在 `app.toml` 的 `assets` / `sources` 中声明。
 
 ## 其他命令
 
 ```text
 aster targets
 aster doctor
-aster verify dist/lckfb-s3/com.example.mygame.ast
-aster deploy dist/lckfb-s3/com.example.mygame.ast --run
+aster verify dist/xtensa/com.example.mygame.ast --target xtensa
+aster deploy dist/xtensa/com.example.mygame.ast --target xtensa --port COM24 --run
 aster ports
 aster probe --port COM24
 aster debug --console COM24
@@ -76,7 +76,7 @@ aster shell --console COM24 aster sys info
 
 `aster env --shell bash` / `powershell` / `cmd` 输出激活当前 SDK 的命令，`aster source` 是别名。例如 Linux `eval "$(aster env --shell bash)"`，PowerShell `aster env --shell powershell | Out-String | Invoke-Expression`。子进程不能直接修改父终端环境，因此要 source/执行输出的环境脚本。
 
-保留旧命令 `aster new`、`aster build --all --target lckfb-s3`，底层 `tools/build.py` 和原有两种 Windows EXE 也可以继续使用。`aster build --clean` 删除当前项目的整个 build/dist 目录（项目构建产物）；不要在这些目录保存源码。
+保留旧命令 `aster new`、`aster build --all --target xtensa`，底层 `tools/build.py` 和原有两种 Windows EXE 也可以继续使用。`aster build --clean` 删除当前项目的整个 build/dist 目录（项目构建产物）；不要在这些目录保存源码。
 
 ## 本次验证
 
@@ -84,4 +84,4 @@ aster shell --console COM24 aster sys info
 - Windows：原生 EXE 安装、用户 PATH、PowerShell 5 中文路径激活、SDK 外带空格的游戏项目创建及 AOT 编译验证。
 - 早期双串口固件：COM22 数据口 / COM24 控制台完成 APP 传输和启动。
 - 2026-10-05 LCKFB 新固件：同一个 `/dev/ttyUSB0` 完成上传、安装、启动、shell 和截图；错误 CRC 拒绝及断点续传通过。微雪共享 USB 模式使用同一接口。
-- SDK 回归测试：49 项通过（含 lckfb-s3 与 waveshare-35b 双板构建用例）。
+- SDK 回归测试按平台目标 `xtensa` 构建，不再按开发板拆分用例。

@@ -27,7 +27,7 @@ def verify(directory):
     # One package serves every registered board, so the packaged EXEs must
     # build an independent project for each --target on their own.
     metadata=json.loads((directory/'release.json').read_text(encoding='utf-8'))
-    boards=metadata.get('boards') or [metadata.get('board','lckfb-s3')]
+    boards=metadata.get('boards') or [metadata.get('board','xtensa')]
     formats={board: record['aot_format'] for record in json.loads((directory/'toolchain-profile.json').read_text())['profiles'].values() for board in record['boards']}
     with tempfile.TemporaryDirectory(prefix='aster release ') as temporary:
         cli = str(directory / 'aster.exe')

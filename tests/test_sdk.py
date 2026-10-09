@@ -20,7 +20,7 @@ from verify_ast import check
 
 class Compatibility(unittest.TestCase):
     def setUp(self):
-        self.target = aster_board.get("lckfb-s3")
+        self.target = aster_board.get("xtensa")
         abi = self.target["abi"]
         self.manifest = {"id": "test.hello", "product": "aster", "target_id": self.target["id"],
                          "abi": {"min": ".".join(abi.split(".")[:2]), "target": abi}, "requires": ["display"],
@@ -47,7 +47,7 @@ class Compatibility(unittest.TestCase):
     def test_invalid_memory(self):
         for memory in ({"initial": 1, "stack": 1}, {"initial": 131072, "stack": 262144},
                        {"initial": 131072, "stack": 16384, "max": 65536},
-                       {"initial": 4194304, "stack": 16384}):
+                       {"initial": 131072, "stack": 16384, "max": 100000}):
             with self.subTest(memory=memory), self.assertRaises(ValueError):
                 self.manifest["memory"] = memory
                 validate_manifest(self.manifest, self.target)
@@ -60,10 +60,10 @@ class Compatibility(unittest.TestCase):
 
     def test_device_identity(self):
         abi = self.target["abi"]
-        validate_device(f"PONG sd=1 product=aster target=lckfb-s3 abi={abi}", self.target)
-        for pong in ("PONG sd=1", "PONG sd=1 product=mjx target=lckfb-s3 abi=3.2",
+        validate_device(f"PONG sd=1 product=aster target=xtensa abi={abi}", self.target)
+        for pong in ("PONG sd=1", "PONG sd=1 product=mjx target=xtensa abi=3.2",
                      f"PONG sd=1 product=aster target=different-hardware abi={abi}",
-                     f"PONG sd=0 product=aster target=lckfb-s3 abi={abi}"):
+                     f"PONG sd=0 product=aster target=xtensa abi={abi}"):
             with self.subTest(pong=pong), self.assertRaises(ValueError):
                 validate_device(pong, self.target)
 
@@ -86,17 +86,20 @@ class Compatibility(unittest.TestCase):
 
 
 class BuildPipeline(unittest.TestCase):
-    def test_build_for_each_hardware_model(self):
-        for board, size in (("lckfb-s3", (320, 240)), ("waveshare-35b", (320, 480))):
-            with self.subTest(board=board):
-                subprocess.run([sys.executable, str(ROOT / "tools/build.py"), str(ROOT / "apps/hello"),
-                                "--target", board, "--no-aot"], check=True, capture_output=True, text=True)
-                manifest = check(ROOT / f"dist/{board}/aster.hello.ast", board=board)
-                self.assertEqual(manifest["target_id"], board)
-                display = aster_board.get(board)["display"]
-                self.assertEqual((display["width"], display["height"]), size)
-                self.assertEqual(set(display["modes"]), {"headless", "portrait", "landscape"})
-        self.assertEqual(set(aster_board.targets()), {"lckfb-s3", "waveshare-35b"})
+    def test_build_for_platform_target(self):
+        board = "xtensa"
+        subprocess.run([sys.executable, str(ROOT / "tools/build.py"), str(ROOT / "apps/hello"),
+                        "--target", board, "--no-aot"], check=True, capture_output=True, text=True)
+        manifest = check(ROOT / f"dist/{board}/aster.hello.ast", board=board)
+        self.assertEqual(manifest["target_id"], board)
+        target = aster_board.get(board)
+        self.assertNotIn("max_linear", target.get("memory", {}))
+        self.assertEqual(set(aster_board.targets()), {"xtensa"})
+        abi = target["abi"]
+        validate_manifest({"id": "test.hello", "product": "aster", "target_id": board,
+                           "abi": {"min": ".".join(abi.split(".")[:2]), "target": abi},
+                           "requires": ["display"],
+                           "memory": {"initial": 4194304, "max": 8388608, "stack": 16384}}, target)
 
     def test_target_is_mandatory(self):
         import os
@@ -109,7 +112,7 @@ class BuildPipeline(unittest.TestCase):
 
     def test_cpu_override_cannot_mislabel_package(self):
         result = subprocess.run([sys.executable, str(ROOT / "tools/build.py"), str(ROOT / "apps/hello"),
-                                 "--target", "lckfb-s3", "--aot-target", "x86_64"],
+                                 "--target", "xtensa", "--aot-target", "x86_64"],
                                 capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("conflicts", result.stderr)
@@ -121,8 +124,8 @@ class BuildPipeline(unittest.TestCase):
         self.assertIn("Select --target", result.stderr)
 
     def test_headless_device_rejects_graphical_app(self):
-        target = aster_board.get("lckfb-s3")
-        pong = f"PONG sd=1 product=aster target=lckfb-s3 abi={target['abi']} caps="
+        target = aster_board.get("xtensa")
+        pong = f"PONG sd=1 product=aster target=xtensa abi={target['abi']} caps="
         with self.assertRaisesRegex(ValueError, "display"):
             validate_device(pong + "0", target, ["display"])
         validate_device(pong + "1", target, ["display"])
@@ -132,9 +135,9 @@ class BuildPipeline(unittest.TestCase):
 class Deployment(unittest.TestCase):
     def test_background_error_does_not_hide_install_result(self):
         import deploy
-        abi = aster_board.get("lckfb-s3")["abi"]
+        abi = aster_board.get("xtensa")["abi"]
         sender = SimpleNamespace(find_port=lambda *a, **kw: (
-            "/dev/fake", f"PONG sd=1 product=aster target=lckfb-s3 abi={abi}"),
+            "/dev/fake", f"PONG sd=1 product=aster target=xtensa abi={abi}"),
             send_file=lambda *a, **kw: "OK")
         for response, success in (
                 ("[00:01:05] SNTP sync failed: -11\r\ninstalled OK\r\naster:~$ ", True),
@@ -144,7 +147,7 @@ class Deployment(unittest.TestCase):
                  patch.object(deploy, "check", return_value={"id": "test.hello"}), \
                  patch.dict(sys.modules, {"aster_send": sender}), \
                  patch.object(deploy, "shell_command", return_value=response):
-                args = ["test.ast", "--target", "lckfb-s3"]
+                args = ["test.ast", "--target", "xtensa"]
                 if success:
                     self.assertEqual(deploy.main(args), 0)
                 else:
@@ -153,11 +156,11 @@ class Deployment(unittest.TestCase):
 
     def test_failed_transfer_cannot_install_stale_package(self):
         import deploy
-        abi = aster_board.get("lckfb-s3")["abi"]
+        abi = aster_board.get("xtensa")["abi"]
         sender = SimpleNamespace(find_port=lambda *a, **kw: (
-            "/dev/fake", f"PONG sd=1 product=aster target=lckfb-s3 abi={abi}"),
+            "/dev/fake", f"PONG sd=1 product=aster target=xtensa abi={abi}"),
             send_file=lambda *a, **kw: "ERR -5")
-        with patch.object(sys, "argv", ["deploy", "test.ast", "--target", "lckfb-s3"]), \
+        with patch.object(sys, "argv", ["deploy", "test.ast", "--target", "xtensa"]), \
              patch.object(deploy, "check", return_value={"id": "test.hello"}), \
              patch.dict(sys.modules, {"aster_send": sender}), \
              patch.object(deploy, "shell_command") as shell:
@@ -168,7 +171,7 @@ class Deployment(unittest.TestCase):
     def test_wrong_device_cannot_receive_package(self):
         import deploy
         sender = SimpleNamespace(find_port=lambda *a, **kw: ("/dev/fake", "PONG sd=1"))
-        with patch.object(sys, "argv", ["deploy", "test.ast", "--target", "lckfb-s3"]), \
+        with patch.object(sys, "argv", ["deploy", "test.ast", "--target", "xtensa"]), \
              patch.object(deploy, "check", return_value={"id": "test.hello"}), \
              patch.dict(sys.modules, {"aster_send": sender}):
             with self.assertRaisesRegex(ValueError, "not Aster"):

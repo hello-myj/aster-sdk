@@ -18,7 +18,7 @@ class Description(unittest.TestCase):
         field = '' if description is None else 'description = ' + json.dumps(description, ensure_ascii=False) + '\n'
         (path / 'app.toml').write_text('[app]\nid="test.description"\nname="测试"\n' + field)
         app = App(path)
-        app.target = {'id': 'waveshare-35b'}
+        app.target = {'id': 'xtensa'}
         return app
 
     def test_optional_metadata_and_unicode_quotes(self):
@@ -36,10 +36,10 @@ class Description(unittest.TestCase):
             app = self.app(d, text)
             (app.dir / 'src/main.c').write_text('int aster_app_init(void) {return 0;}')
             subprocess.run([sys.executable, str(ROOT / 'tools/build.py'), d,
-                            '--target', 'waveshare-35b', '--no-aot'],
+                            '--target', 'xtensa', '--no-aot'],
                            check=True, capture_output=True, text=True)
-            package = ROOT / 'dist/waveshare-35b/test.description.ast'
-            self.assertEqual(check(package, board='waveshare-35b')['description'], text)
+            package = ROOT / 'dist/xtensa/test.description.ast'
+            self.assertEqual(check(package, board='xtensa')['description'], text)
 
     def test_rejects_oversize_and_non_text(self):
         with tempfile.TemporaryDirectory() as d:

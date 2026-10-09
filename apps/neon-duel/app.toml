@@ -19,4 +19,4 @@ assets = ["assets/hit.wav", "assets/swing.wav", "assets/special.wav", "assets/be
 icon = "icon.bin"
 
 [sdk]
-target = "lckfb-s3"
+target = "xtensa"

@@ -2,10 +2,10 @@
 """ASTER app build driver: app.toml -> app.wasm -> (default AOT) -> .ast
 
 Usage (from the sdk/ directory or anywhere):
-  python3 tools/build.py apps/gfxshow --target lckfb-s3 # wasm + AOT (app.toml aot=true)
-  python3 tools/build.py apps/gfxshow --target lckfb-s3 --no-aot
-  python3 tools/build.py apps/gfxshow --target lckfb-s3 # small AOT
-  python3 tools/build.py --all --target lckfb-s3
+  python3 tools/build.py apps/gfxshow --target xtensa # wasm + AOT (app.toml aot=true)
+  python3 tools/build.py apps/gfxshow --target xtensa --no-aot
+  python3 tools/build.py apps/gfxshow --target xtensa # small AOT
+  python3 tools/build.py --all --target xtensa
   python3 tools/build.py --clean
 
 The app declares itself in app.toml:
@@ -559,12 +559,12 @@ def main(argv=None) -> int:
                     help="force native AOT via wamrc (overrides app.toml aot=false)")
     ap.add_argument("--no-aot", action="store_true",
                     help="skip AOT even if app.toml sets aot=true")
-    ap.add_argument("--target", "--board", dest="board", default=None,
-                    help="board preset (see aster_board.py); supplies the default "
+    ap.add_argument("--target", dest="board", default=None,
+                    help="platform target (see targets/); supplies the default "
                          "--aot-target")
     ap.add_argument("--aot-target", default=None,
                     help="wamrc backend (" + "|".join(sorted(aster_board.AOT_BACKENDS)) +
-                         "; default: the board preset's aot_target)")
+                         "; default: the platform aot_target)")
     ap.add_argument("--clean", action="store_true", help="remove build/ and dist/ and exit")
     args = ap.parse_args(argv)
 

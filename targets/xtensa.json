@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "id": "lckfb-s3",
+  "id": "xtensa",
   "product": "aster",
   "abi": "3.7.0",
   "system": "zephyr",
@@ -9,11 +9,13 @@
   "capabilities": [
     "display",
     "touch",
+    "mouse",
     "keyboard",
     "camera",
     "audio-in",
     "audio-out",
     "wifi",
+    "bluetooth",
     "accelerometer",
     "gyroscope",
     "filesystem",
@@ -22,20 +24,6 @@
     "psram",
     "framebuffer"
   ],
-  "display": {
-    "width": 320,
-    "height": 240,
-    "format": "rgb565",
-    "modes": [
-      "landscape",
-      "portrait",
-      "headless"
-    ],
-    "runtime_switch": true
-  },
-  "memory": {
-    "max_linear": 2097152
-  },
   "deployment": {
     "transport": "serial",
     "console": "/dev/ttyUSB0",
@@ -43,5 +31,5 @@
     "package_dir": "/SD:"
   },
   "status": "build-supported",
-  "name": "\u7acb\u521b\u5f00\u53d1\u677f ESP32-S3 \u5b9e\u6218\u6d3e"
+  "name": "Xtensa"
 }

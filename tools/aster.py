@@ -249,7 +249,7 @@ def main(argv=None):
     for name in ('build', 'run'):
         cmd = commands.add_parser(name)
         cmd.add_argument('project', nargs='?', default='.')
-        cmd.add_argument('--target', '--board')
+        cmd.add_argument('--target')
         aot = cmd.add_mutually_exclusive_group()
         aot.add_argument('--aot', action='store_true')
         aot.add_argument('--no-aot', action='store_true')
@@ -262,7 +262,7 @@ def main(argv=None):
     for name in ('deploy', 'verify'):
         cmd = commands.add_parser(name)
         cmd.add_argument('package', type=Path)
-        cmd.add_argument('--target', '--board')
+        cmd.add_argument('--target')
         if name == 'deploy':
             cmd.add_argument('--port', default='auto')
             cmd.add_argument('--console', default='auto')

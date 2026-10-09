@@ -291,7 +291,7 @@ if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--platform', choices=['windows','linux','all'], default='all')
     parser.add_argument('--hosts', help='Comma separated linux-x64,windows-x64 (overrides --platform)')
-    parser.add_argument('--boards', help='Comma separated boards to package (default: every target in targets/)')
+    parser.add_argument('--boards', help='Comma separated platform targets to package (default: every target in targets/)')
     parser.add_argument('--contract', type=Path, help='Import the validated firmware contract ZIP before packaging')
     parser.add_argument('--cache', type=Path, default=ROOT/'build/portable-cache')
     parser.add_argument('--output', type=Path, default=ROOT/'dist/portable')

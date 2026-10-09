@@ -13,8 +13,8 @@ def main(argv=None):
     if version_requested(argv):
         return 0
     if not argv or argv[0] in ("-h", "--help"):
-        print("usage: aster-toolchain.exe build <app-dir> --target lckfb-s3 [--aot|--no-aot]")
-        print("       aster-toolchain.exe verify <package.ast> --target lckfb-s3")
+        print("usage: aster-toolchain.exe build <app-dir> --target xtensa [--aot|--no-aot]")
+        print("       aster-toolchain.exe verify <package.ast> --target xtensa")
         return 0
     command = argv.pop(0)
     if command == "build":

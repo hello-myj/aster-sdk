@@ -1,6 +1,6 @@
 # Aster APP SDK 开发手册（AI 可直接使用）
 
-适用版本：SDK ABI **3.7.0**；目标 **lckfb-s3**，另有 **waveshare-35b**（差异见第 3、10 节）；契约基线为固件导出的 `aster-contract-3.7.0.zip`，更新日期 2026-10-08。
+适用版本：SDK ABI **3.7.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-3.7.0.zip`，更新日期 2026-10-09。具体开发板由固件选择，SDK 不提供 `--board`。
 
 本文是独立开发所需的完整参考：创建工程、配置、生命周期、绘图、输入、资源、设备接口、构建、部署及排错。本文中的类型和函数签名来自此版本 SDK 的公开契约。阅读本文即可编写 APP；不需要再读取固件代码、SDK 头文件、模板代码或工具实现。编译器会自动使用 SDK 自带的头文件和辅助库。
 
@@ -23,7 +23,7 @@
 
 ## 1. 给 AI 的开发约定
 
-接到需求后，先确定 SDK 所在绝对路径、工程输出目录、APP ID、交互和资源需求。目标未指定时使用本手册的 `lckfb-s3`，APP ID 使用 `com.example.<英文名称>`；用户已有工程时保留其 ID 和业务代码。SDK 路径无法从工作环境确定时只询问路径，不要求用户查代码。
+接到需求后，先确定 SDK 所在绝对路径、工程输出目录、APP ID、交互和资源需求。目标未指定时使用 `xtensa`，APP ID 使用 `com.example.<英文名称>`；用户已有工程时保留其 ID 和业务代码。SDK 路径无法从工作环境确定时只询问路径，不要求用户查代码。
 
 开发顺序：
 
@@ -40,7 +40,7 @@ APP 是 freestanding **C → WASM/AOT** 模块，不是 Zephyr 工程，没有 `
 
 可交给 AI 的提示词：
 
-> 只读取 Aster APP SDK 开发手册作为开发参考。SDK 位于【绝对路径】，工程创建在【绝对路径】，目标 lckfb-s3，APP ID【ID】。需求是【功能与交互】。按手册创建 app.toml 和 C 代码，执行构建及包验证。不要读取 SDK/固件源码或工具实现，不要修改 SDK 契约；遇到缺少的接口直接说明。真机部署【需要/不需要】。
+> 只读取 Aster APP SDK 开发手册作为开发参考。SDK 位于【绝对路径】，工程创建在【绝对路径】，目标 xtensa，APP ID【ID】。需求是【功能与交互】。按手册创建 app.toml 和 C 代码，执行构建及包验证。不要读取 SDK/固件源码或工具实现，不要修改 SDK 契约；遇到缺少的接口直接说明。真机部署【需要/不需要】。部署时给出串口 `--port`，不要从板号推断端口或屏幕尺寸。
 
 ## 2. 安装与命令
 
@@ -81,7 +81,7 @@ CMD 激活用 `call C:\absolute\path\to\aster-sdk\env.cmd`。可选 `aster.exe i
 工程可在 SDK 之外；下面的命令在项目的父目录执行：
 
 ```text
-aster init my-counter --template hello --id com.example.counter --name "Counter" --target lckfb-s3
+aster init my-counter --template hello --id com.example.counter --name "Counter" --target xtensa
 cd my-counter
 ```
 
@@ -89,7 +89,7 @@ cd my-counter
 
 ```text
 aster build
-aster verify dist/lckfb-s3/com.example.counter.ast --target lckfb-s3
+aster verify dist/xtensa/com.example.counter.ast --target xtensa
 ```
 
 构建默认遵循 `app.toml` 的 `aot`，可用 `aster build --aot` 强制 AOT，或 `aster build --no-aot` 只生成 WASM 包。指定其他目标用 `--target TARGET`；目标选择优先级为命令行、项目 `[sdk].target`、`ASTER_TARGET` 环境变量、唯一已安装目标。
@@ -141,7 +141,7 @@ my-counter/
 - `icon`：可选，工程内 ASTI 格式图标的相对路径，例如 `"icon.bin"`；不能直接填 PNG。
 - `entry`：可选包元数据。普通 C APP 不设置，生命周期函数仍使用固定名称。
 
-支持的能力名称（精确拼写）：`display`、`touch`、`mouse`、`keyboard`、`camera`、`audio-in`、`audio-out`、`wifi`、`bluetooth`、`accelerometer`、`gyroscope`、`filesystem`、`storage.app`、`rtc`、`psram`、`framebuffer`。名字被接受不代表目标硬件具备该能力。当前 lckfb-s3 不声明 mouse、bluetooth；waveshare-35b 不声明 mouse、bluetooth、camera、accelerometer、gyroscope。
+支持的能力名称（精确拼写）：`display`、`touch`、`mouse`、`keyboard`、`camera`、`audio-in`、`audio-out`、`wifi`、`bluetooth`、`accelerometer`、`gyroscope`、`filesystem`、`storage.app`、`rtc`、`psram`、`framebuffer`。名字被接受不代表当前这块板具备该能力。打包只要求 `target_id` 等于平台名 `xtensa`。加速度计、屏幕尺寸等差异在设备上用 `aster_system_has_feature` 和 `aster_display_get_info` 判断，安装不会因为这些板级能力拒绝包。
 
 支持的权限名称只有：
 
@@ -153,13 +153,11 @@ my-counter/
 
 例如读图片需要 `permissions = ["fs"]`；有文件系统能力不等于有文件权限。显示、触摸、传感器、相机、录音、音量控制通过硬件能力检测，不存在 `"display"`、`"camera"`、`"audio"` 权限。
 
-`[sdk]`：`target = "lckfb-s3"` 或 `"waveshare-35b"`，用于独立工程默认目标选择。
+`[sdk]`：`target = "xtensa"`，用于独立工程默认平台。`cpu` 与 `aot_target` 都是这个平台名。
 
 `[build]` 可选字段：`source_roots = ["vendor/lib"]` 额外递归编译的 C 源目录；`includes = ["src", "vendor/lib/include"]` 额外包含目录；`defines = ["MY_FEATURE=1"]` 宏；`cflags = []` 和 `ldflags = []` 额外编译/链接参数。路径相对工程根目录。普通 APP 不需要此节。
 
-微雪 ESP32-S3-Touch-LCD-3.5B 对应目标 `waveshare-35b`，ABI 3.7.0、Xtensa AOT，与 `lckfb-s3` 共用 APP 接口。使用 `aster build APP_DIR --target waveshare-35b`。原生竖屏 320×480、横屏 480×320；RGB565 单帧占 307200 字节。打包允许的最大线性内存是 **7864320 字节（7.5 MiB）**，等于这块板的外部堆，开机不预留。设备启动应用时按当时最大的连续空闲块分配，并先留出两块整屏缓冲（614400 字节）和 4096 字节分配开销，实际拿到的是 `min(声明值, 空闲块 − 618496)`，再按 64 KiB 向下取整；应用退出后释放。截图不占这块余量，它只在抓取时临时压缩，抓完就释放。提供 display、touch、keyboard、audio-in/out、wifi、filesystem、storage.app、rtc、psram、framebuffer；不声明 camera、mouse、bluetooth、accelerometer、gyroscope。需要六轴的 APP 用 `lckfb-s3`。应用显示名由设备字库绘制。shell 和文件传输都在板载 USB 上，使用 `--port /dev/ttyACM0`。截图以 zlib 压缩的 RGB565 传输，主机再写成 PNG。
-
-lckfb-s3 的目标最大线性内存为 **2097152 字节（2 MiB）**。可见像素缓冲也消耗 APP 内存；240×320 RGB565 单帧需要 153600 字节。不要只计算业务数组而忽略表面、运行时堆和栈；不能把 PSRAM 硬件总量当作 APP 内存上限。
+打包检查 `initial` / `max` 内存大于 0 且按 64 KiB 对齐，不为所有板规定同一个上限。各板能分到多少线性内存由该板固件配置决定，设备启动时仍按当时的连续空闲块分配。可见像素缓冲也消耗 APP 内存。不要只计算业务数组而忽略表面、运行时堆和栈；不能把 PSRAM 硬件总量当作 APP 内存上限。屏幕宽高用 `aster_display_get_info` 读取，不要在 SDK 里按板号假设 240×320 或 320×480。部署使用 `aster deploy PACKAGE --target xtensa --port 串口`。
 
 ## 4. 完整可构建示例
 
@@ -187,7 +185,7 @@ permissions = ["kv"]
 sources = ["src/main.c"]
 
 [sdk]
-target = "lckfb-s3"
+target = "xtensa"
 ```
 
 ### 文件：src/main.c
@@ -430,6 +428,8 @@ if (rc == ASTER_OK && b.ptr && b.format == ASTER_PIXEL_RGB565) {
 
 panel-canvas 的双缓冲轮换不保留上帧背景，**每次 present 必须先全屏 clear，再完整绘制页面所有元素**，让提交覆盖整个画布。只画变化的文字/棋子会出现残留、黑屏或闪烁。可以按需少画帧，但画出的每一帧必须完整。需要读取像素、外部解码写入或局部更新时使用普通表面。
 
+`ASTER_SURFACE_F_SCALE_FIT`（`0x00000002`）是可选的兼容画布，应用自己指定宽高，这块缓冲就是应用坐标。present 时固件按 Godot keep 把它铺到玻璃上：`scale = min(面板宽/缓冲宽, 面板高/缓冲高)`，可以放大也可以缩小，结果居中，多出来的边涂黑。属于该表面的触摸会减去边距、除以同一比例，再夹进缓冲范围。不要和 `ASTER_SURFACE_F_PANEL_CANVAS` 同时设置。不设这个标志的表面仍与屏幕 1:1。`apps/game.2048` 和 `apps/snake` 不使用它。
+
 `aster_surface_flush(surface, src, x,y,w,h,src_pitch)` 可从独立 RGB565 数组推送矩形。这里 `src_pitch` 是**像素/行**，与 acquire 的字节 pitch 不同；区域必须完全在表面范围内。flush 源不一定是 acquire 缓冲，不要假设它更新了后续 ge 绘制依赖的整个持久缓冲。
 
 ### 字体和中文
@@ -624,7 +624,7 @@ if (aster_imu_read(&sample, sizeof(sample)) == ASTER_OK) {
 
 立方体示例的显示坐标映射为相对四元数 `[w,x,y,z] → [w,-x,-y,z]`，对应绕 Z 轴 180° 的坐标基变换：反转 roll/pitch、保持 yaw。这只影响绘制，不修改原始六轴读数或滤波状态；其他设备的可视化应按实际安装方向选择映射。
 
-SDK 自带 `apps/imucube`：30 FPS 六轴采样、彩色 3D 立方体、重力修正、静置校准、归零按钮（将当前姿态设为参考，让正面朝向屏幕）；普通表面和 panel-canvas 都完整清屏重画。构建：`aster build /absolute/path/to/aster-sdk/apps/imucube --target lckfb-s3`；产物在该 APP 工程的 dist/lckfb-s3/aster.imucube.ast。读取本节即可开发其他 IMU APP，无需先读取示例代码。
+SDK 自带 `apps/imucube`：30 FPS 六轴采样、彩色 3D 立方体、重力修正、静置校准、归零按钮（将当前姿态设为参考，让正面朝向屏幕）；普通表面和 panel-canvas 都完整清屏重画。构建：`aster build /absolute/path/to/aster-sdk/apps/imucube --target xtensa`；产物在该 APP 工程的 dist/xtensa/aster.imucube.ast。读取本节即可开发其他 IMU APP，无需先读取示例代码。
 
 ### 相机
 
@@ -648,14 +648,14 @@ appmgr 需要 appmgr 权限：count 返回安装数；list 用 `aster_app_info_t
 
 ```text
 aster build
-aster verify dist/lckfb-s3/com.example.counter.ast --target lckfb-s3
+aster verify dist/xtensa/com.example.counter.ast --target xtensa
 ```
 
-生成 `build/lckfb-s3/<app-id>/app.wasm`、有 AOT 时的 `app.aot`、`manifest.json`、编译中间文件，以及 `dist/lckfb-s3/<app-id>.ast`。包用 ASTP 容器，包括 WASM、可选目标 AOT、manifest、ASTR 资源、可选 ASTI 图标；不需要 APP 开发者手写包协议。
+生成 `build/xtensa/<app-id>/app.wasm`、有 AOT 时的 `app.aot`、`manifest.json`、编译中间文件，以及 `dist/xtensa/<app-id>.ast`。包用 ASTP 容器，包括 WASM、可选目标 AOT、manifest、ASTR 资源、可选 ASTI 图标；不需要 APP 开发者手写包协议。
 
 构建执行 ABI、目标能力、内存、导入和导出检查，并验证最终包。用 `aster build --clean` 删除项目 build 和 dist 后退出，再运行 build 重建。CLI 也支持 `aster build /absolute/path/to/project` 和 `aster run /absolute/path/to/project`。
 
-可选签名：将 `ASTER_SIGN_KEY` 设为私钥 PEM 路径，再 build；不把私钥打包、提交或写入日志。验签用 `aster verify PACKAGE --target lckfb-s3 --pubkey PUBLIC.pem`。安装是否接受未签名包由设备固件策略决定。
+可选签名：将 `ASTER_SIGN_KEY` 设为私钥 PEM 路径，再 build；不把私钥打包、提交或写入日志。验签用 `aster verify PACKAGE --target xtensa --pubkey PUBLIC.pem`。安装是否接受未签名包由设备固件策略决定。
 
 ### 真机部署
 
@@ -668,26 +668,21 @@ aster ports
 aster run
 ```
 
-新固件的文件传输、安装与启动共用 shell 串口。显式指定 Linux 的 LCKFB 端口：
+新固件的文件传输、安装与启动共用 shell 串口。部署目标是平台 `xtensa`，端口由 `--port` 给出，不从板号推断：
 
 ```text
 aster run --port /dev/ttyUSB0
 aster run --no-build --port /dev/ttyUSB0
-aster deploy dist/lckfb-s3/com.example.counter.ast --target lckfb-s3 --port /dev/ttyUSB0 --run
+aster deploy dist/xtensa/com.example.counter.ast --target xtensa --port /dev/ttyUSB0 --run
+aster deploy dist/xtensa/com.example.counter.ast --target xtensa --port /dev/ttyACM0 --run
 ```
 
-微雪板使用同一路径，只换端口与目标：
-
-```text
-aster deploy dist/waveshare-35b/com.example.counter.ast --target waveshare-35b --port /dev/ttyACM0 --run
-```
-
-Windows 对应 `--port COM24`（替换为实际发现的端口）。便携包按主机平台发布：Windows/Linux 各一个包，包内同时携带 `lckfb-s3` 与 `waveshare-35b` 的 target，编译与烧录用 `--target` 选板。SDK 的 `ASTERPING` 握手包含 `serial=shared` 时，安装、运行自动使用文件传输的同一连接，不需要另指定 `--console`。旧固件不返回该标记时仍使用双串口，可显式指定 `--port /dev/ttyACM0 --console /dev/ttyUSB0`。run = 构建、部署并启动；deploy 只装包，带 --run 才启动。
+Windows 对应 `--port COM24`（替换为实际发现的端口）。便携包按主机平台发布：Windows/Linux 各一个包，包内携带 `xtensa` 平台目标。具体开发板的烧录留在固件仓库。SDK 的 `ASTERPING` 握手包含 `serial=shared` 时，安装、运行自动使用文件传输的同一连接，不需要另指定 `--console`。旧固件不返回该标记时仍使用双串口，可显式指定 `--port /dev/ttyACM0 --console /dev/ttyUSB0`。run = 构建、部署并启动；deploy 只装包，带 --run 才启动。
 
 调试与截图：
 
 ```text
-aster probe --port /dev/ttyUSB0 --target lckfb-s3
+aster probe --port /dev/ttyUSB0 --target xtensa
 aster shell --console /dev/ttyUSB0 aster sys info
 aster debug --console /dev/ttyUSB0 --seconds 10 --read-only
 aster screenshot screen.png --console /dev/ttyUSB0
@@ -695,7 +690,7 @@ aster screenshot screen.png --console /dev/ttyUSB0
 
 上传、安装、截图前关闭独立串口监视器，完成后可在同一端口恢复。一个接收流不能由两个独立程序同时读取。传文件期间固件日志继续输出，SDK 自动识别协议回复；APP 不需要实现传输协议。截图与 shell 也是串口操作，需要设备响应。日志推荐 init 完成、关键操作、失败码，不要每 FRAME 连续输出大量文本。
 
-仅需复制额外文件到设备时：`aster push LOCAL_FILE /SD:/destination --port SERIAL_PORT --target lckfb-s3`。普通 APP 资源优先用 assets 随包交付，不依赖开发机临时目录或手动复制。
+仅需复制额外文件到设备时：`aster push LOCAL_FILE /SD:/destination --port SERIAL_PORT --target xtensa`。普通 APP 资源优先用 assets 随包交付，不依赖开发机临时目录或手动复制。
 
 ### 常见问题
 
@@ -1036,6 +1031,7 @@ int32_t aster_display_get_info(uint32_t index,
 
 ```c
 #define ASTER_SURFACE_F_PANEL_CANVAS 0x00000001u
+#define ASTER_SURFACE_F_SCALE_FIT 0x00000002u
 
 typedef struct {
 	uint32_t size;

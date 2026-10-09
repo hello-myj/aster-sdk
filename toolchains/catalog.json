@@ -1,8 +1,7 @@
 {
   "schema": 1,
   "boards": {
-    "lckfb-s3": {"cpu": "xtensa", "aot_backend": "xtensa", "profile": "esp32s3-wamr-2.4.3-v6"},
-    "waveshare-35b": {"cpu": "xtensa", "aot_backend": "xtensa", "profile": "esp32s3-wamr-2.4.3-v6"}
+    "xtensa": {"cpu": "xtensa", "aot_backend": "xtensa", "profile": "esp32s3-wamr-2.4.3-v6"}
   },
   "profiles": {
     "esp32s3-wamr-2.4.3-v6": {

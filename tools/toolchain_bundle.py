@@ -55,5 +55,5 @@ def export(board, output):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--board',default='lckfb-s3');parser.add_argument('--output',type=Path,required=True)
-    args=parser.parse_args();export(args.board,args.output)
+    parser.add_argument('--target',default='xtensa');parser.add_argument('--output',type=Path,required=True)
+    args=parser.parse_args();export(args.target,args.output)

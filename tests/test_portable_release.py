@@ -18,7 +18,7 @@ class PortableReleaseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             out = Path(folder)/'aster-sdk'
             out.mkdir()
-            package_portable.copy_sdk(out, ['lckfb-s3'], 'windows')
+            package_portable.copy_sdk(out, ['xtensa'], 'windows')
             source = package_portable.ROOT
             for name in ('README.md', 'docs/app-development.md', 'docs/serial-console-transfer.md', 'apps/imucube/app.toml',
                          '.agents/skills/aster-app-development/SKILL.md'):
@@ -66,13 +66,11 @@ class PortableReleaseTests(unittest.TestCase):
 
     def test_board_cpu_change_requires_new_binding(self):
         root=package_portable.ROOT
-        target,binding,profile,host=toolchain_catalog.select(root,'lckfb-s3','linux-x64')
+        target,binding,profile,host=toolchain_catalog.select(root,'xtensa','linux-x64')
         self.assertEqual(binding['aot_backend'],'xtensa');self.assertEqual(profile['aot_format'],6)
-        target,binding,profile,host=toolchain_catalog.select(root,'waveshare-35b','linux-x64')
-        self.assertEqual(binding['aot_backend'],'xtensa');self.assertEqual(profile['aot_format'],6)
-        with patch.object(toolchain_catalog.json,'loads',side_effect=[{'boards':{'lckfb-s3':{'cpu':'riscv32'}}},{'cpu':'xtensa'}]):
+        with patch.object(toolchain_catalog.json,'loads',side_effect=[{'boards':{'xtensa':{'cpu':'riscv32'}}},{'cpu':'xtensa'}]):
             with self.assertRaisesRegex(ValueError,'differs'):
-                toolchain_catalog.select(root,'lckfb-s3','linux-x64')
+                toolchain_catalog.select(root,'xtensa','linux-x64')
 
     def test_package_carries_every_registered_board(self):
         source=package_portable.ROOT
@@ -88,10 +86,10 @@ class PortableReleaseTests(unittest.TestCase):
                                  (source/'targets'/(board+'.json')).read_bytes())
 
     def test_one_package_serves_boards_sharing_a_profile(self):
-        plan=package_portable.toolchain_plan(['lckfb-s3','waveshare-35b'],'linux-x64')
+        plan=package_portable.toolchain_plan(['xtensa'],'linux-x64')
         self.assertEqual(sorted(plan),['esp32s3-wamr-2.4.3-v6'])
         self.assertEqual(plan['esp32s3-wamr-2.4.3-v6']['backends'],
-                         {'xtensa':['lckfb-s3','waveshare-35b']})
+                         {'xtensa':['xtensa']})
 
     def test_same_backend_cannot_span_two_profiles(self):
         def fake_select(root,board,host):

@@ -35,7 +35,7 @@ python3.12 -m venv .venv-linux
 
 ```bash
 .venv-linux/bin/python tools/toolchain_bundle.py \
-  --board lckfb-s3 \
+  --target xtensa \
   --output dist/toolchains/windows-x64-esp32s3-wamr-2.4.3-v6.zip
 ```
 

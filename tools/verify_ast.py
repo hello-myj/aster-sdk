@@ -275,12 +275,12 @@ if __name__ == "__main__":
     while args and args[0].startswith("--"):
         if args[0] == "--pubkey":
             pub, args = args[1], args[2:]
-        elif args[0] in ("--target", "--board"):
+        elif args[0] == "--target":
             board, args = args[1], args[2:]
         else:
             sys.exit(f"unknown option {args[0]}")
     if not args:
-        sys.exit(f"usage: {sys.argv[0]} [--pubkey pub.pem] [--board NAME] "
+        sys.exit(f"usage: {sys.argv[0]} [--pubkey pub.pem] [--target NAME] "
                  "<file.ast> [...]")
     for p in args:
         check(p, pub, board)
