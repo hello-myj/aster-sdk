@@ -1,6 +1,6 @@
 # 霓虹对决 / Neon Duel
 
-使用 Aster APP SDK ABI 3.7 的原创像素格斗游戏。与设备相同的 C/WASM 应用包直接在 aster-sim 运行，没有另写网页游戏。目标为 lckfb-s3；240×320 面板旋转后采用 320×240 横屏坐标，其他尺寸按 4:3 等比显示并留黑边。
+使用 Aster APP SDK ABI 3.7 的原创像素格斗游戏。与设备相同的 C/WASM 应用包直接在 aster-sim 运行，没有另写网页游戏。CPU 目标为 xtensa；240×320 面板旋转后采用 320×240 横屏坐标，其他尺寸按 4:3 等比显示并留黑边。
 
 ## 玩法
 
@@ -23,11 +23,11 @@
 
 ```powershell
 aster build apps/neon-duel --aot
-aster verify apps/neon-duel/dist/lckfb-s3/com.example.neonduel.ast --target lckfb-s3
+aster verify apps/neon-duel/dist/xtensa/com.example.neonduel.ast --target xtensa
 ./apps/neon-duel/run-simulator.ps1
 ```
 
-产物：`dist/lckfb-s3/com.example.neonduel.ast`（相对本应用工程）。模拟器必须读取此 `.ast`，才能同时加载包中的音效。点模拟器的“启用声音”解除浏览器播放限制。
+产物：`dist/xtensa/com.example.neonduel.ast`（相对本应用工程）。模拟器必须读取此 `.ast`，才能同时加载包中的音效。点模拟器的“启用声音”解除浏览器播放限制。
 
 无窗口冒烟验证：
 
