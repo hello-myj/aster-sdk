@@ -9,9 +9,9 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m unittest discover -s tests -v
-      - run: python tools/aster.py build --all --target lckfb-s3 --aot
+      - run: python tools/aster.py build --all --target xtensa --aot
       - name: Independent template AOT build
         run: |
           python tools/aster.py init "$RUNNER_TEMP/aster-game" --template swipe-game --id test.cli.game
           python tools/aster.py build "$RUNNER_TEMP/aster-game"
-          python tools/aster.py verify "$RUNNER_TEMP/aster-game/dist/lckfb-s3/test.cli.game.ast"
+          python tools/aster.py verify "$RUNNER_TEMP/aster-game/dist/xtensa/test.cli.game.ast"

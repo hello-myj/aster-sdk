@@ -2,7 +2,7 @@
 
 ## 推荐发布流程
 
-现在推荐由 Ubuntu 统一生成 Windows 和 Linux 便携 SDK，Windows 保留 EXE 启动入口。固件契约同步、板级工具链选择、一键发布和 CI 配置见 [发布指南](release.md)。
+现在推荐由 Ubuntu 统一生成 Windows 和 Linux 便携 SDK，Windows 保留 EXE 启动入口。固件契约同步、CPU 平台工具链选择、一键发布和 CI 配置见 [发布指南](release.md)。
 
 下文保留旧的 Windows 单文件 EXE 构建方式，供兼容用途；普通 SDK 更新无需使用这条路径。
 
@@ -27,11 +27,11 @@ Windows x86-64 使用两个命令行 EXE：
 在 APP 项目所在目录运行示例：
 
 ```powershell
-aster-toolchain.exe build C:\work\my-app --target lckfb-s3 --aot
-aster-toolchain.exe verify dist\lckfb-s3\my.app.ast --target lckfb-s3
-aster-device.exe build C:\work\my-app --toolchain C:\tools\aster-toolchain.exe --target lckfb-s3
+aster-toolchain.exe build C:\work\my-app --target xtensa --aot
+aster-toolchain.exe verify dist\xtensa\my.app.ast --target xtensa
+aster-device.exe build C:\work\my-app --toolchain C:\tools\aster-toolchain.exe --target xtensa
 aster-device.exe ports
-aster-device.exe probe --target lckfb-s3
+aster-device.exe probe --target xtensa
 aster-device.exe build-deploy C:\work\my-app --toolchain C:\tools\aster-toolchain.exe --port COM6 --run
 aster-device.exe push C:\work\sample.txt /SD:/sample.txt --port COM6
 aster-device.exe shell --console COM6 aster app list

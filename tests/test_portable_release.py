@@ -11,9 +11,55 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
 import import_contract
 import package_portable
 import toolchain_catalog
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class PortableReleaseTests(unittest.TestCase):
+    def test_hardware_contract_preserves_cpu_target_and_regenerates_hashes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder) / 'sdk'
+            (root / 'targets').mkdir(parents=True)
+            platform = (ROOT / 'targets/xtensa.json').read_bytes()
+            (root / 'targets/xtensa.json').write_bytes(platform)
+            api = (ROOT / 'contract/api.json').read_bytes()
+            files = {'contract/api.json': api, 'include/aster/new.h': b'void aster_new(void);'}
+            for name, limit, caps in [('lckfb-s3', 7864320, ['camera']),
+                                      ('waveshare-35b', 4194304, ['display'])]:
+                target = {'schema': 1, 'id': name, 'product': 'aster', 'abi': '3.7.0',
+                          'cpu': 'xtensa', 'aot_target': 'xtensa', 'system': 'zephyr',
+                          'capabilities': caps, 'display': {'width': 320, 'height': 240},
+                          'memory': {'max_linear': limit}}
+                files['targets/' + name + '.json'] = json.dumps(target).encode()
+            # An old hardware target must be removed on migration.
+            (root / 'targets/lckfb-s3.json').write_bytes(files['targets/lckfb-s3.json'])
+            (root / 'contract').mkdir()
+            previous = {'sha256': {'targets/lckfb-s3.json': 'unused'}}
+            (root / 'contract/lock.json').write_text(json.dumps(previous))
+            bundle = Path(folder) / 'contract.zip'
+            def write_bundle():
+                lock = {'schema': 1, 'product': 'aster', 'abi': '3.7.0',
+                        'sha256': {n: hashlib.sha256(d).hexdigest() for n, d in files.items()}}
+                with zipfile.ZipFile(bundle, 'w') as archive:
+                    archive.writestr('contract/lock.json', json.dumps(lock))
+                    for name, data in files.items():
+                        archive.writestr(name, data)
+            write_bundle()
+            imported = import_contract.import_bundle(bundle, root)
+            self.assertEqual({p.name for p in (root / 'targets').glob('*.json')}, {'xtensa.json'})
+            self.assertEqual(imported['targets/xtensa.json'], platform)
+            self.assertEqual(imported['contract/api.json'], api)
+            lock = json.loads(imported['contract/lock.json'])
+            for name, digest in lock['sha256'].items():
+                self.assertEqual(hashlib.sha256((root / name).read_bytes()).hexdigest(), digest)
+            self.assertEqual(import_contract.import_bundle(bundle, root), imported)
+            # Backend incompatibility must fail before updating the SDK.
+            name = 'targets/waveshare-35b.json'
+            target = json.loads(files[name]);target['aot_target'] = 'riscv32'
+            files[name] = json.dumps(target).encode();write_bundle()
+            with self.assertRaisesRegex(ValueError, 'AOT backend differs'):
+                import_contract.import_bundle(bundle, root)
+            self.assertEqual((root / 'contract/lock.json').read_bytes(), imported['contract/lock.json'])
+
     def test_release_carries_self_contained_manual_and_skill(self):
         with tempfile.TemporaryDirectory() as folder:
             out = Path(folder)/'aster-sdk'

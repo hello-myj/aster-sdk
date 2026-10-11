@@ -11,7 +11,7 @@ Windows 版本，并从 WAMR 2.4.3 和 Espressif LLVM 18 固定提交构建支�
 Windows 端需要在真实 Windows 主机或 Windows CI 上执行打包与 AOT 冒烟测试；
 Linux 的 PyInstaller 不能生成 Windows 可执行文件。
 生成 AOT 必须使用与 `contract/api.json` 匹配的 WAMR 版本及目标后端。
-显式请求 AOT 而缺少 wamrc 会失败；使用 `--no-aot` 可构建解释执行包。
+显式请求 AOT 而缺少 wamrc 会失败；使用 `--no-aot` 可为模拟器/主机测试构建 WASM 包。真实设备必须包含匹配 CPU 的 AOT；安装和加载失败均不会回退解释执行。
 
 wasi-sdk 的 Linux 与 Windows 副本都只保留 freestanding 编译需要的 clang、
 链接器、归档工具与 Clang 资源目录，未包含完整 WASI sysroot。

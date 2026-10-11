@@ -9,15 +9,9 @@
  * the numbers build_cpfont.py wrote into the .cpfont headers (advY at byte
  * 44, asc at 45), and they are what the rasterizer's pen actually advances.
  *
- * ONE FACE. The bake holds a single 20 px face (the table below), so `px` is
- * a hint rather than a choice: 12, 14 and 16 all draw at 20. Layouts written
- * against a 12 px advance have to be re-derived rather than
- * searched-and-replaced -- the text gets wider, and a box that was
- * comfortable at 12 will clip. The two numbers that matter for that are a
- * row step of 26 and an ascent of 21.
- *
- * What that buys: eight resident metric tables used to sit in PSRAM with no
- * release path at all. One face returns 1.73 MB of it.
+ * Each published size is a native-pixel full-coverage SD face. Runtime
+ * glyph caches allocate by requested size and release with screen ownership.
+ * Choose a published size for hardware geometry; glyph bitmaps are not resized.
  *
  * Font metrics come from <aster/font_metrics.h> in the pinned SDK contract.
  * Upgrade them through tools/import_contract.py with a released bundle.
@@ -63,25 +57,10 @@ typedef struct {
 static const aster_text_face_t ASTER_TEXT_FACES[] = ASTER_FONT_FACE_METRICS;
 #define ASTER_TEXT_FACE_N ASTER_FONT_BAKED_N
 
-/* Nearest baked size, ALWAYS -- there is no "no face" answer any more.
- *
- * The old version returned -1 outside a +/-4 px window, which was right when
- * a rasterizer sat behind the table: an unbaked size still drew, from
- * tiny_ttf, and 0 (meaning "no metrics known") was a truthful answer. With
- * one face in the bake that window is 16..24, so 12 and 14 -- which every
- * app in the tree asks for by name -- returned -1, and -1 made
- * aster_text_line_h()/aster_text_asc() return 0. Callers use those as a row
- * advance: the reader multiplied by a zero line height and the player's
- * lyric column collapsed onto one baseline. A silent zero is a far worse
- * failure than a wrong-but-plausible metric, and the firmware clamps to the
- * nearest face unconditionally, so this now mirrors it exactly.
- *
- * The consequence to keep in mind: a size that is not baked draws at the
- * nearest baked size, so a layout computed for 12 px text will overflow when
- * the face is 20 px. It reads rather than vanishes -- which is the failure
- * mode to want, but it is a silent one. */
+/* Select the nearest published native size; ties follow contract order. */
 static inline int aster_text_snap(int px)
 {
+ if(px==0) return ASTER_TEXT_FACES[0].px;
 	int best = -1, pick = ASTER_TEXT_FACES[0].px;
 	uint32_t i;
 
@@ -97,6 +76,23 @@ static inline int aster_text_snap(int px)
 		}
 	}
 	return pick;
+}
+
+/* Scale a design text role to display geometry, then select native glyphs.
+ * reference_px is the desired role at 320x480, not a bitmap zoom factor. */
+static inline int aster_text_for_display(int reference_px,uint32_t width,uint32_t height)
+{
+ if(reference_px<=0 || !width || !height) return ASTER_TEXT_FACES[0].px;
+ uint64_t x=(uint64_t)width*(uint32_t)reference_px*256u/320u;
+ uint64_t y=(uint64_t)height*(uint32_t)reference_px*256u/480u;
+ uint64_t request=x<y?x:y,best=UINT64_MAX;
+ int pick=ASTER_TEXT_FACES[0].px;
+ for(uint32_t i=0;i<ASTER_TEXT_FACE_N;i++) {
+  uint64_t size=(uint64_t)ASTER_TEXT_FACES[i].px*256u;
+  uint64_t d=size>request?size-request:request-size;
+  if(d<best) {best=d;pick=ASTER_TEXT_FACES[i].px;}
+ }
+ return pick;
 }
 
 static inline const aster_text_face_t *aster_text_face(int px)

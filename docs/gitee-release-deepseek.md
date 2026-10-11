@@ -1,3 +1,5 @@
+> 此文是 2026-10-05 的历史发布交接记录，其中按开发板选择目标的命令和包清单已过期。当前使用 `--target xtensa`，发布步骤以 [发布指南](release.md) 为准；历史标签与产物记录保留。
+
 # 给 DeepSeek 的 Aster SDK Gitee Release 发布交接
 
 编写日期：2026-10-05。任务是将新版 SDK 发布到 Gitee 的 Git Release，供用户下载 Windows/Linux 开发包。本文由当前代理准备；当前代理没有执行远端提交、推送、建标签或发布。请在能够访问 Gitee 的环境执行。

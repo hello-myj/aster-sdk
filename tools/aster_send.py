@@ -37,10 +37,11 @@ def open_serial(port, **kwargs):
     from serial.tools import list_ports
     bridge = next((p for p in list_ports.comports() if p.device == port), None)
     connection = serial.Serial(port=None, baudrate=115200, **kwargs)
-    # CH340 opens with both lines asserted by the OS. Keeping that pair avoids
-    # a reset pulse caused by changing DTR and RTS sequentially. On native USB,
-    # keep both inactive instead. Verified by repeated opens on LCKFB hardware.
-    asserted = bridge is not None and bridge.vid == 0x1a86
+    # CH340 and Espressif Serial/JTAG open with both lines asserted by the OS.
+    # Changing them sequentially can briefly form the ESP32 reset sequence.
+    # Preserve that pair; verified by repeated opens on LCKFB and Waveshare.
+    asserted = bridge is not None and (bridge.vid == 0x1a86 or
+                                       (bridge.vid, bridge.pid) == (0x303a, 0x1001))
     connection.dtr = asserted
     connection.rts = asserted
     connection.port = port

@@ -28,15 +28,15 @@ jobs:
         run: |
           python -m unittest tests.test_windows_tools tests.test_cli tests.test_release_identity tests.test_serial_shared -v
           if ($LASTEXITCODE -ne 0) { throw 'Windows tool unit tests failed' }
-          ./dist/windows/aster-toolchain.exe build apps/hello --target lckfb-s3 --aot
+          ./dist/windows/aster-toolchain.exe build apps/hello --target xtensa --aot
           if ($LASTEXITCODE -ne 0) { throw 'AOT build failed' }
-          ./dist/windows/aster-toolchain.exe verify dist/lckfb-s3/aster.hello.ast --target lckfb-s3
+          ./dist/windows/aster-toolchain.exe verify dist/xtensa/aster.hello.ast --target xtensa
           if ($LASTEXITCODE -ne 0) { throw 'package verification failed' }
-          ./dist/windows/aster-toolchain.exe build apps/gfxshow --target lckfb-s3 --aot
+          ./dist/windows/aster-toolchain.exe build apps/gfxshow --target xtensa --aot
           if ($LASTEXITCODE -ne 0) { throw 'gfxshow AOT build failed' }
-          ./dist/windows/aster-toolchain.exe verify dist/lckfb-s3/aster.gfxshow.ast --target lckfb-s3
+          ./dist/windows/aster-toolchain.exe verify dist/xtensa/aster.gfxshow.ast --target xtensa
           if ($LASTEXITCODE -ne 0) { throw 'gfxshow package verification failed' }
-          ./dist/windows/aster-device.exe build apps/hello --toolchain ./dist/windows/aster-toolchain.exe --target lckfb-s3
+          ./dist/windows/aster-device.exe build apps/hello --toolchain ./dist/windows/aster-toolchain.exe --target xtensa
           if ($LASTEXITCODE -ne 0) { throw 'device build command failed' }
           ./dist/windows/aster-device.exe --help
           if ($LASTEXITCODE -ne 0) { throw 'device CLI failed' }
@@ -48,7 +48,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'init failed' }
           ./dist/windows/aster.exe build $project
           if ($LASTEXITCODE -ne 0) { throw 'independent AOT build failed' }
-          ./dist/windows/aster.exe verify "$project/dist/lckfb-s3/test.cli.game.ast"
+          ./dist/windows/aster.exe verify "$project/dist/xtensa/test.cli.game.ast"
           if ($LASTEXITCODE -ne 0) { throw 'package verification failed' }
       - uses: actions/upload-artifact@v4
         with:

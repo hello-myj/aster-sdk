@@ -1,6 +1,6 @@
 # Aster APP SDK 开发手册（AI 可直接使用）
 
-适用版本：SDK ABI **3.7.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-3.7.0.zip`，更新日期 2026-10-09。具体开发板由固件选择，SDK 不提供 `--board`。
+适用版本：SDK ABI **3.7.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-3.7.0.zip`，更新日期 2026-10-12。具体开发板由固件选择，SDK 不提供 `--board`。
 
 本文是独立开发所需的完整参考：创建工程、配置、生命周期、绘图、输入、资源、设备接口、构建、部署及排错。本文中的类型和函数签名来自此版本 SDK 的公开契约。阅读本文即可编写 APP；不需要再读取固件代码、SDK 头文件、模板代码或工具实现。编译器会自动使用 SDK 自带的头文件和辅助库。
 
@@ -92,7 +92,7 @@ aster build
 aster verify dist/xtensa/com.example.counter.ast --target xtensa
 ```
 
-构建默认遵循 `app.toml` 的 `aot`，可用 `aster build --aot` 强制 AOT，或 `aster build --no-aot` 只生成 WASM 包。指定其他目标用 `--target TARGET`；目标选择优先级为命令行、项目 `[sdk].target`、`ASTER_TARGET` 环境变量、唯一已安装目标。
+构建默认遵循 `app.toml` 的 `aot`，可用 `aster build --aot` 强制 AOT，或 `aster build --no-aot` 为模拟器/主机测试生成 WASM 包。真实设备只接受并运行匹配 CPU 的 AOT；不支持 WASM 解释执行或自动回退。指定其他目标用 `--target TARGET`；目标选择优先级为命令行、项目 `[sdk].target`、`ASTER_TARGET` 环境变量、唯一已安装目标。
 
 ## 3. 工程和配置
 
@@ -125,7 +125,7 @@ my-counter/
 - `version`：APP 自身版本字符串，默认 `"0.0.0"`，与 ABI 无关。
 - `abi`：编译目标 ABI，当前填 `"3.7.0"`；省略时使用 SDK 契约版本。
 - `abi_min`：最低固件 ABI，当前新工程填 `"3.7"`。不要为了兼容旧设备而降低它却继续引用新接口。它的主版本必须与 `abi` 相同。
-- `aot`：默认 `true`，包同时包含 WASM 与目标 CPU 的 AOT；缺少 AOT 编译器会报错。AOT 不是跨 CPU 通用二进制。
+- `aot`：真实设备必须为 `true`，包同时包含 WASM 与目标 CPU 的 AOT；缺少 AOT 编译器会报错。模拟器可使用 `false` / `--no-aot`。设备会拒绝缺少 AOT、CPU 不匹配或 AOT 加载失败的 APP，不会自动回退 WASM。AOT 不是跨 CPU 通用二进制。
 - `optimize`：`"O0"`、`"O1"`、`"O2"`、`"O3"`、`"Os"` 或 `"Oz"`，默认 `"O2"`；设备 APP 推荐 `"Os"`。
 - `orientation`：`"portrait"` 或 `"landscape"`，在初始化前应用。当前设备普通 APP 默认竖屏；需要横屏时明确声明，运行时仍必须查询坐标空间。
 - `category`：`"game"`、`"tool"`、`"system"`，不填时没有分类。
@@ -434,12 +434,21 @@ panel-canvas 的双缓冲轮换不保留上帧背景，**每次 present 必须�
 
 ### 字体和中文
 
-固件负责字体和字形缓存。当前 SDK 字体度量有两种烘焙字号：
+APP 的名称、简介和图标由安装包提供。流光桌面的固定文字与动态 APP 文字统一使用固件提供的通用 SD 字库和原生字号缓存。新增、改名或升级 APP 不要求添加固件内置字形，也不要求重新编译固件。桌面光带缩放与立创按钮尺寸属于固件布局，不改变 APP 的字体 API 或业务坐标。
 
-- 20 px：行高 26，基线距顶部 21。
-- 16 px：行高 21，基线距顶部 17。
+固件提供 12、14、16、18、20、24、28、32、40、48px 共 10 档实际字号，每档 SD 字库覆盖源字体的全部约 2.9 万个字符。字体位图按该字号烘焙，绘制时不缩放字形；其他请求字号选择最近的一档。行高与基线以 SDK 契约里的 `font_metrics.h` 为准。
 
-其他字号吸附到最近烘焙字号；不要请求 12 px 却按 12 px 高布局。用 `aster_text_snap(px)`、`aster_text_line_h(px)` 和 `aster_text_asc(px)` 计算布局。**ge_text 的 y 是基线，不是顶边**；第一行基线 = 顶边 + asc。
+用 `aster_text_for_display(reference_px, width, height)` 按当前画布分辨率选择实际字号，`reference_px` 是 320×480 下的文字角色大小。再用 `aster_text_line_h(px)`、`aster_text_asc(px)` 布局；`ge_text` 的 y 是基线，首行基线为顶边加 asc。
+
+```c
+int body_px = aster_text_for_display(16, canvas_width, canvas_height);
+int title_px = aster_text_for_display(20, canvas_width, canvas_height);
+int baseline = top + aster_text_asc(body_px);
+```
+
+桌面与 APP 共用完整 SD 字库加载器。每个实际使用字号按需申请独立 PSRAM LRU 缓存：位图空间约 8–48KiB，上限 192 个字形，另有索引和 A8 临时空间。缓存满时逐个淘汰最久未使用字形。完整字库始终在 SD；不是只支持缓存里的字符。APP 初始化前释放桌面缓存并准备适合当前屏幕的常用字号，退出或初始化失败后释放 APP 缓存；返回桌面重新预热。冷字形会同步读 SD，常用字符在启动阶段预热；尚未访问的字符首次出现仍可能产生 I/O。
+
+字号资源由固件资源发布维护，APP 不携带字体、不修改固件字形子集。更新字号契约后需同时更新设备 SD 字库；SDK 本地度量表必须匹配设备发布版本。`aster sys fonts` 可以查看各字号覆盖字符数、缓存字形数和实际申请字节数。
 
 UTF-8 长度参数是**字节数**，使用 `strlen`；不是汉字个数。文字宽度使用 `aster_gfx_text_w(px, text, byte_len)`，不要用字符数乘字号。文字渲染受已安装字体字符覆盖范围限制；不要假设 emoji、所有 Unicode 符号均可显示，省略号用三个 ASCII 点 `...`。
 
@@ -704,7 +713,7 @@ aster screenshot screen.png --console /dev/ttyUSB0
 - 中文先空白后不出现：每个 FRAME 调用 fonts_pending 并重绘；确认设备安装了匹配系统字体，避免不覆盖的字符。
 - 文字错位/挤在一起：ge_text 使用基线，按实际烘焙字号与 line_h 布局，UTF-8 按字节传长度。
 - 图标打包失败：需要 ASTI magic，不是 PNG 改后缀；资源 assets 用相对路径且确实存在。
-- AOT 太大或设备加载失败：先减少库和代码规模，必要时使用 --no-aot 验证 WASM 路径；构建成功不代表真机资源一定足够。
+- AOT 太大或设备加载失败：先减少库和代码规模，WASM 路径仅用于模拟器或主机测试；真机必须修复 AOT 的构建与加载问题。构建成功不代表真机资源一定足够。
 - ABI 不匹配：SDK、包和设备版本要匹配，不修改固定契约、target metadata 或 header 来伪造兼容。
 
 交付工程时包含 app.toml、src 和资源原件，说明构建命令、产物路径与实际验证范围。没有真机验证就明确写“构建/包校验通过，真机待验证”。

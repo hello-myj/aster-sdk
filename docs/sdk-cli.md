@@ -50,7 +50,7 @@ aster run
 - `--id`：应用唯一标识，建议使用 `com.example.game`；省略时从目录名生成 `app.<目录名>`。更改名称不必更改 ID。
 - `--name`：安装到设备后显示的应用名称，省略时使用目录名。
 - `--target`：CPU 平台，保存到项目 `app.toml` 的 `[sdk] target` 中。当前为 `xtensa`（工具链目录只能编译 Xtensa，所以没有 riscv/arm 目标文件）。SDK 不提供开发板选择，也不接受 `--board`。以 `aster targets` 输出为准。
-- `build [项目目录]`：编译并验证 `.ast` 包，省略目录时使用当前目录。模板默认 AOT；`--no-aot` 临时关闭，`--aot` 强制开启。
+- `build [项目目录]`：编译并验证 `.ast` 包，省略目录时使用当前目录。真实设备必须包含 AOT；`--aot` 强制开启，`--no-aot` 仅用于模拟器/主机测试。设备安装和启动均不回退 WASM。
 - `run [项目目录]`：编译、传输、安装并启动应用。`--no-build` 使用已有包。
 - `--port`：文件传输端口。新固件同时在 shell 串口提供文件服务，探测返回 `serial=shared` 时，安装和运行自动使用同一个端口，无需指定 `--console`。例如 `aster run --port COM24` 或 `aster run --port /dev/ttyUSB0`。`--console` 仍可覆盖选择，以兼容旧固件的双串口模式。监视器与上传工具不能同时独立打开、读取同一个串口：上传前关闭监视器，完成后重新打开。
 

@@ -5,6 +5,7 @@ import unittest
 import tempfile
 from unittest.mock import patch
 from pathlib import Path
+from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 import aster_send
 
@@ -15,6 +16,26 @@ class Stream:
     def read(self, count): return self.data.read(count)
 
 class SharedSerial(unittest.TestCase):
+    def test_open_preserves_reset_lines_before_open_on_native_and_ch340(self):
+        class Device:
+            def __init__(self, **kwargs):
+                self.options = kwargs
+                self.dtr = self.rts = None
+                self.port = None
+            def open(self):
+                self.at_open = (self.port, self.dtr, self.rts)
+        for vid, pid, expected in [(0x303a, 0x1001, True),
+                                   (0x1a86, 0x7522, True),
+                                   (0x1234, 0x5678, False)]:
+            with self.subTest(vid=vid, pid=pid):
+                port = SimpleNamespace(device='TEST', vid=vid, pid=pid)
+                with patch('serial.tools.list_ports.comports', return_value=[port]), \
+                     patch.object(aster_send.serial, 'Serial', Device):
+                    device = aster_send.open_serial('TEST', timeout=.2, write_timeout=3)
+                self.assertEqual(device.at_open, ('TEST', expected, expected))
+                self.assertEqual(device.options, {'port': None, 'baudrate': 115200,
+                                                 'timeout': .2, 'write_timeout': 3})
+
     def test_log_and_ansi_do_not_hide_ack(self):
         stream = Stream(b'\x1b[1;32master:~$ ASTERPUT\n'
                         b'[00:00:01] <inf> audio: OK ready\n'
