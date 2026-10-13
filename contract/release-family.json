@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "family": "aster-20261013",
+  "sdk_tag": "sdk-v3.7.0-20261013",
+  "abi": "3.7.0",
+  "release_url": "https://github.com/hello-myj/aster-sdk/releases/tag/sdk-v3.7.0-20261013",
+  "download_base": "https://github.com/hello-myj/aster-sdk/releases/download/sdk-v3.7.0-20261013",
+  "components": {
+    "firmware": {
+      "repository": "hello-myj/aster-firmware",
+      "tag": "firmware-v0.1.0-20261013",
+      "revision": "c740bbe65f7d5088feac6c1fc52f9c70872c29df",
+      "abi": "3.7.0",
+      "aot_format": 6,
+      "images": {
+        "lckfb-s3": {
+          "path": "firmware/aster-firmware-0.1.0-lckfb-s3.bin",
+          "sha256": "36f2dffe0d263627d81c08c692bfad7b6923159e3bb78dc600348ea7bd1c27c5",
+          "flash_address": "0x0",
+          "build_identity": "firmware/lckfb-s3-identity.json"
+        },
+        "waveshare-35b": {
+          "path": "firmware/aster-firmware-0.1.0-waveshare-35b.bin",
+          "sha256": "5bb14698d56eb5ac944fb6a726b2e15689153a6e38a6f59e618e54346c1ab4b6",
+          "flash_address": "0x0",
+          "build_identity": "firmware/waveshare-35b-identity.json"
+        }
+      }
+    },
+    "simulator": {
+      "repository": "hello-myj/aster-sim",
+      "tag": "sim-v0.2.0-20261013",
+      "revision": "e14ac57471b7940e2a8bade858c15adb321b9a10",
+      "version": "0.2.0",
+      "abi": "3.7.0",
+      "execution": "WASM API model; not an ESP32/Zephyr emulator",
+      "firmware_reference": {
+        "tag": "firmware-v0.1.0-20261013",
+        "revision": "c740bbe65f7d5088feac6c1fc52f9c70872c29df"
+      }
+    }
+  },
+  "payloads": {
+    "linux-x64": {
+      "file": "aster-development-kit-20261013-linux-x64.tar.gz",
+      "sha256": "be288dbb893a316b740478a8665f8a29873a4863599475d2248bb8f9f34c6d18",
+      "format": "tar.gz"
+    },
+    "windows-x64": {
+      "file": "aster-development-kit-20261013-windows-x64.zip",
+      "sha256": "6f6aa1e4c3d51fa196ccfd9932bdc06fbca302381f9d612451268dd4194425c8",
+      "format": "zip"
+    }
+  },
+  "contract_api_sha256": "75198f31e131520a2da119664a2c960a2cf2eff556efe1506a72b13229435510"
+}

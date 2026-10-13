@@ -14,6 +14,7 @@ from pathlib import Path
 from release_identity import source_identity
 from check_docs import check as check_docs
 from toolchain_catalog import select, check_wamrc
+from development_kit import stage as stage_development_kit
 from import_contract import import_bundle
 from toolchain_bundle import load as load_toolchain_bundle
 
@@ -262,6 +263,7 @@ def package(platform, args):
         out = Path(temporary) / 'aster-sdk'; out.mkdir()
         copy_sdk(out, args.boards, platform)
         (windows_package if platform=='windows' else linux_package)(out, cache, args, plan)
+        stage_development_kit(ROOT, out, platform+'-x64', cache, args.development_kit_dir)
         profiles = {name: {'aot_format': record['profile']['aot_format'],
                            'wasi_sdk': record['profile']['wasi_sdk'],
                            'backends': sorted(record['backends']),
@@ -299,6 +301,7 @@ if __name__ == '__main__':
     parser.add_argument('--output', type=Path, default=ROOT/'dist/portable')
     for name in ('windows-python-zip','windows-wasi','windows-wamrc','linux-wasi','linux-wamrc'):
         parser.add_argument('--'+name, type=Path)
+    parser.add_argument('--development-kit-dir', type=Path, help='Local immutable kit payloads; defaults to pinned Release downloads')
     parser.add_argument('--windows-toolchain-bundle',type=Path)
     parser.add_argument('--windows-toolchain-url')
     parser.add_argument('--windows-toolchain-sha256')

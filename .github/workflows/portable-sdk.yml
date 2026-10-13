@@ -31,6 +31,20 @@ jobs:
         run: |
           test -n "$TOOLCHAIN_URL" && test -n "$TOOLCHAIN_SHA256" || { echo "Configure the immutable Windows compiler bundle URL and SHA256 repository variables (docs/release.md)."; exit 1; }
           bash release.sh --hosts linux-x64,windows-x64 --windows-toolchain-url "$TOOLCHAIN_URL" --windows-toolchain-sha256 "$TOOLCHAIN_SHA256"
+      - name: Hash downloadable SDK archives
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          root = Path('dist/portable')
+          lines = []
+          for path in sorted(root.iterdir()):
+              if path.name.endswith(('.zip', '.tar.gz')):
+                  line = hashlib.sha256(path.read_bytes()).hexdigest() + '  ' + path.name + '\n'
+                  path.with_name(path.name + '.sha256').write_text(line)
+                  lines.append(line)
+          (root / 'SHA256SUMS.txt').write_text(''.join(lines))
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: sdk-portable
@@ -70,7 +84,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" artifacts/* --clobber
+            echo "Existing Release preserved; validated packages are available in the sdk-portable CI artifact."
           else
             gh release create "$GITHUB_REF_NAME" artifacts/* --verify-tag --generate-notes --title "Aster SDK $GITHUB_REF_NAME"
           fi

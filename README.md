@@ -107,3 +107,7 @@ orientation = "landscape" # 或 "portrait"；不设置时从竖屏启动
 ## 桌面文字与 APP 字体
 
 流光桌面从安装包读取 APP 名称、简介和图标；桌面与 APP 文字统一使用固件提供的完整 SD 字库和按字号申请的 PSRAM 字形缓存。共有 12/14/16/18/20/24/28/32/40/48px 原生字号，使用 `aster_text_for_display` 按屏幕选择字号，再按实际行高布局。APP 安装、改名或升级不需要向固件添加内置字形。APP 初始化前准备常用字号，退出后释放缓存；返回桌面重新申请和预热。ABI 3.7.0 与包格式保持兼容，新的字号度量契约需要匹配设备资源发布。详见 [开发手册](docs/app-development.md#字体和中文)。
+
+## 完整开发套件
+
+从 SDK Release 下载对应平台的完整包，即得到 APP SDK、两款板的固件镜像、SD 字体资源和便携模拟器。固定版本和校验值在包内 development-kit.json；使用与模拟边界见 [完整开发套件](docs/development-kit.md)。开发 APP 无需 Zephyr、ESP-IDF 或 Espressif 驱动库。

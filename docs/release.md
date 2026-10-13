@@ -114,3 +114,7 @@ Zephyr 设备固件只运行匹配 CPU 的 AOT，构建中关闭 WASM 解释器�
 ## 三仓库候选组合检查
 
 正式候选在固件仓库执行 `python tools/release_check.py --sdk ../aster-sdk --sim ../aster-sim --require-clean --output build/release-check`，并等待三仓库集成及两块板完整构建通过。固定提交和工具链 profile 在固件 `contract/release-matrix.json`；报告和必需 APP 制品必须保留。详见 [固件发布验证](https://github.com/hello-myj/aster-firmware/blob/main/docs/release-validation.md)。此命令由固件工具提供，不是 SDK 的 APP CLI，也不会自动发布或刷机。
+
+## SDK Release 作为统一成品入口
+
+当前发布把 SDK、固定固件镜像、SD 字体资源和主机模拟器放入同一个完整 SDK 包。对应 tag、提交、ABI 与载荷哈希见 contract/release-family.json；用户仅下载该 SDK Release 的本机平台包即可。此前工具包只包含 SDK 的说明不代表完整开发套件交付范围。固件和模拟器仓库各保留源码 tag，SDK 打包只校验并加入已有成品，不编译固件。详细布局、使用步骤和维护流程见 [完整开发套件](development-kit.md)。
