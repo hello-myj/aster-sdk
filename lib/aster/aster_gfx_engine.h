@@ -134,10 +134,10 @@ static inline int32_t aster_ge_touch(aster_ge_t *g, uint32_t x, uint32_t y,
 	if (!g->dirty || y < g->dy0) {
 		g->dy0 = y;
 	}
-	if (x1 > g->dx1) {
+	if (!g->dirty || x1 > g->dx1) {
 		g->dx1 = x1;
 	}
-	if (y1 > g->dy1) {
+	if (!g->dirty || y1 > g->dy1) {
 		g->dy1 = y1;
 	}
 	g->dirty = true;
@@ -544,6 +544,20 @@ static inline uint32_t aster_ge_default_ring(aster_gfx_cmd_t **ring, uint8_t **a
 	*ring = r;
 	*arena = a;
 	return ASTER_GE_RING_DEFAULT;
+}
+
+/* Commands-only frame end: ask the host to derive damage from the actual
+ * raster instead of transmitting the SDK's conservative bounding box.
+ * Do not mix hand-painted Guest pixels/aster_ge_touch with this entry.
+ * Legacy automatic spills still publish independently; use begin_frame for
+ * one logical publication. Active transactions retain their END semantics.
+ * A no-command touch-only batch keeps the ordinary explicit present path. */
+static inline int32_t aster_ge_present_commands(aster_ge_t *g)
+{
+ if(g->frame_id||g->err<0||!g->n) return aster_ge_present(g);
+ int32_t r=aster_ge_exec(g,0,0,0,0);
+ g->err=0;
+ return r;
 }
 
 #endif /* ASTER_GFX_ENGINE_H */

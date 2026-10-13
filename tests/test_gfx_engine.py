@@ -443,6 +443,24 @@ int main(void) {
 }
 ''')
 
+    def test_command_damage_keeps_legacy_touch_and_error_recovery(self):
+        self.compile(r'''
+int main(void) {
+ reset();aster_gfx_cmd_t ring[4];aster_ge_t g;
+ aster_ge_init(&g,1,240,320,ring,4,arena,sizeof(arena));
+ aster_ge_rect(&g,2,3,8,8,1);aster_ge_rect(&g,200,280,8,8,2);
+ assert(aster_ge_present_commands(&g)==2&&submits==1&&sub_n[0]==2);
+ for(int i=0;i<4;i++)assert(sub_present[0][i]==0);
+ assert(!g.dirty&&!g.n&&!g.err);
+ aster_ge_touch(&g,4,5,2,3);assert(aster_ge_present_commands(&g)==0);
+ assert(sub_present[1][0]==4&&sub_present[1][1]==5&&sub_present[1][2]==2&&sub_present[1][3]==3);
+ fail_at=3;aster_ge_rect(&g,1,1,1,1,1);
+ assert(aster_ge_present_commands(&g)==ASTER_ENOSPC&&!g.err&&!g.n);
+ fail_at=0;aster_ge_rect(&g,1,1,1,1,1);assert(aster_ge_present_commands(&g)==1);
+ return 0;
+}
+''')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -407,6 +407,19 @@ if (aster_time_get(&now, sizeof(now)) == ASTER_OK) {
 
 ge_present/ge_exec/aster_gfx_exec 成功返回非负的命令执行数，**不能用 rc != 0 判断失败**。ge_text 返回负值表示文本 arena 容量不足等错误。绘图提交后命令数组和文本 arena 会重置；下一帧重新编码。
 
+**纯命令绘制的脏区提交：**如果这一帧仅使用 `aster_ge_rect/text/bmp` 等命令，
+可用 `aster_ge_present_commands(&ge)` 代替 `aster_ge_present(&ge)`。固件按实际栅格
+结果收集有界区域，避免将两个远离的小更新合成大矩形；返回值仍检查 `< 0`。
+不要在这种模式混用直接写 Guest 像素或手工 `aster_ge_touch`；手绘/命令混合页面
+继续使用原 `aster_ge_present` 和显式更新区域。旧 Host 可执行这种隐式区域调用，
+但是否保留多区域取决于 Host 实现，不能保证相同提速。旧自动分批仍会分别发布，
+需要一次逻辑发布时使用下面的帧事务。
+
+普通表面事务会保留 BEGIN 时的 Guest 像素；成功 END 后只写回实际绘制区域。
+首帧、其他界面覆盖屏幕、方向改变或 END 失败后完整恢复，之后可以按脏区提交；
+无变化的保留帧可以不发送像素。Canvas 仍要求全帧 CLEAR/重绘，scale-fit 仍走
+完整适配路径。微雪通常仍发送整屏像素，减少绘制/搬运不等于减少 QSPI 字节。
+
 **可选完整帧事务（需查询 Host 支持，未发布的本地协议 v1）：**
 
 ```c
