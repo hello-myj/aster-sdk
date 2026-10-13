@@ -407,6 +407,25 @@ if (aster_time_get(&now, sizeof(now)) == ASTER_OK) {
 
 ge_present/ge_exec/aster_gfx_exec 成功返回非负的命令执行数，**不能用 rc != 0 判断失败**。ge_text 返回负值表示文本 arena 容量不足等错误。绘图提交后命令数组和文本 arena 会重置；下一帧重新编码。
 
+**可选完整帧事务（需查询 Host 支持，未发布的本地协议 v1）：**
+
+```c
+int32_t rc = aster_ge_begin_frame(&ge);
+if (rc < 0) return rc;  /* ENOTSUP: 旧 Host，不能假定帧原子性 */
+aster_ge_clear(&ge, 0x0000);
+/* 可以多次编码并自动溢出；这些批次只写私有 PSRAM 帧。 */
+aster_ge_text(&ge, 8, 24, 16, 0xffff, ASTER_GFX_NOBG, "Hello");
+rc = aster_ge_present(&ge);  /* 成功为 0，一次整帧发布并等待传输完成 */
+if (rc < 0) return rc;      /* 不按已发布帧推进动画状态 */
+```
+
+`aster_ge_begin_frame()` 要在空命令环且无未处理错误时调用。`aster_ge_present()` 会结束事务，编码或批次失败则取消；也可显式调用 `aster_ge_cancel_frame()`。不调用 begin 的旧 APP 保留即时提交语义。旧 Host 通过现有导入探测并返回 ENOTSUP；因此 APP 仍能加载，但必须自行决定是否接受旧路径可能发布半帧的行为，SDK 不自动降级。
+
+事务中只使用 ge/图形命令；不要向 acquire 得到的 Guest 像素指针直接写入，也不要调用 surface_present/flush。普通 Guest 缓冲在成功结束后才更新，失败绘制/取消时不变。Panel canvas 的首批首条必须 CLEAR，首版完整重绘。每个 APP 至多一个活动事务，最多 153600 像素、256 批、8192 条命令、128 KiB 文本 arena 累计、1000 ms 绘制期限；暂存缓存容量最多 300 KiB PSRAM（扩容先分配再释放，短暂峰值最多 600 KiB），会缓存复用，APP 退出或对应表面销毁时释放。帧结束等待现有显示任务完成，首版没有流水线重叠收益。
+
+暂停或销毁会撤销事务，帧 ID 防止撤销后的旧批次按即时路径上屏。失败绘制保持上一张发布画面；LCD 物理传输在 END 期间发生故障时可能已有部分像素到达屏幕，返回错误不能保证光学回滚，也没有声称具备硬件垂直同步页翻转。此协议复用既有导入但新增可协商语义，ABI 3.7 的版本号本身不保证 Host 已实现，需要实际探测；正式发布组合仍待后续更新。
+
+
 ### 普通表面和 panel-canvas
 
 普通表面设置 `.flags = 0`。需要直接操作像素时：
@@ -763,6 +782,8 @@ void aster_ge_grad(aster_ge_t *g, int32_t x, int32_t y, uint32_t w, uint32_t h, 
 int32_t aster_ge_text(aster_ge_t *g, int32_t x, int32_t baseline_y, uint32_t px, uint16_t fg, uint16_t bg, const char *utf8);
 void aster_ge_bmp(aster_ge_t *g, uint32_t handle, uint32_t sw, uint32_t sh, int32_t x, int32_t y, uint16_t scale256, uint16_t alpha);
 int32_t aster_ge_present(aster_ge_t *g);
+int32_t aster_ge_begin_frame(aster_ge_t *g);
+int32_t aster_ge_cancel_frame(aster_ge_t *g);
 uint32_t aster_ge_default_ring(aster_gfx_cmd_t **ring, uint8_t **arena);
 ```
 

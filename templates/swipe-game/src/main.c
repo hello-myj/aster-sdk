@@ -163,7 +163,10 @@ static void render(void)
         centred(top+40,1,MUTED,mode==0?"COLOUR THE SILVER TRAY":mode==2?"ONE MORE ROUND":"TAKE YOUR TIME");
         centred(top+63,2,face[0],mode==2?"TAP RETRY":mode==3?"TAP RESUME":"TAP PLAY");
     }
-    (void)aster_ge_present(&ge);dirty=0;last_redraw=aster_time_now_ms();
+    int32_t result=aster_ge_present(&ge);
+    dirty=result<0;
+    if(result<0) aster_logf(ASTER_LOG_WARN,"frame submit failed: %d",(int)result);
+    last_redraw=aster_time_now_ms();
 }
 ASTER_APP_EXPORT int aster_app_init(void)
 {

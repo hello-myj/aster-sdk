@@ -16,8 +16,18 @@
  *   ...                                            // any # of commands
  *   aster_ge_present(&ge);                           // exec + dirty push
  *
- * Ring-full mid-frame auto-spills (partial present keeps frame coherence);
+ * Explicit begin_frame makes spills private until present/END; use engine
+ * commands only inside it (Guest pixel loops/flush are outside this protocol).
+ * Legacy ring-full mid-frame auto-spills; ordinary surfaces retain pixels, but
+ * panel canvases require a full frame to fit without a spill.
  * the buffer is scratch and resets on every present.
+ *
+ * Space is reserved JOINTLY (one command slot AND the payload bytes it
+ * points at) before anything is written, and a submit that cannot fit even
+ * after a spill records a sticky error instead of queueing a command whose
+ * payload is gone. Check `aster_ge_present()`'s return, or `aster_ge_error()`
+ * after void encoders: a failed frame stops further submissions; earlier spills cannot be undone, and
+ * animation state must not advance as if it had been.
  */
 #ifndef ASTER_GFX_ENGINE_H
 #define ASTER_GFX_ENGINE_H
@@ -26,6 +36,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <aster/error.h>
 #include <aster/gfx.h>
 #include "aster_gfx.h"
 /* For the face metrics behind aster_ge_text's dirty box. aster_text.h is built on
@@ -51,6 +62,12 @@ typedef struct {
 	uint32_t arena_cap, arena_used;
 	uint32_t dx0, dy0, dx1, dy1;	/* accumulated bounds */
 	bool dirty;
+	uint32_t frame_id; /* Nonzero only between explicit begin/present or cancel. */
+	uint32_t submit_calls; /* Actual ABI invocations, including auto-spills. */
+	/* Sticky first error: a failed reservation, or the first failing
+	 * submit. Later successes must not mask it -- the app learns about
+	 * it at aster_ge_present(), which clears it once reported. */
+	int32_t err;
 } aster_ge_t;
 
 static inline void aster_ge_init(aster_ge_t *g, aster_handle_t surf, uint32_t w,
@@ -65,6 +82,43 @@ static inline void aster_ge_init(aster_ge_t *g, aster_handle_t surf, uint32_t w,
 	g->ring_n = ring_n;
 	g->arena = arena;
 	g->arena_cap = arena_cap;
+}
+
+/* Inspect the sticky encoder error without submitting or clearing it. A void
+ * encoder that could not reserve space sets this instead of queueing a
+ * command the firmware would misread. */
+static inline int32_t aster_ge_error(aster_ge_t *g)
+{
+	return g->err;
+}
+
+/* Optional frame transactions: no new WASM imports, so an APP still loads
+ * on old hosts. BEGIN explicitly probes; ENOTSUP means keep the legacy path
+ * only if the APP accepts partial publication. Never silently downgrade. */
+static inline int32_t aster_ge_frame_control(aster_ge_t *g,uint32_t action)
+{
+ aster_gfx_frame_control_t control={sizeof(control),1,action,
+  action==ASTER_GFX_FRAME_BEGIN||action==ASTER_GFX_FRAME_QUERY ? 0 : g->frame_id,0,0};
+ g->submit_calls++;
+ int32_t r=aster_gfx_exec(g->surf,0,ASTER_GFX_FRAME_CONTROL,(const uint8_t *)&control,
+  sizeof(control),ASTER_GFX_FRAME_MAGIC,1,0,0);
+ if(r<0) return r;
+ if(action==ASTER_GFX_FRAME_QUERY) return control.flags&ASTER_GFX_FRAME_SUPPORTED ? 0 : ASTER_ENOTSUP;
+ if(action==ASTER_GFX_FRAME_BEGIN) {if(!control.frame_id) return ASTER_EABI;g->frame_id=control.frame_id;}
+ return 0;
+}
+static inline int32_t aster_ge_begin_frame(aster_ge_t *g)
+{
+ if(g->frame_id||g->n||g->arena_used||g->dirty||g->err) return ASTER_ESTATE;
+ int32_t r=aster_ge_frame_control(g,ASTER_GFX_FRAME_QUERY);
+ if(r==ASTER_EINVAL) return ASTER_ENOTSUP;
+ if(r<0) return r;
+ return aster_ge_frame_control(g,ASTER_GFX_FRAME_BEGIN);
+}
+static inline int32_t aster_ge_cancel_frame(aster_ge_t *g)
+{
+ int32_t r=g->frame_id ? aster_ge_frame_control(g,ASTER_GFX_FRAME_CANCEL) : ASTER_ESTATE;
+ g->frame_id=g->n=g->arena_used=0;g->dirty=false;g->err=0;return r;
 }
 
 /* Push the auto-dirty box through the engine as an explicit present rect
@@ -93,45 +147,112 @@ static inline int32_t aster_ge_touch(aster_ge_t *g, uint32_t x, uint32_t y,
 static inline int32_t aster_ge_exec(aster_ge_t *g, uint32_t px, uint32_t py,
 				  uint32_t pw, uint32_t ph)
 {
+	if (g->err < 0) {
+		return g->err;
+	}
+	if(g->frame_id) {px=g->frame_id;py=ASTER_GFX_FRAME_MAGIC;pw=ph=0;}
+	g->submit_calls++;
+	/* n may be 0 with a dirty box from aster_ge_touch(): the hand-painted
+	 * flush path pushes that rect through the same call, so never skip
+	 * the submit on an empty ring. */
 	int32_t r = aster_gfx_exec(g->surf, g->ring, g->n, g->arena,
 				 g->arena_used, px, py, pw, ph);
 
+	/* The ring and arena are scratch: they reset whether or not the
+	 * submit worked, so a failed batch is dropped rather than replayed
+	 * into the next frame. A submit failure is the first thing that
+	 * becomes sticky. Earlier auto-spills may already have been displayed. */
 	g->n = 0;
 	g->arena_used = 0;
 	g->dirty = false;
+	if (r < 0 && g->err == 0) {
+		g->err = r;
+	}
 	return r;
 }
 
-static inline aster_gfx_cmd_t *aster_ge_room(aster_ge_t *g)
+/* Joint reservation: ONE decision covers the command slot and the `bytes` of
+ * arena the command will point at. Doing it in two places (the old shape:
+ * copy the text into the arena, then ask for a slot) cannot be made correct
+ * by reordering, because both halves auto-submit -- spilling to make room for
+ * the slot drops the arena bytes that the already-copied text lives in, and
+ * the queued command then refers to a payload that is no longer being sent.
+ *
+ * Returns a writable command slot, or NULL with g->err set when even a full
+ * submit-and-retry cannot fit. Remaining space is measured by subtraction so
+ * `arena_used + len` can never wrap. */
+static inline aster_gfx_cmd_t *aster_ge_reserve(aster_ge_t *g, uint32_t bytes)
 {
-	if (g->n == g->ring_n) {
-		/* spill: push what accumulated so far, keep frame coherence */
-		aster_ge_exec(g, 0, 0, 0, 0);
+	if (g->err < 0) {
+		return NULL;
+	}
+	if (!g->ring || g->ring_n == 0u || g->arena_used > g->arena_cap || (bytes && !g->arena)) {
+		if (g->err == 0) {
+			g->err = ASTER_EINVAL;
+		}
+		return NULL;
+	}
+	/* A payload larger than the whole arena can never be sent. */
+	if (bytes > g->arena_cap) {
+		if (g->err == 0) {
+			g->err = ASTER_EINVAL;
+		}
+		return NULL;
+	}
+	if (g->n < g->ring_n && g->n < 4096u && bytes <= g->arena_cap - g->arena_used) {
+		return &g->ring[g->n++];
+	}
+	/* Spill the current batch. This publishes immediately; it is not a
+	 * frame transaction and cannot roll back earlier successful batches. */
+	if (g->n) {
+		if (aster_ge_exec(g, 0, 0, 0, 0) < 0) {
+			return NULL;
+		}
+	}
+	if (g->n >= g->ring_n || g->n >= 4096u || bytes > g->arena_cap - g->arena_used) {
+		if (g->err == 0) {
+			g->err = ASTER_ENOMEM;
+		}
+		return NULL;
 	}
 	return &g->ring[g->n++];
 }
 
-static inline uint32_t aster_ge_arena(aster_ge_t *g, const void *p, uint32_t len)
+/* Reserved slot for a command with no payload: the old aster_ge_room(), but
+ * with the ring bound checked instead of assumed, and no silent overflow. */
+static inline aster_gfx_cmd_t *aster_ge_room(aster_ge_t *g)
 {
-	if (g->arena_used + len > g->arena_cap) {
-		aster_ge_exec(g, 0, 0, 0, 0);
-		if (len > g->arena_cap) {
-			return 0xFFFFFFFFu;	/* too big for the arena */
-		}
-	}
+	return aster_ge_reserve(g, 0u);
+}
+
+/* Copy `len` payload bytes into the arena. Caller must hold a slot from
+ * aster_ge_reserve(g, len) -- this never submits, so the offset it returns is
+ * guaranteed to stay inside the same batch as the command that uses it. */
+static inline uint32_t aster_ge_arena_put(aster_ge_t *g, const void *p, uint32_t len)
+{
 	uint32_t off = g->arena_used;
 
-	memcpy(g->arena + off, p, len);
-	g->arena_used += len;
+	if (len) {
+		memcpy(g->arena + off, p, len);
+		g->arena_used = off + len;
+	}
 	return off;
 }
 
-/* ---- encoders (each <= a few stores; no firmware round-trip) ---- */
+/* ---- encoders (each <= a few stores; no firmware round-trip) ----
+ *
+ * A NULL slot means the reservation failed: the encoder writes nothing (an
+ * uninitialised ring slot must never reach the rasterizer) and leaves the
+ * error on g->err. void encoders report it through aster_ge_error() or the
+ * next aster_ge_present(). */
 
 static inline void aster_ge_clear(aster_ge_t *g, uint16_t color)
 {
 	aster_gfx_cmd_t *c = aster_ge_room(g);
 
+	if (!c) {
+		return;
+	}
 	c->w[0] = ASTER_GFX_CLEAR;
 	c->w[1] = color;
 	aster_ge_touch(g, 0, 0, g->w, g->h);
@@ -142,6 +263,9 @@ static inline void aster_ge_rect(aster_ge_t *g, int32_t x, int32_t y, uint32_t w
 {
 	aster_gfx_cmd_t *c = aster_ge_room(g);
 
+	if (!c) {
+		return;
+	}
 	c->w[0] = ASTER_GFX_RECT_F;
 	c->w[1] = ASTER_GFX_PACK((uint16_t)x, (uint16_t)y);
 	c->w[2] = ASTER_GFX_PACK(w, h);
@@ -157,6 +281,9 @@ static inline void aster_ge_rect_r(aster_ge_t *g, int32_t x, int32_t y, uint32_t
 {
 	aster_gfx_cmd_t *c = aster_ge_room(g);
 
+	if (!c) {
+		return;
+	}
 	c->w[0] = ASTER_GFX_RECT_S;
 	c->w[1] = ASTER_GFX_PACK((uint16_t)x, (uint16_t)y);
 	c->w[2] = ASTER_GFX_PACK(w, h);
@@ -171,6 +298,9 @@ static inline void aster_ge_line_aa(aster_ge_t *g, int32_t x0, int32_t y0,
 {
 	aster_gfx_cmd_t *c = aster_ge_room(g);
 
+	if (!c) {
+		return;
+	}
 	c->w[0] = ASTER_GFX_LINE_AA;
 	c->w[1] = ASTER_GFX_PACK((uint16_t)x0, (uint16_t)y0);
 	c->w[2] = ASTER_GFX_PACK((uint16_t)x1, (uint16_t)y1);
@@ -192,6 +322,9 @@ static inline void aster_ge_ellipse(aster_ge_t *g, int32_t cx, int32_t cy,
 {
 	aster_gfx_cmd_t *c = aster_ge_room(g);
 
+	if (!c) {
+		return;
+	}
 	c->w[0] = ASTER_GFX_ELLIPSE;
 	c->w[1] = ASTER_GFX_PACK((uint16_t)cx, (uint16_t)cy);
 	c->w[2] = ASTER_GFX_PACK(rx, ry);
@@ -205,12 +338,16 @@ static inline void aster_ge_tri(aster_ge_t *g, int32_t x0, int32_t y0, int32_t x
 			      int32_t y1, int32_t x2, int32_t y2,
 			      uint16_t color)
 {
+	int32_t mx, my, xx, yy;
 	aster_gfx_cmd_t *c = aster_ge_room(g);
-	int32_t mx = x0 < x1 ? (x0 < x2 ? x0 : x2) : (x1 < x2 ? x1 : x2);
-	int32_t my = y0 < y1 ? (y0 < y2 ? y0 : y2) : (y1 < y2 ? y1 : y2);
-	int32_t xx = x0 > x1 ? (x0 > x2 ? x0 : x2) : (x1 > x2 ? x1 : x2);
-	int32_t yy = y0 > y1 ? (y0 > y2 ? y0 : y2) : (y1 > y2 ? y1 : y2);
 
+	if (!c) {
+		return;
+	}
+	mx = x0 < x1 ? (x0 < x2 ? x0 : x2) : (x1 < x2 ? x1 : x2);
+	my = y0 < y1 ? (y0 < y2 ? y0 : y2) : (y1 < y2 ? y1 : y2);
+	xx = x0 > x1 ? (x0 > x2 ? x0 : x2) : (x1 > x2 ? x1 : x2);
+	yy = y0 > y1 ? (y0 > y2 ? y0 : y2) : (y1 > y2 ? y1 : y2);
 	c->w[0] = ASTER_GFX_TRI;
 	c->w[1] = ASTER_GFX_PACK((uint16_t)x0, (uint16_t)y0);
 	c->w[2] = ASTER_GFX_PACK((uint16_t)x1, (uint16_t)y1);
@@ -226,6 +363,9 @@ static inline void aster_ge_grad(aster_ge_t *g, int32_t x, int32_t y, uint32_t w
 {
 	aster_gfx_cmd_t *c = aster_ge_room(g);
 
+	if (!c) {
+		return;
+	}
 	c->w[0] = ASTER_GFX_GRAD;
 	c->w[1] = ASTER_GFX_PACK((uint16_t)x, (uint16_t)y);
 	c->w[2] = ASTER_GFX_PACK(w, h);
@@ -238,17 +378,38 @@ static inline void aster_ge_grad(aster_ge_t *g, int32_t x, int32_t y, uint32_t w
 
 /* baseline text. bg != 0xFFFF paints an RGB565 backdrop behind glyphs. */
 #define ASTER_GFX_NOBG 0xFFFFu
+/*
+ * Reservation order matters: reserve the slot AND the len payload bytes
+ * together BEFORE copying anything, then write. The old shape copied the
+ * text first (aster_ge_arena could auto-submit and zero arena_used) and only
+ * then asked for a slot (aster_ge_room could auto-submit too), so a queued
+ * TEXT could point at arena bytes that had already been flushed away -- and
+ * the firmware silently drops such an out-of-range text reference, losing
+ * the word with no error. */
 static inline int32_t aster_ge_text(aster_ge_t *g, int32_t x, int32_t baseline_y,
 				  uint32_t px, uint16_t fg, uint16_t bg,
 				  const char *utf8)
 {
-	uint32_t len = (uint32_t)strlen(utf8);
-	uint32_t off = aster_ge_arena(g, utf8, len);
-
-	if (off == 0xFFFFFFFFu) {
+	if (!utf8) {
+		if (g->err == 0) {
+			g->err = ASTER_EINVAL;
+		}
 		return ASTER_EINVAL;
 	}
-	aster_gfx_cmd_t *c = aster_ge_room(g);
+	size_t length = strlen(utf8);
+	if (length > UINT16_MAX) {
+		if (!g->err) g->err = ASTER_EINVAL;
+		return g->err;
+	}
+	if (!length) return g->err;
+	uint32_t len = (uint32_t)length;
+	aster_gfx_cmd_t *c = aster_ge_reserve(g, len);
+
+	if (!c) {
+		/* g->err set: nothing copied, nothing queued, no half command. */
+		return g->err;
+	}
+	uint32_t off = aster_ge_arena_put(g, utf8, len);
 
 	c->w[0] = ASTER_GFX_TEXT;
 	c->w[1] = ASTER_GFX_PACK((uint16_t)x, (uint16_t)baseline_y);
@@ -285,6 +446,9 @@ static inline void aster_ge_bmp(aster_ge_t *g, uint32_t handle, uint32_t sw,
 	aster_gfx_cmd_t *c = aster_ge_room(g);
 	uint32_t op = ASTER_GFX_BMP;
 
+	if (!c) {
+		return;
+	}
 	if (scale256 != 256u && alpha != 255u) {
 		op = ASTER_GFX_BMP_SA;
 	} else if (alpha != 255u) {
@@ -308,11 +472,39 @@ static inline void aster_ge_bmp(aster_ge_t *g, uint32_t handle, uint32_t sw,
 	}
 }
 
-/* Submit + push accumulated dirty region (the common frame end). */
+/* Submit + push accumulated dirty region (the common frame end).
+ *
+ * Return value: the number of commands in the last successful submit (>= 0),
+ * or a negative error. A negative value means the frame was NOT fully
+ * published -- either a submit failed, or a void encoder could not reserve
+ * space earlier this frame (aster_ge_reserve cleared the pending command
+ * rather than queueing a dangling one). An app must not advance animation
+ * state on a negative return. The sticky error is consumed at frame end; aster_ge_error() only inspects it.
+ * Pending commands are discarded after an encoding failure. Earlier legacy spills
+ * cannot be rolled back. Explicit begin_frame uses private host staging until END. */
 static inline int32_t aster_ge_present(aster_ge_t *g)
 {
+ if(g->frame_id) {
+  int32_t r=g->err;
+  if(r>=0 && (g->n||g->dirty)) r=aster_ge_exec(g,0,0,0,0);
+  if(r<0) {aster_ge_cancel_frame(g);return r;}
+  r=aster_ge_frame_control(g,ASTER_GFX_FRAME_END);
+  g->frame_id=g->n=g->arena_used=0;g->dirty=false;g->err=0;
+  return r;
+ }
+
+	if (g->err < 0) {
+		int32_t error = g->err;
+		g->n = g->arena_used = 0;
+		g->dirty = false;
+		g->err = 0;
+		return error;
+	}
 	if (!g->dirty && g->n == 0) {
-		return 0;
+		int32_t e = g->err;
+
+		g->err = 0;
+		return e;
 	}
 	uint32_t x0 = g->dirty ? g->dx0 : 0, y0 = g->dirty ? g->dy0 : 0;
 	uint32_t x1 = g->dirty ? g->dx1 : g->w, y1 = g->dirty ? g->dy1 : g->h;
@@ -328,7 +520,17 @@ static inline int32_t aster_ge_present(aster_ge_t *g)
 		x1 = g->w;
 		y1 = g->h;
 	}
-	return aster_ge_exec(g, x0, y0, x1 - x0, y1 - y0);
+	int32_t r = aster_ge_exec(g, x0, y0, x1 - x0, y1 - y0);
+	int32_t e = g->err;
+
+	g->err = 0;
+	if (r < 0) {
+		return r;
+	}
+	if (e < 0) {
+		return e;
+	}
+	return r;
 }
 
 /* Convenience ring storage for one 240x320 game surface. */
