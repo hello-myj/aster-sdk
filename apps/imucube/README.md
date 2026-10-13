@@ -11,11 +11,11 @@
 激活 SDK 环境后，在该目录运行：
 
 ```text
-aster build --target lckfb-s3
-aster run --target lckfb-s3
+aster build --target xtensa
+aster run --target xtensa --port SERIAL_PORT
 ```
 
-也可从任意目录执行 `aster build /absolute/path/to/aster-sdk/apps/imucube --target lckfb-s3`。包为本工程的 `dist/lckfb-s3/aster.imucube.ast`。需要运行 ABI 3.7 或更新兼容固件。
+也可从任意目录执行 `aster build /absolute/path/to/aster-sdk/apps/imucube --target xtensa`。包为本工程的 `dist/xtensa/aster.imucube.ast`。需要运行 ABI 3.7 或更新兼容固件，并实际启用 accelerometer 与 gyroscope 能力。`SERIAL_PORT` 替换为设备实际串口；当前微雪默认固件未启用 IMU，此 APP 会因缺少能力被拒绝安装或启动。
 
 实现包括同步 IMU 采样、无 math 库依赖的四元数互补滤波、彩色面透视投影、完整帧重绘、触摸归零和校准、低频诊断日志。开发接口和辅助库的参数定义以 SDK 自包含开发手册为准。
 

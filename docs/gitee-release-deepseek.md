@@ -1,3 +1,4 @@
+<!-- aster-docs: historical -->
 > 此文是 2026-10-05 的历史发布交接记录，其中按开发板选择目标的命令和包清单已过期。当前使用 `--target xtensa`，发布步骤以 [发布指南](release.md) 为准；历史标签与产物记录保留。
 
 # 给 DeepSeek 的 Aster SDK Gitee Release 发布交接

@@ -7,6 +7,8 @@ abi_min = "3.0"
 optimize = "O0"
 icon     = "icon.bin"
 category = "system"
-initial_memory = 262144
-max_memory     = 262144
+# The full 320x480 RGB565 surface must fit before the intended Trap.
+initial_memory = 524288
+max_memory     = 1048576
+heap = 524288
 requires   = ["display"]

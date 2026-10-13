@@ -37,15 +37,23 @@ def open_serial(port, **kwargs):
     from serial.tools import list_ports
     bridge = next((p for p in list_ports.comports() if p.device == port), None)
     connection = serial.Serial(port=None, baudrate=115200, **kwargs)
-    # CH340 and Espressif Serial/JTAG open with both lines asserted by the OS.
-    # Changing them sequentially can briefly form the ESP32 reset sequence.
-    # Preserve that pair; verified by repeated opens on LCKFB and Waveshare.
+    # Match the asserted pair established by these drivers on open; changing
+    # one line alone transiently requests a reset. POSIX native USB also
+    # disables HUPCL below so close does not drop this stable pair.
     asserted = bridge is not None and (bridge.vid == 0x1a86 or
                                        (bridge.vid, bridge.pid) == (0x303a, 0x1001))
     connection.dtr = asserted
     connection.rts = asserted
     connection.port = port
     connection.open()
+    # Linux CDC-ACM otherwise drops modem lines on the final close. On the
+    # ESP32 native USB Serial/JTAG bridge that can trigger a USB-UART reset,
+    # including during post-reboot recovery. Keep explicit SDK line states.
+    if os.name == "posix" and bridge is not None and (bridge.vid, bridge.pid) == (0x303a, 0x1001) and callable(getattr(connection, "fileno", None)):
+        import termios
+        attributes = termios.tcgetattr(connection.fileno())
+        attributes[2] &= ~termios.HUPCL
+        termios.tcsetattr(connection.fileno(), termios.TCSANOW, attributes)
     return connection
 
 

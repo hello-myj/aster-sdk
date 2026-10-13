@@ -151,7 +151,7 @@ class Deployment(unittest.TestCase):
                 if success:
                     self.assertEqual(deploy.main(args), 0)
                 else:
-                    with self.assertRaisesRegex(RuntimeError, "did not confirm"):
+                    with self.assertRaisesRegex(RuntimeError, "APP installation failed" if "install failed:" in response else "did not confirm"):
                         deploy.main(args)
 
     def test_failed_transfer_cannot_install_stale_package(self):

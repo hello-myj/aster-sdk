@@ -64,15 +64,15 @@ Linux 包生成前会用包内工具为每个已登记 CPU 平台各建一个独
 .\runtime\python.exe .\tools\verify_windows_release.py .
 ```
 
-## Gitee 发布与下载
+## GitHub 发布与下载
 
-当前源码仓库为 `https://gitee.com/helloworldmyj/aster-sdk`。先提交并推送源码，再创建 `sdk-v*` 标签，在仓库的发行版页面使用该标签创建版本。把生成的 Windows ZIP、Linux tar.gz 和 SHA256 校验文件作为附件上传。固定 Windows 编译器 ZIP 也需要在发行版或制品库提供下载，以便新 Ubuntu 发布机器取得依赖；克隆 Git 仓库本身不会获得这个 ZIP。
+当前源码仓库为 `https://github.com/hello-myj/aster-sdk`，Git 仅保留 GitHub 远程。先提交并推送源码，再创建 `sdk-v*` 标签，在仓库的发行版页面使用该标签创建版本。把生成的 Windows ZIP、Linux tar.gz 和 SHA256 校验文件作为附件上传。固定 Windows 编译器 ZIP 也需要在发行版或制品库提供下载，以便新 Ubuntu 发布机器取得依赖；克隆 Git 仓库本身不会获得这个 ZIP。
 
 应用开发者从发行版下载与电脑平台匹配的 SDK 成品（每个主机平台一个包，内含已登记 CPU 平台），完整解压后运行 `aster install` 生成环境脚本。Windows 成品自带 Python；Linux 成品需要 Python 3.12。无需克隆 SDK 源码或自行编译工具链。接口更新后下载新 SDK、重新激活环境并重编应用，设备固件应与该 SDK 的 CPU 平台和 ABI 匹配。
 
 ## GitHub CI 与后续架构
 
-`.github/workflows/portable-sdk.yml` 仅在 GitHub 执行，推送到 Gitee 不会触发。该流程在 Ubuntu 完成两个平台的打包。Windows runner 只下载成品、验证 EXE 和 AOT 构建，不克隆源码、不再打包。测试通过后，`sdk-v*` 标签才发布 GitHub Release；普通提交只生成可下载的 CI 制品。
+`.github/workflows/portable-sdk.yml` 在 GitHub 执行。该流程在 Ubuntu 完成两个平台的打包。Windows runner 只下载成品、验证 EXE 和 AOT 构建，不克隆源码、不再打包。测试通过后，`sdk-v*` 标签才发布 GitHub Release；普通提交只生成可下载的 CI 制品。
 
 使用 GitHub 自动发布时，先把固定 Windows 编译器 ZIP 上传到可访问的制品库，再配置仓库变量 `ASTER_WINDOWS_TOOLCHAIN_URL`、`ASTER_WINDOWS_TOOLCHAIN_SHA256`。旧 Windows 单文件打包流程保留为手动兼容入口。
 
@@ -104,3 +104,13 @@ SDK 文档、CI 和契约导入工具已统一为 CPU 平台目标。发布新�
 ## 真实设备执行策略（2026-10-11）
 
 Zephyr 设备固件只运行匹配 CPU 的 AOT，构建中关闭 WASM 解释器。安装拒绝没有 AOT 或 CPU 不匹配的包，加载错误直接报错并保留原 AOT 文件。模拟器/主机测试可以使用 WASM；`.ast` 仍可同时包含 WASM 和 AOT，公开 ABI 3.7.0 与包格式不变。旧的 WASM-only APP 需要使用 `aot = true` 或 `aster build --aot` 重建后安装，原来已经包含兼容 AOT 的包不需要为策略调整重编。
+
+## 操作文档发布门禁
+
+发布前执行 `python tools/check_docs.py`。便携打包入口也自动检查 README、开发手册、CLI 文档、Skill 和示例说明中的 CPU 目标参数、输出目录及当前 ABI 声明；过期板卡目标或 ABI 会阻止生成发布包。历史交接记录必须在首行标记 `<!-- aster-docs: historical -->`，下一行明确说明是历史记录并指向本发布指南。历史 ABI 变更说明不属于当前 ABI 声明。
+
+固件仓库独立运行同名检查，对照其公开 ABI 头文件与 `hardware/` 清单检查架构文档及板级部署命令，契约导出前自动执行；SDK 发布不依赖固件源码路径。修改公开 ABI、CPU 目标或硬件清单时，两仓库均须更新相应操作文档并通过检查。
+
+## 三仓库候选组合检查
+
+正式候选在固件仓库执行 `python tools/release_check.py --sdk ../aster-sdk --sim ../aster-sim --require-clean --output build/release-check`，并等待三仓库集成及两块板完整构建通过。固定提交和工具链 profile 在固件 `contract/release-matrix.json`；报告和必需 APP 制品必须保留。详见 [固件发布验证](https://github.com/hello-myj/aster-firmware/blob/main/docs/release-validation.md)。此命令由固件工具提供，不是 SDK 的 APP CLI，也不会自动发布或刷机。

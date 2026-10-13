@@ -15,3 +15,8 @@ icon     = "icon.bin"
 category = "system"
 requires = ["filesystem"]
 permissions = ["fs", "kv", "appmgr"]
+
+# Full-panel RGB565/BGR565 probes need 307200 bytes at 320x480.
+initial_memory = 524288
+max_memory = 2097152
+heap = 524288

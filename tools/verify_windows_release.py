@@ -6,9 +6,11 @@ import sys
 import tempfile
 from pathlib import Path
 from release_identity import identity
+from check_docs import check as check_docs
 
 
 def verify(directory):
+    check_docs(directory)
     root = Path(__file__).resolve().parents[1]
     expected = identity()
     for line in (directory/'SHA256SUMS.txt').read_text(encoding='utf-8').splitlines():

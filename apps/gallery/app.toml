@@ -9,9 +9,11 @@ optimize = "Os"
 aot     = true
 icon     = "icon.bin"
 category = "tool"
-# linear memory must hold a full 240x320 RGB565 surface (~150 KB) + name
-# table (~6 KB) + gfx scratch + wasm heap overhead.
-initial_memory = 262144
+# A 320x480 RGB565 surface needs 307200 bytes, plus names and scratch.
+# This also covers the smaller 240x320 LCKFB panel.
+initial_memory = 524288
+max_memory = 1048576
+heap = 524288
 stack   = 16384
 requires = ["display", "touch", "filesystem"]
 permissions = ["fs", "sd"]

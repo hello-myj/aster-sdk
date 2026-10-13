@@ -85,3 +85,5 @@ aster shell --console COM24 aster sys info
 - 早期双串口固件：COM22 数据口 / COM24 控制台完成 APP 传输和启动。
 - 2026-10-05 LCKFB 新固件：同一个 `/dev/ttyUSB0` 完成上传、安装、启动、shell 和截图；错误 CRC 拒绝及断点续传通过。微雪共享 USB 模式使用同一接口。
 - SDK 回归测试按平台目标 `xtensa` 构建，不再按开发板拆分用例。
+
+创建独立工程、构建、校验、模拟及真机部署的可执行流程见 [快速入门](https://github.com/hello-myj/aster-firmware/blob/main/docs/quickstart.md)。当前三仓库版本组合由固件候选发布检查固定；模拟器按 WASM 执行，设备要求匹配 CPU 的 AOT。

@@ -36,6 +36,24 @@ class SharedSerial(unittest.TestCase):
                 self.assertEqual(device.options, {'port': None, 'baudrate': 115200,
                                                  'timeout': .2, 'write_timeout': 3})
 
+    def test_native_posix_disables_hangup_control_line_pulse(self):
+        import os, termios
+        if os.name != 'posix':
+            self.skipTest('POSIX terminal flag')
+        class Device:
+            def __init__(self, **kwargs): pass
+            def open(self): pass
+            def fileno(self): return 123
+        port = SimpleNamespace(device='TEST', vid=0x303a, pid=0x1001)
+        attrs = [0, 0, termios.HUPCL | termios.CLOCAL, 0, 0, 0, []]
+        with patch('serial.tools.list_ports.comports', return_value=[port]), \
+             patch.object(aster_send.serial, 'Serial', Device), \
+             patch('termios.tcgetattr', return_value=attrs), \
+             patch('termios.tcsetattr') as update:
+            aster_send.open_serial('TEST')
+        self.assertFalse(update.call_args.args[2][2] & termios.HUPCL)
+        self.assertTrue(update.call_args.args[2][2] & termios.CLOCAL)
+
     def test_log_and_ansi_do_not_hide_ack(self):
         stream = Stream(b'\x1b[1;32master:~$ ASTERPUT\n'
                         b'[00:00:01] <inf> audio: OK ready\n'

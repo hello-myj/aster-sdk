@@ -12,6 +12,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 from release_identity import source_identity
+from check_docs import check as check_docs
 from toolchain_catalog import select, check_wamrc
 from import_contract import import_bundle
 from toolchain_bundle import load as load_toolchain_bundle
@@ -253,6 +254,7 @@ def linux_package(out, cache, args, plan):
 
 
 def package(platform, args):
+    check_docs(ROOT)
     cache = args.cache.resolve(); cache.mkdir(parents=True, exist_ok=True)
     identity = source_identity(ROOT)
     plan = toolchain_plan(args.boards, platform+'-x64')

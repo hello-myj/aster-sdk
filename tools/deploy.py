@@ -35,6 +35,23 @@ def shell_command(port, command, timeout=45, connection=None):
     raise RuntimeError("device shell timed out waiting for command echo: " + command)
 
 
+def installation_error(response):
+    """Keep the actual command error and installer stage, never unrelated logs."""
+    failures = re.findall(r"(?m)^\s*install failed:\s*([^\r\n]+)", response)
+    details = re.findall(r"(?m)^.*install: stage=[^\r\n]+", response)
+    if failures:
+        reason = "APP installation failed: " + failures[-1].strip()
+    else:
+        reason = "device did not confirm installation (missing installed OK acknowledgement)"
+    if details:
+        reason += "\n" + "\n".join(line.strip() for line in details[-3:])
+    if failures and re.match(r"-7(?:\s|$)", failures[-1]):
+        reason += "\nCheck SD mounting, free space and write access; retry installation after correcting storage."
+    if failures and re.match(r"-5(?:\s|$)", failures[-1]):
+        reason += "\nReturn to the launcher and stop any running or paused APP before installing."
+    return reason
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("package", type=Path)
@@ -64,7 +81,7 @@ def main(argv=None):
         # Background services may report failures during a successful install.
         # Match the shell command's acknowledgement, not unrelated log wording.
         if not re.search(r"(?m)^\s*installed OK\s*$", response):
-            raise RuntimeError("device did not confirm installation")
+            raise RuntimeError(installation_error(response))
         if args.run:
             response = shell_command(console, "aster app start " + manifest["id"], connection=connection)
             print(response)
