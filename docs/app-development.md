@@ -21,6 +21,7 @@
 - [11. SDK C 辅助库参考](#11-sdk-c-辅助库参考)
 - [12. 完整公开 ABI 参考](#12-完整公开-abi-参考)
 - [13. Scene、布局与控件（G7）](#13-scene布局与控件g7)
+- [14. 字体与图片质量（G8）](#14-字体与图片质量g8)
 
 ## 1. 给 AI 的开发约定
 
@@ -832,7 +833,7 @@ uint32_t aster_text_line(uint32_t px, const char *src, uint32_t len, int32_t max
 int32_t aster_text_elide(uint32_t px, const char *src, uint32_t len, int32_t maxw, char *dst, uint32_t dst_max);
 ```
 
-参数语义补充：rect_r 的 radius 为圆角半径，outline=0 填充、1 轮廓；ellipse 的 stroke=0 填充、1 轮廓；grad 的 horizontal=0 竖向、1 横向。text 的 bg 使用 `ASTER_GFX_NOBG` 表示透明背景；bmp 的 scale 使用 8 位小数，256 为 1 倍，有效范围 1–4095，alpha 0–255。
+参数语义补充：rect_r 的 radius 为圆角半径，outline=0 填充、1 轮廓；ellipse 的 stroke=0 填充、1 轮廓；grad 的 horizontal=0 竖向、1 横向。text 的 bg 使用 `ASTER_GFX_NOBG` 表示透明背景；bmp 的 scale 使用 8 位小数，256 为 1 倍，有效范围 8–4095，alpha 0–255。
 
 `aster_ge_touch` 添加脏矩形；exec 指定提交区域，present 使用自动累计区域。`aster_ge_default_ring` 提供 SDK 共享静态默认缓存（96 命令、768 字节 arena），多个绘图上下文应各自分配，推荐第 4 节写法。
 
@@ -1707,7 +1708,7 @@ int32_t aster_scene_bounds(const aster_scene_t *s,aster_node_id_t id,aster_box_t
 - `set_image` 使用已有 BMP handle，scale256 范围 8…4095，256=1倍。opacity 为 0…255，仅 IMAGE 支持中间值，其他类型只支持 0/255。0 或隐藏节点不参与布局和绘制；普通 surface 会恢复旧背景。容器中间透明度返回 ENOTSUP，不实现组透明度。
 - 同级 z 小的先绘制，z 相同按创建 ID；容器子树整体位于该容器的同级绘制位置。布局顺序始终按创建 ID，与 z 无关。
 - 文本原生字号经 `aster_text_snap` 选取；单行在 box 内垂直居中，text_align=0左/1中/2右，超出 box 裁剪，不省略、不换行。文本、字号、box 尺寸或字体 epoch 改变失效测量；只平移文字或改文字颜色复用测量。几何布局仅在几何相关属性变化时重算。
-- poll 成功返回0无字体变化、1变化，负数失败；render 内也会 poll。字形异步就绪的 epoch 不依赖一次性的全局 repaint ACK，因此无关绘制不会吞掉重绘机会。
+- poll 成功返回0无字体变化、1变化，负数失败；render 内也会 poll。字体就绪的 epoch 不依赖一次性的全局 repaint ACK，因此无关绘制不会吞掉重绘机会。
 - hit_test 返回最后成功发布帧中最上面的 interactive 节点，未命中0；bounds 返回该帧被裁剪后的矩形。输入不会提前使用尚未成功提交的布局。
 
 ### 13.5 最小布局与控件 API
@@ -1740,3 +1741,41 @@ widgets 只消费原有 APP 坐标 TOUCH 事件，单指捕获，默认移动超
 事务 QUERY.flags 按位检查：SUPPORTED=1、CLIP_SUPPORTED=2、FONT_EPOCH_SUPPORTED=4。具有 FONT_EPOCH 时 QUERY.frame_id 为只读字体位图 generation；BEGIN.frame_id 仍为事务令牌。可选 SET_CLIP action=4 使用 32字节 `{size=32,version=1,action,frame_id,x,y,w,h}`，沿用现有 control 调用；只允许非空且位于 surface 内的矩形，失效时污染当前帧，BEGIN 重置全屏裁剪。PANEL_CANVAS 首先 full CLEAR 后才能缩小裁剪。普通 APP 使用 Scene 即可，不需要自己编码协议。
 
 源码测试覆盖旧/新区域恢复、alpha/裁剪、删除和 ID、失败帧原子性、字体 epoch、静态无提交、布局溢出恢复、按钮防误触；模拟器集成用真实构建 APP 覆盖 240×320、320×480。实体画面和触摸仍应按对应固件验收记录确认，不能将模拟器成功等同于实机成功。
+
+
+## 14. 字体与图片质量（G8）
+
+### 14.1 原生文字与背景
+
+保持设计已有的12/14/16等原生小字号。`aster_text_snap` 和实际字体度量来自配套契约；0选默认UI字体，不存在“超出4px改用运行时TTF”的后备。当前固件使用SD原生cpfont，图像不缩放，缺资源时应修复字体文件。位置和基线用整数像素，静止文字不要先画入小缓存再放大。Scene平移文字复用测量，文本/字号/尺寸/字体状态变化才失效。
+
+G8的APP/GFX与Pretty Poly使用相同RGB565混合：每个5/6位原生通道按 `(背景*(255-a)+前景*a+127)/255` 舍入一次。相同前景/背景在任何覆盖率下保持相同，结果不会越过两端颜色。保留cpfont的16级覆盖率；没有改成二值字形，也没有增加字号。配套系统资源的12px字库采用原生尺寸自动hinting，改善细笔画亮暗不均；其他字号资源保持原样，全部字宽、行高和基线不变。它修正量化偏差，不承诺增加屏幕物理分辨率。
+
+TEXT指定bg时，每个字形遮罩像素以所给bg为底混合，重复绘制不会继续混入旧颜色；NOBG仍与当前目标像素混合。bg不等于清除整行：更换长度不同的标签应先清除旧区域，或使用Scene恢复背景。避免在未恢复背景的同一位置反复以NOBG叠加同一抗锯齿字。
+
+当前SD字形读取/预热是同步的，无后台排队；冷字的SD开销会落在请求调用中。页面init期间可先用 `aster_gfx_text_w(px,text,len)` 测量将要显示的常用文本，随后复用结果；不要每帧重复测量、每次切换都预热整份字符表。返回/覆盖后按Scene恢复规则重绘。后台字体资源可用性变化仍由字体epoch通知。
+
+固件shell `aster sys fonts` 提供各字号缓存glyphs/bitmap/alloc，以及累计hits/misses/filled/evictions、SD reads/bytes、成功冷读load_us/max_load_us和warm_us/warm_calls。命中率以可加载字的缓存查询为口径，容量未变；这些是自启动累计的32位计数，做差时考虑回绕。load_us仅统计成功的同步冷加载，不是异步排队耗时；先记录前后快照，再分析命中率与预算。不要仅为降低一次冷启动时间扩大缓存。
+
+### 14.2 按实际尺寸生成素材
+
+优先从原图一次生成实际显示尺寸：像素画保留调色板和最近邻，照片/连续色图离线平滑缩小。不要把缩略图再次放大当原图使用。GFX运行时scale保持最近邻；需要平滑的小图，应先离线生成目标尺寸并以scale=256绘制。launcher的旋转/缩放卡片保留已有设计和插值；不为追求静止锐度删除动画。
+
+可选素材工具（独立Python环境即可，无需固件环境或芯片SDK）：
+
+```text
+python -m pip install -r /absolute/path/to/aster-sdk/requirements-assets.txt
+python /absolute/path/to/aster-sdk/tools/prepare_image.py original.png images/icon.bmp --width 32 --height 32 --kind pixel
+python /absolute/path/to/aster-sdk/tools/prepare_image.py original.jpg images/cover.png --width 160 --height 120 --kind photo
+python /absolute/path/to/aster-sdk/tools/prepare_image.py transparent.png images/badge.bmp --width 32 --height 32 --kind photo --background "#101820"
+```
+
+输出为保留宽高比后适配目标框的RGB图片，可能小于框尺寸；打印实际尺寸。默认拒绝放大，确有需求可加 `--allow-upscale`。不会覆盖原图。photo用Lanczos，透明图片先以预乘颜色重采样，再按显式背景合成，避免不可见RGB形成色边。普通APP构建和部署不依赖Pillow；便携SDK未增加图片处理EXE命令，只有可选脚本。
+
+该工具不引入图片独立alpha契约。GFX既有0x0000仍是透明键，真实黑色仍可能成为透明区域；PNG的alpha在固件解码时合成到黑色，也不会保留为独立alpha。需要独立alpha的launcher图标继续使用既有ASTI RGB565A8与 `icon_convert.py`；不要把为固定底色预合成的图标再放到任意底色上。具体资源路径及app.toml assets配置同第7节。
+
+### 14.3 模拟与真机验收
+
+模拟器BMP命令按固件相同的RGB565通道混合、色键、裁剪和精确最近邻采样；PNG独立alpha先合成到黑色，fit尺寸采用固件的四舍五入规则。固定原生RGB565图片及采样/混合参考可逐像素比较。运行时不同解码器缩小照片的滤波结果不保证一致，离线预处理到相同尺寸可以避免二次采样差异。
+
+文字的主机系统字体/光栅器与真机cpfont不同，不能用整页文字零像素差证明一致。检查字号选择、基线/边界和覆盖率混合分别通过；对固定同一A8遮罩可要求混合逐像素一致，不同光栅器的字形外观仍需要实体确认，不以任意放宽容差代替检查。G8具体验收状态见固件随源码的验证记录，不复用上一版本的实体结论。

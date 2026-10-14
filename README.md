@@ -111,3 +111,10 @@ orientation = "landscape" # 或 "portrait"；不设置时从竖屏启动
 ## 完整开发套件
 
 从 SDK Release 下载对应平台的完整包，即得到 APP SDK、两款板的固件镜像、SD 字体资源和便携模拟器。固定版本和校验值在包内 development-kit.json；使用与模拟边界见 [完整开发套件](docs/development-kit.md)。开发 APP 无需 Zephyr、ESP-IDF 或 Espressif 驱动库。
+
+
+## 原生字体与离线图片准备（G8）
+
+保持原字号与16级字形覆盖率，不通过放大小字或二值化提高所谓清晰度。G8 固件修正RGB565混合的亮边偏差，以及文字指定背景后仍混入旧画面的边缘；无新增import，已有APP无需重编。开发规则见手册第14节。
+
+`tools/prepare_image.py` 可从原图一次生成实际显示尺寸的RGB PNG/BMP：像素画选择 `--kind pixel`（最近邻），照片选择 `--kind photo`（Lanczos）。这是可选Python+Pillow素材工具，普通APP编译不依赖它；便携SDK的三个EXE没有新增图片处理子命令。透明素材需明确底色，launcher独立alpha图标继续使用ASTI RGB565A8。

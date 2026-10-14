@@ -1,0 +1,2 @@
+# Optional offline raster preparation only. APP builds do not need this package.
+Pillow==12.2.0
