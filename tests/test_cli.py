@@ -36,7 +36,7 @@ class CLI(unittest.TestCase):
         self.assertNotIn(str(self.root/'bin'),env)
 
     def test_scaffold_every_template_with_toml_escaped_name(self):
-        for template in ('hello', 'swipe-game'):
+        for template in ('hello', 'swipe-game', 'scene-list'):
             project = self.root / template
             self.invoke('init', project, '--template', template, '--name', '游戏 "A"\nB', '--id', 'test.' + template, '--target', 'xtensa')
             cfg = tomllib.loads((project / 'app.toml').read_text(encoding='utf-8'))
@@ -48,6 +48,24 @@ class CLI(unittest.TestCase):
             for asset in cfg['app'].get('assets', []):
                 self.assertTrue((project / asset).is_file())
             self.assertFalse((project / 'build.ps1').exists())
+
+    def test_scaffold_ignores_template_build_artifacts(self):
+        sdk = self.root / 'sdk'
+        (sdk / 'targets').mkdir(parents=True)
+        (sdk / 'targets/xtensa.json').write_text('{}')
+        template = sdk / 'templates/hello'
+        (template / 'dist/xtensa').mkdir(parents=True)
+        (template / 'build/xtensa').mkdir(parents=True)
+        (template / 'src').mkdir()
+        (template / 'app.toml').write_text('[app]\nid = "test.template"\nname = "Template"\n')
+        (template / 'src/main.c').write_text('int source;')
+        (template / 'dist/xtensa/old.ast').write_bytes(b'old')
+        project = self.root / 'clean-project'
+        with patch.object(aster, 'ROOT', sdk):
+            self.invoke('init', project, '--target', 'xtensa')
+        self.assertTrue((project / 'src/main.c').is_file())
+        self.assertFalse((project / 'dist').exists())
+        self.assertFalse((project / 'build').exists())
 
     def test_refuse_existing_project_without_overwriting(self):
         project = self.root / 'exists'

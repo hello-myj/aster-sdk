@@ -7,7 +7,7 @@ include/aster/       固定版本的公开接口副本
 contract/           API 描述、运行时版本、文件哈希锁
 targets/            CPU 平台目标：CPU/AOT、接口能力名称和部署协议
 lib/aster/          APP C runtime、日志、绘图和文字助手
-apps/               14 个示例，含 Star Catch 小游戏、国际象棋和不依赖显示的 hello
+apps/               示例应用，含 Star Catch 小游戏、国际象棋和不依赖显示的 hello
 toolchain/          Linux x86_64 工具链及 Windows 打包入口
 tools/              创建项目、构建、验证和 APP 部署
 tests/              契约、目标选择、能力、内存、设备身份和构建测试
@@ -51,7 +51,7 @@ aster build
 aster run --port /dev/ttyUSB0
 ```
 
-`hello` 是最小示例，`swipe-game` 提供滑动触摸控制和四种音效。CPU 平台写入项目 `app.toml`；`build` 的输出在项目的 `build/<target>/` 和 `dist/<target>/`。可通过 `--target` 临时选择 CPU 平台，`--no-aot` 仅用于模拟器/主机测试生成 WASM。真实设备只运行 AOT，缺少 AOT 或加载失败时会明确报错。AOT 后端由目标决定，缺少所需编译器时不会静默退回解释执行。
+`scene-list` 提供 Scene 滚动设置页（需要 G7 Host 可选能力，见手册第 13 节）。`hello` 是最小示例，`swipe-game` 提供滑动触摸控制和四种音效。CPU 平台写入项目 `app.toml`；`build` 的输出在项目的 `build/<target>/` 和 `dist/<target>/`。可通过 `--target` 临时选择 CPU 平台，`--no-aot` 仅用于模拟器/主机测试生成 WASM。真实设备只运行 AOT，缺少 AOT 或加载失败时会明确报错。AOT 后端由目标决定，缺少所需编译器时不会静默退回解释执行。
 
 原有 `python tools/aster.py new/build/verify/deploy` 仍可使用。批量编译 SDK 示例使用 `python tools/aster.py build --all --target xtensa --aot`。底层 `tools/build.py` 要求显式 CPU 平台或 `ASTER_TARGET`；统一 `aster` 入口优先读取项目 CPU 平台。
 

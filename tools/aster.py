@@ -95,7 +95,8 @@ def create(args):
     manifest = re.sub(r'^name = .*$', lambda _: 'name = ' + name, manifest, flags=re.M)
     manifest += '\n[sdk]\ntarget = ' + json.dumps(target) + '\n'
     tomllib.loads(manifest)
-    shutil.copytree(template, destination)
+    shutil.copytree(template, destination,
+                    ignore=shutil.ignore_patterns('dist', 'build', '__pycache__', '*.pyc'))
     (destination / 'app.toml').write_text(manifest, encoding='utf-8')
     print(destination)
     print(f'Next: cd {shlex.quote(str(destination))}; aster build; aster run')

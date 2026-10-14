@@ -1,0 +1,17 @@
+[app]
+id = "aster.scene.sprites"
+name = "Scene Sprites"
+description = "看精灵穿梭，点按暂停片刻。"
+version = "0.1.0"
+abi = "3.7.0"
+abi_min = "3.7"
+aot = true
+orientation = "portrait"
+category = "game"
+initial_memory = 524288
+max_memory = 2097152
+heap = 524288
+stack = 32768
+sources = ["src/main.c"]
+requires = ["display", "touch", "filesystem"]
+permissions = ["fs"]

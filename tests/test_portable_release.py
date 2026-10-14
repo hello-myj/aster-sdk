@@ -125,6 +125,11 @@ class PortableReleaseTests(unittest.TestCase):
             out=Path(folder)/'aster-sdk'
             out.mkdir()
             package_portable.copy_sdk(out,boards,'windows')
+            for relative in ('lib/aster/aster_scene.c', 'lib/aster/aster_layout.c',
+                             'lib/aster/aster_widgets.c', 'templates/scene-list/src/main.c',
+                             'docs/app-development.md', '.agents/skills/aster-app-development/SKILL.md'):
+                self.assertEqual((out/relative).read_bytes(), (source/relative).read_bytes())
+            self.assertFalse((out/'templates/scene-list/dist').exists())
             self.assertEqual([p.name for p in (out/'targets').glob('*.json')],
                              [board+'.json' for board in boards])
             for board in boards:

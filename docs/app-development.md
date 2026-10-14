@@ -1,6 +1,6 @@
 # Aster APP SDK 开发手册（AI 可直接使用）
 
-适用版本：SDK ABI **3.7.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-3.7.0.zip`，更新日期 2026-10-12。具体开发板由固件选择，SDK 不提供 `--board`。
+适用版本：SDK ABI **3.7.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-3.7.0.zip`，更新日期 2026-10-14。具体开发板由固件选择，SDK 不提供 `--board`。
 
 本文是独立开发所需的完整参考：创建工程、配置、生命周期、绘图、输入、资源、设备接口、构建、部署及排错。本文中的类型和函数签名来自此版本 SDK 的公开契约。阅读本文即可编写 APP；不需要再读取固件代码、SDK 头文件、模板代码或工具实现。编译器会自动使用 SDK 自带的头文件和辅助库。
 
@@ -20,6 +20,7 @@
 - [10. 构建、部署与排错](#10-构建部署与排错)
 - [11. SDK C 辅助库参考](#11-sdk-c-辅助库参考)
 - [12. 完整公开 ABI 参考](#12-完整公开-abi-参考)
+- [13. Scene、布局与控件（G7）](#13-scene布局与控件g7)
 
 ## 1. 给 AI 的开发约定
 
@@ -1574,3 +1575,168 @@ Linux/WSL 原生 USB Serial/JTAG 的设备工具关闭 HUPCL，避免关闭串�
 ## 绘制提交与性能测量
 
 现有 `aster_ge_*` 命令环已可将一帧图形合并为 `aster_gfx_exec`；避免无意逐条提交。微雪固定全帧矩形场景中，17 次独立提交合并为 1 次后平均耗时约从 362.5 ms 降至 42.5 ms，最终像素一致；这个数值不适用于所有字体、图片和动态场景。详见 [固件图形基准](https://github.com/hello-myj/aster-firmware/blob/main/docs/graphics-benchmark.md)。`app stats` 的 peak 现为有效 Guest 线性内存范围的字节峰值，不包含 AOT、字体或前缓冲，也不是 malloc 当前用量。
+
+
+## 13. Scene、布局与控件（G7）
+
+### 13.1 适用范围与兼容性
+
+`#include <aster_widgets.h>` 自动包含 `aster_scene.h`、`aster_layout.h`、绘图引擎及精简 libc。只用对象层时包含 `<aster_scene.h>`。构建工具自动链接三个库；旧 APP 未使用这些函数时会被链接器移除。
+
+这是 APP 侧的轻量保留对象层：矩形、图片、单行文本、裁剪容器，加最小行/列/Grid 布局和按钮/滚动。Host 不保存对象树。所有位置按实际 surface 像素计算，未增加缩放/旋转矩阵、富文本、自动换行、列表虚拟化、滚动惯性或任意形状控件。暂不迁移已有播放器/阅读器。
+
+C/WASM imports 和 ABI 版本保持 3.7.0。G7 增加的是现有帧事务的**可选能力**，旧版同 ABI Host 可能没有它们。`aster_scene_init` 会查询事务、裁剪、字体 epoch 三项；缺任何一项返回 `ASTER_ENOTSUP`，应提示升级配套固件或模拟器，不能靠忽略错误继续绘制。此工作区能力不等同于此前已发布的 3.7 SDK 成品。
+
+Scene 独占一个普通 RGB565 surface 或 PANEL_CANVAS，使用 `acquire()` 实际返回的 `flags`，不支持 SCALE_FIT 标志。普通 surface 恢复旧/新边界的并集，并按绘制顺序重放相交对象；canvas 每次变更都全屏清除重绘。每个成功帧只 END 一次；静态页不 DRAW/END，但每次 render 仍 QUERY 字体状态。微雪物理面板仍可能全屏发送，不保证 FPS 因 Scene 自动提高。
+
+### 13.2 生命周期、内存与返回值
+
+APP 用 static 或自己分配的存储持有：
+
+```c
+static aster_scene_t scene;
+static aster_scene_node_t nodes[32];
+static aster_widgets_t widgets;
+static aster_button_t buttons[10];
+static aster_ge_t ge;
+static aster_gfx_cmd_t ring[16];
+static uint8_t arena[384];
+```
+
+不要将这些大数组放在事件回调栈上。Scene 不动态分配对象；容量 1–64，最大嵌套深度 16，按钮容量 1–32。每节点复制最多 127 字节 UTF-8 文本，拒绝 CR/LF；不接受指向外部可变字符串的长期引用。节点 ID 是 `uint32_t`，0 表示隐式根，无效/删除 ID 返回 `ASTER_EBADF`，同一 Scene 生命周期不复用 ID，耗尽返回 `ASTER_ENOSPC`。不可直接修改 `scene`/`nodes` 内部字段，也不要跨 Scene 混用 ID。
+
+以 32 位 APP 的实际 `sizeof` 为准计算预算：固定 Scene 工作区约 5.7 KiB，节点池每节点 248 字节，按钮表每项 12 字节，另计 ge、ring、arena、线性 surface、字体和图片。不存在额外 Host 节点树；帧事务已有的私有暂存仍会占 Host PSRAM。内存需求不是只看节点池。
+
+`aster_scene_render()`：0 没有发布；1 成功发布；负数失败。失败保留脏状态及已发布画面，修复资源/布局后重试；`ASTER_EBUSY` 留到下一帧，不能死循环重试。初始化与 setter 通常成功返回 0。布局先计算再 BEGIN，溢出不会提交半张画面。暂停取消控件捕获；恢复取消捕获并 `aster_scene_invalidate()`。若其他代码直接改了本 surface，先恢复独占并 invalidate；平时不要每帧 invalidate。
+
+图片句柄由 APP 管理，Scene 只借用；`set_image` 的源宽高必须来自加载结果。删除 image 节点不会释放图片，共用图片必须在所有节点停用后再 `aster_gfx_bmp_free()`。destroy 时释放图片和 surface。按钮占两个节点：容器和文本。
+
+### 13.3 完整调用示例
+
+已有工程可使用 `scene-list` 模板；下面也可直接保存为 `src/main.c`。manifest 使用 ABI/abi_min 3.7，`aot=true`，`requires=["display","touch"]`，建议 `initial_memory=524288`、`max_memory=2097152`、`heap=524288`、`stack=32768`；其他 manifest 格式同第 3 节。
+
+```c
+#include <aster/aster.h>
+#include <aster_widgets.h>
+#define CHECK(e) do { int r=(e); if(r<0) return r; } while(0)
+static aster_handle_t surf;
+static aster_ge_t ge;
+static aster_gfx_cmd_t ring[16];
+static uint8_t arena[384];
+static aster_scene_t scene;
+static aster_scene_node_t nodes[16];
+static aster_widgets_t widgets;
+static aster_button_t buttons[5];
+static uint32_t rows[5];
+static bool enabled[5];
+static uint8_t body;
+int aster_app_init(void) {
+    aster_surface_desc_t d={.size=sizeof(d),.version=1,.format=ASTER_PIXEL_RGB565};
+    CHECK(aster_surface_create(&d,sizeof(d),&surf));
+    aster_surface_buffer_t b={.size=sizeof(b),.version=1};
+    CHECK(aster_surface_acquire(surf,&b,sizeof(b)));
+    aster_ge_init(&ge,surf,b.width,b.height,ring,16,arena,sizeof(arena));
+    CHECK(aster_scene_init(&scene,&ge,nodes,16,b.flags,0x0842));
+    CHECK(aster_widgets_init(&widgets,&scene,buttons,5));
+    body=aster_text_for_display(16,b.width,b.height);
+    uint32_t list;
+    CHECK(aster_scene_add(&scene,0,ASTER_NODE_CONTAINER,&list));
+    CHECK(aster_scene_set_box(&scene,list,(aster_box_t){8,24,b.width-16,b.height-48}));
+    CHECK(aster_scene_set_layout(&scene,list,(aster_layout_t){
+        .mode=ASTER_LAYOUT_COLUMN,.align=ASTER_ALIGN_STRETCH,.scroll=1,.gap=6}));
+    for(unsigned i=0;i<5;i++) {
+        CHECK(aster_widgets_button(&widgets,list,(aster_box_t){0,0,b.width-16,56},
+            "关闭",body,
+            0xffff,0x18e5,0x2a29,&rows[i]));
+    }
+    aster_app_set_framerate(30);
+    return 0;
+}
+void aster_app_event(const aster_event_t *e) {
+    if(e->type==ASTER_EVENT_TOUCH) {
+        uint32_t clicked=0;
+        int r=aster_widgets_event(&widgets,e,&clicked);
+        if(r<0) return;
+        for(unsigned i=0;clicked&&i<5;i++) if(rows[i]==clicked) {
+            enabled[i]=!enabled[i];
+            (void)aster_scene_set_text(&scene,buttons[i].label,enabled[i]?"开启":"关闭",body,0xffff);
+        }
+    } else if(e->type==ASTER_EVENT_FRAME) {
+        int r=aster_scene_render(&scene);
+        /* EBUSY: wait for the next FRAME. Other negatives require error handling. */
+        if(r<0&&r!=ASTER_EBUSY) aster_log(ASTER_LOG_ERROR,"Scene render failed",19);
+    }
+}
+void aster_app_pause(void) { aster_widgets_cancel(&widgets); }
+void aster_app_resume(void) { aster_widgets_cancel(&widgets);aster_scene_invalidate(&scene); }
+void aster_app_destroy(void) { if(surf)aster_surface_destroy(surf);surf=0; }
+```
+
+按钮默认普通色/按下色会在触摸后恢复；本例只在初始化时建立按钮、不删除重建，因此按钮登记下标保持稳定，可用对应 label ID 更新业务标签。
+
+### 13.4 对象 API
+
+以下参数中 `s` 为 `aster_scene_t *`，`id/parent` 为 `aster_node_id_t`，`b` 为 `aster_box_t {int32_t x,y,w,h;}`。坐标 -32768…32767，宽高 0…32767；实际 surface 像素数仍受帧事务上限限制。
+
+```c
+int32_t aster_scene_init(aster_scene_t *s,aster_ge_t *ge,aster_scene_node_t *pool,
+    uint32_t capacity,uint32_t surface_flags,uint16_t background);
+int32_t aster_scene_add(aster_scene_t *s,aster_node_id_t parent,uint32_t kind,aster_node_id_t *out);
+int32_t aster_scene_remove(aster_scene_t *s,aster_node_id_t id);
+int32_t aster_scene_set_box(aster_scene_t *s,aster_node_id_t id,aster_box_t b);
+int32_t aster_scene_set_text(aster_scene_t *s,aster_node_id_t id,const char *text,uint8_t px,uint16_t color);
+int32_t aster_scene_set_color(aster_scene_t *s,aster_node_id_t id,uint16_t color,bool background);
+int32_t aster_scene_set_image(aster_scene_t *s,aster_node_id_t id,uint32_t handle,uint32_t w,uint32_t h,uint16_t scale256);
+int32_t aster_scene_set_visible(aster_scene_t *s,aster_node_id_t id,bool visible);
+int32_t aster_scene_set_opacity(aster_scene_t *s,aster_node_id_t id,uint8_t opacity);
+int32_t aster_scene_set_z(aster_scene_t *s,aster_node_id_t id,int32_t z);
+int32_t aster_scene_set_layout(aster_scene_t *s,aster_node_id_t id,aster_layout_t layout);
+int32_t aster_scene_set_grow(aster_scene_t *s,aster_node_id_t id,uint16_t grow);
+int32_t aster_scene_set_scroll(aster_scene_t *s,aster_node_id_t id,int32_t x,int32_t y);
+int32_t aster_scene_set_interactive(aster_scene_t *s,aster_node_id_t id,bool enabled);
+int32_t aster_scene_set_text_align(aster_scene_t *s,aster_node_id_t id,uint8_t align);
+int32_t aster_scene_poll(aster_scene_t *s);
+void aster_scene_invalidate(aster_scene_t *s);
+int32_t aster_scene_render(aster_scene_t *s);
+aster_node_id_t aster_scene_hit_test(const aster_scene_t *s,int32_t x,int32_t y);
+int32_t aster_scene_bounds(const aster_scene_t *s,aster_node_id_t id,aster_box_t *out);
+```
+
+- kind 为 `ASTER_NODE_CONTAINER/RECT/IMAGE/TEXT`；parent 必须是 0 或容器。删除容器递归删除子树，保留资源所有权。没有重设 parent 接口。
+- `box` 相对父容器内容原点，受父 scroll 平移；根直接用 surface 坐标。容器始终裁剪后代，background=true 时填充背景；RECT 始终填充。容器和 RECT 需给非零尺寸。TEXT 零宽/高取测量尺寸，IMAGE 零宽/高取缩放后尺寸。图片有显式 box 时只改变裁剪框，不额外缩放。
+- `set_image` 使用已有 BMP handle，scale256 范围 8…4095，256=1倍。opacity 为 0…255，仅 IMAGE 支持中间值，其他类型只支持 0/255。0 或隐藏节点不参与布局和绘制；普通 surface 会恢复旧背景。容器中间透明度返回 ENOTSUP，不实现组透明度。
+- 同级 z 小的先绘制，z 相同按创建 ID；容器子树整体位于该容器的同级绘制位置。布局顺序始终按创建 ID，与 z 无关。
+- 文本原生字号经 `aster_text_snap` 选取；单行在 box 内垂直居中，text_align=0左/1中/2右，超出 box 裁剪，不省略、不换行。文本、字号、box 尺寸或字体 epoch 改变失效测量；只平移文字或改文字颜色复用测量。几何布局仅在几何相关属性变化时重算。
+- poll 成功返回0无字体变化、1变化，负数失败；render 内也会 poll。字形异步就绪的 epoch 不依赖一次性的全局 repaint ACK，因此无关绘制不会吞掉重绘机会。
+- hit_test 返回最后成功发布帧中最上面的 interactive 节点，未命中0；bounds 返回该帧被裁剪后的矩形。输入不会提前使用尚未成功提交的布局。
+
+### 13.5 最小布局与控件 API
+
+```c
+typedef struct {int32_t w,h;uint16_t grow;} aster_layout_item_t;
+typedef struct {
+    uint8_t mode,align,columns,scroll;
+    uint16_t padding,gap;
+} aster_layout_t;
+int32_t aster_layout_compute(const aster_layout_t *layout,int32_t w,int32_t h,
+    const aster_layout_item_t *items,uint32_t count,aster_box_t *out,int32_t *content_w,int32_t *content_h);
+int32_t aster_widgets_init(aster_widgets_t *w,aster_scene_t *s,aster_button_t *buttons,uint32_t capacity);
+int32_t aster_widgets_button(aster_widgets_t *w,aster_node_id_t parent,aster_box_t box,
+    const char *label,uint8_t px,uint16_t fg,uint16_t normal,uint16_t pressed,aster_node_id_t *out);
+int32_t aster_widgets_event(aster_widgets_t *w,const aster_event_t *event,aster_node_id_t *clicked);
+void aster_widgets_cancel(aster_widgets_t *w);
+```
+
+mode=`ASTER_LAYOUT_MANUAL(0)/ROW(1)/COLUMN(2)/GRID(3)`；独立 `layout_compute` 只接受后三种，MANUAL 是 Scene 的直接坐标模式。align=`ASTER_ALIGN_START(0)/CENTER(1)/END(2)/STRETCH(3)`，padding 为四边相同内边距，gap 为项目间距。
+
+Row/Column 的主轴按首选尺寸排列，grow 按权重分配剩余空间，不自动缩小；副轴为0或STRETCH时填满。Grid 要求columns=1…64，各列等分可用宽度，余数从左到右分配，每行高度取该行最大首选高；grow在Grid忽略。Grid不实现跨行/跨列。尺寸为0的容器不自动由子内容撑开，需显式指定。列表就是COLUMN容器；没有单独 list 对象。
+
+scroll=0 时溢出返回 ENOSPC；scroll=1 允许主轴（Grid为竖轴）内容超过视口，副轴溢出仍报错。失败不修改独立计算输出，也不发布 Scene 新布局。程序可调整尺寸/间距/scroll 后重试。set_scroll 只接受0…32767，不自动钳制到内容；widgets拖动会钳制，并裁剪视口外内容。
+
+widgets 只消费原有 APP 坐标 TOUCH 事件，单指捕获，默认移动超过8像素取消点击，DOWN 与 UP 命中同一按钮才返回1并写clicked；无点击返回0，错误负数。滚动选择触点下最内层可滚动容器，不实现嵌套滚动接力或惯性。pause/resume调用cancel，避免系统手势接管后残留按下状态。按钮创建时的标签框来自初始 box；后续改变按钮尺寸时应相应更新 label box，或重建按钮，不能假定控件提供完整响应式排版。可保存 `buttons` 返回登记中的 label ID 后用 setter 更新，但删除/再建按钮会压缩登记表，不要长期缓存表下标。
+
+### 13.6 Host 协议与验证边界
+
+事务 QUERY.flags 按位检查：SUPPORTED=1、CLIP_SUPPORTED=2、FONT_EPOCH_SUPPORTED=4。具有 FONT_EPOCH 时 QUERY.frame_id 为只读字体位图 generation；BEGIN.frame_id 仍为事务令牌。可选 SET_CLIP action=4 使用 32字节 `{size=32,version=1,action,frame_id,x,y,w,h}`，沿用现有 control 调用；只允许非空且位于 surface 内的矩形，失效时污染当前帧，BEGIN 重置全屏裁剪。PANEL_CANVAS 首先 full CLEAR 后才能缩小裁剪。普通 APP 使用 Scene 即可，不需要自己编码协议。
+
+源码测试覆盖旧/新区域恢复、alpha/裁剪、删除和 ID、失败帧原子性、字体 epoch、静态无提交、布局溢出恢复、按钮防误触；模拟器集成用真实构建 APP 覆盖 240×320、320×480。实体画面和触摸仍应按对应固件验收记录确认，不能将模拟器成功等同于实机成功。

@@ -1,0 +1,16 @@
+[app]
+id = "aster.scene.list"
+name = "Scene List"
+description = "点按切换，轻滑浏览设置。"
+version = "0.1.0"
+abi = "3.7.0"
+abi_min = "3.7"
+aot = true
+orientation = "portrait"
+category = "tool"
+initial_memory = 524288
+max_memory = 2097152
+heap = 524288
+stack = 32768
+sources = ["src/main.c"]
+requires = ["display", "touch"]

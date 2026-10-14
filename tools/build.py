@@ -361,7 +361,7 @@ def build_wasm(app: App, obj_dir: Path, wasm_path: Path) -> None:
 
     objects: list[Path] = []
     obj_dir.mkdir(parents=True, exist_ok=True)
-    for src in sources + [LIB_DIR / "aster_printf.c", LIB_DIR / "aster_gfx.c"]:
+    for src in sources + [LIB_DIR / name for name in ("aster_printf.c", "aster_gfx.c", "aster_scene.c", "aster_layout.c", "aster_widgets.c")]:
         obj = _flat_obj(obj_dir, src, app.source_roots)
         obj.parent.mkdir(parents=True, exist_ok=True)
         run(cflags + ["-c", "-o", str(obj), str(src)], f"cc {src.name}")
