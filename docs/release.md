@@ -118,3 +118,9 @@ Zephyr 设备固件只运行匹配 CPU 的 AOT，构建中关闭 WASM 解释器�
 ## SDK Release 作为统一成品入口
 
 当前发布把 SDK、固定固件镜像、SD 字体资源和主机模拟器放入同一个完整 SDK 包。对应 tag、提交、ABI 与载荷哈希见 contract/release-family.json；用户仅下载该 SDK Release 的本机平台包即可。此前工具包只包含 SDK 的说明不代表完整开发套件交付范围。固件和模拟器仓库各保留源码 tag，SDK 打包只校验并加入已有成品，不编译固件。详细布局、使用步骤和维护流程见 [完整开发套件](development-kit.md)。
+
+## 2026-10-15完整套件
+
+本组SDK标签为sdk-v3.7.0-20261015，配套firmware-v0.1.0-20261015及sim-v0.2.0-20261015，精确提交和成品哈希由contract/release-family.json固定。保留ABI3.7.0和现有编译器profile，不重新下载Espressif驱动库。固件内核堆96 KiB、字体与launcher更新不新增APP网络导入。
+
+发布前验证两个完整主机包中的SDK、模拟器与两板镜像；使用包内工具实际创建独立工程、编译WASM/Xtensa AOT、校验及模拟运行。新候选检查使用显式--matrix固定本次SDK提交，保留此前已发布矩阵；源码侧运行时兼容基线与SDK发布元数据提交可能不同，以本次干净集成报告和release-family为准。硬件状态区分LCKFB短时实机通过和微雪本轮未测，详细说明见development-kit.md。
