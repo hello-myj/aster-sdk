@@ -1,6 +1,6 @@
 # APP 网络通信（ABI 3.8，工作区开发版）
 
-公开TCP/UDP需要配套ABI3.8固件/模拟器；此前3.7 Release不具备这些导入。只需APP SDK进行开发，不依赖固件源码、Zephyr、ESP-IDF或芯片驱动。旧APP继续可用；引用新导入的APP必须设置`abi_min="3.8"`。HTTP/HTTPS、TLS、MQTT、个人热点APP控制尚未提供。
+公开TCP/UDP需要配套ABI3.8固件/模拟器；此前3.7 Release不具备这些导入。只需APP SDK进行开发，不依赖固件源码、Zephyr、ESP-IDF或芯片驱动。旧APP继续可用；引用新导入的APP必须设置`abi_min="3.8"`。当前工作区ABI3.9新增HTTP/HTTPS客户端，见[HTTP开发说明](http.md)。MQTT、个人热点APP控制尚未提供；N2已完成本阶段双板验收，未发布Release。
 
 ## 工程与运行
 

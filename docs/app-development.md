@@ -1,6 +1,6 @@
 # Aster APP SDK 开发手册（AI 可直接使用）
 
-适用版本：SDK ABI **3.8.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-3.8.0.zip`（工作区开发版），更新日期 2026-10-15。具体开发板由固件选择，SDK 不提供 `--board`。
+适用版本：SDK ABI **3.9.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-3.9.0.zip`（工作区开发版），更新日期 2026-10-15。具体开发板由固件选择，SDK 不提供 `--board`。
 
 本文是独立开发所需的完整参考：创建工程、配置、生命周期、绘图、输入、资源、设备接口、构建、部署及排错。本文中的类型和函数签名来自此版本 SDK 的公开契约。阅读本文即可编写 APP；不需要再读取固件代码、SDK 头文件、模板代码或工具实现。编译器会自动使用 SDK 自带的头文件和辅助库。
 
@@ -20,6 +20,7 @@
 - [10. 构建、部署与排错](#10-构建部署与排错)
 - [11. SDK C 辅助库参考](#11-sdk-c-辅助库参考)
 - [12. 完整公开 ABI 参考](#12-完整公开-abi-参考)
+- [16. HTTP/HTTPS](#16-httphttpsabi-39-工作区开发版)
 - [13. Scene、布局与控件（G7）](#13-scene布局与控件g7)
 - [14. 字体与图片质量（G8）](#14-字体与图片质量g8)
 
@@ -125,8 +126,8 @@ my-counter/
 - `name`：显示名称，默认 ID。使用 UTF-8，建议短名称。
 - `description`：可选的 APP 简介，launcher 主页从安装包读取。单行 UTF-8 字符串，最多 127 字节（约 42 个汉字）；建议简短。缺省或空字符串时介绍区域留空。修改后重新构建并安装 `.ast` 包即可更新，无需修改 launcher。旧固件可能忽略此字段。
 - `version`：APP 自身版本字符串，默认 `"0.0.0"`，与 ABI 无关。
-- `abi`：编译目标 ABI，当前填 `"3.8.0"`；省略时使用 SDK 契约版本。
-- `abi_min`：最低固件 ABI，当前新工程填 `"3.8"`。不要为了兼容旧设备而降低它却继续引用新接口。它的主版本必须与 `abi` 相同。
+- `abi`：编译目标 ABI，当前填 `"3.9.0"`；省略时使用 SDK 契约版本。
+- `abi_min`：最低固件 ABI，当前新工程填 `"3.9"`。不要为了兼容旧设备而降低它却继续引用新接口。它的主版本必须与 `abi` 相同。
 - `aot`：真实设备必须为 `true`，包同时包含 WASM 与目标 CPU 的 AOT；缺少 AOT 编译器会报错。模拟器可使用 `false` / `--no-aot`。设备会拒绝缺少 AOT、CPU 不匹配或 AOT 加载失败的 APP，不会自动回退 WASM。AOT 不是跨 CPU 通用二进制。
 - `optimize`：`"O0"`、`"O1"`、`"O2"`、`"O3"`、`"Os"` 或 `"Oz"`，默认 `"O2"`；设备 APP 推荐 `"Os"`。
 - `orientation`：`"portrait"` 或 `"landscape"`，在初始化前应用。当前设备普通 APP 默认竖屏；需要横屏时明确声明，运行时仍必须查询坐标空间。
@@ -143,7 +144,7 @@ my-counter/
 - `icon`：可选，工程内 ASTI 格式图标的相对路径，例如 `"icon.bin"`；不能直接填 PNG。
 - `entry`：可选包元数据。普通 C APP 不设置，生命周期函数仍使用固定名称。
 
-支持的能力名称（精确拼写）：`display`、`touch`、`mouse`、`keyboard`、`camera`、`audio-in`、`audio-out`、`wifi`、`bluetooth`、`accelerometer`、`gyroscope`、`filesystem`、`storage.app`、`rtc`、`psram`、`framebuffer`、`network`。名字被接受不代表当前这块板具备该能力。打包只要求 `target_id` 等于平台名 `xtensa`。加速度计、屏幕尺寸等差异在设备上用 `aster_system_has_feature` 和 `aster_display_get_info` 判断，安装不会因为这些板级能力拒绝包。
+支持的能力名称（精确拼写）：`display`、`touch`、`mouse`、`keyboard`、`camera`、`audio-in`、`audio-out`、`wifi`、`bluetooth`、`accelerometer`、`gyroscope`、`filesystem`、`storage.app`、`rtc`、`psram`、`framebuffer`、`network`、`http`、`tls`。名字被接受不代表当前这块板具备该能力。打包只要求 `target_id` 等于平台名 `xtensa`。加速度计、屏幕尺寸等差异在设备上用 `aster_system_has_feature` 和 `aster_display_get_info` 判断，安装不会因为这些板级能力拒绝包。
 
 支持的权限名称只有：
 
@@ -682,7 +683,7 @@ SDK 自带 `apps/imucube`：30 FPS 六轴采样、彩色 3D 立方体、重力�
 
 appmgr 需要 appmgr 权限：count 返回安装数；list 用 `aster_app_info_t` version=2 获取 ID、名称、状态、分类和图标信息。start 是单 APP 的切换，调用方会先 stop/destroy，然后启动目标，不是并行启动后台 APP；拒绝启动自己。uninstall 拒绝删除自己或正在运行/暂停的应用。
 
-ABI 3.8 新增TCP/UDP通信，完整接口和约束见第15节；需要network能力和net权限。DNS由连接/发送中的域名解析提供，不单独暴露解析器。Wi-Fi station接口仍需wifi能力和权限，连接提交不等于取得IP，检查status.ipv4。个人热点APP控制、HTTP/HTTPS、TLS、MQTT、WebSocket尚未提供。
+ABI 3.8 新增TCP/UDP通信，完整接口和约束见第15节；需要network能力和net权限。DNS由连接/发送中的域名解析提供，不单独暴露解析器。Wi-Fi station接口仍需wifi能力和权限，连接提交不等于取得IP，检查status.ipv4。HTTP/HTTPS客户端在ABI3.9接入，见第16节；个人热点APP控制、MQTT、WebSocket尚未提供。
 
 其他不存在的接口：没有公开蓝牙通信、线程创建、异步任务通用框架、桌面式文件选择器、原生输入框/键盘、UI 控件树。需要这些功能时在现有能力内自行实现交互，或提出明确 SDK 扩展需求。
 
@@ -1782,7 +1783,7 @@ python /absolute/path/to/aster-sdk/tools/prepare_image.py transparent.png images
 文字的主机系统字体/光栅器与真机cpfont不同，不能用整页文字零像素差证明一致。检查字号选择、基线/边界和覆盖率混合分别通过；对固定同一A8遮罩可要求混合逐像素一致，不同光栅器的字形外观仍需要实体确认，不以任意放宽容差代替检查。G8具体验收状态见固件随源码的验证记录，不复用上一版本的实体结论。
 
 
-## 15. TCP/UDP 网络通信（ABI 3.8）
+## 15. TCP/UDP 网络通信（自ABI 3.8起）
 
 以下为工作区开发版，未作为Release发布；先前3.7成品不提供这些导入。
 
@@ -2085,3 +2086,96 @@ void aster_app_stop(void)
 
 void aster_app_resume(void) { started=aster_time_now_ms(); }
 ```
+
+
+## 16. HTTP/HTTPS（ABI 3.9 工作区开发版）
+
+权限为`net`，能力`http`，HTTPS另需`tls`；文件下载另需`fs`权限。请求/响应所有长度均为字节，不含NUL。全部调用非阻塞，EAGAIN在后续事件重试。完整公开声明如下（头文件由SDK自动提供）：
+
+```c
+/* SPDX-License-Identifier: MIT
+ * ABI 3.9: bounded asynchronous HTTP/1.1. Permission "net"; requires
+ * "http", and "tls" for HTTPS. No Wi-Fi configuration permission implied.
+ */
+#ifndef ASTER_HTTP_H
+#define ASTER_HTTP_H
+#include "types.h"
+#define ASTER_HTTP_METHOD_GET 1u
+#define ASTER_HTTP_METHOD_HEAD 2u
+#define ASTER_HTTP_METHOD_POST 3u
+#define ASTER_HTTP_STATE_CONNECTING 1u
+#define ASTER_HTTP_STATE_HANDSHAKE 2u
+#define ASTER_HTTP_STATE_SENDING 3u
+#define ASTER_HTTP_STATE_HEADERS 4u
+#define ASTER_HTTP_STATE_BODY 5u
+#define ASTER_HTTP_STATE_DONE 6u
+#define ASTER_HTTP_STATE_FAILED 7u
+#define ASTER_HTTP_STATE_CANCELLED 8u
+#define ASTER_HTTP_FLAG_HEADERS 1u
+#define ASTER_HTTP_FLAG_LENGTH 2u
+#define ASTER_HTTP_FLAG_TLS 4u
+#define ASTER_HTTP_CERT_EXPIRED 1u
+#define ASTER_HTTP_CERT_REVOKED 2u
+#define ASTER_HTTP_CERT_NAME 4u
+#define ASTER_HTTP_CERT_UNTRUSTED 8u
+#define ASTER_HTTP_CERT_FUTURE 16u
+#define ASTER_HTTP_CERT_WEAK 32u
+#define ASTER_HTTP_CERT_OTHER 64u
+#define ASTER_HTTP_URL_LIMIT 1024u
+#define ASTER_HTTP_HEADERS_LIMIT 2048u
+#define ASTER_HTTP_UPLOAD_LIMIT 2048u
+#define ASTER_HTTP_READ_LIMIT 2048u
+#define ASTER_HTTP_BODY_LIMIT 67108864u
+typedef struct {
+    uint32_t size, version; /* returned sizeof(struct), 1; layout: 56 bytes */
+    uint32_t state, status; /* HTTP status, including 4xx/5xx; 0 before headers */
+    int32_t error; /* stable ASTER_E...; HTTP errors are not transport errors */
+    uint32_t redirects, queued, flags, certificate_flags, reserved;
+    uint64_t received, content_length; /* length valid only with FLAG_LENGTH */
+} aster_http_status_t;
+/* Positive handle or stable error. All inputs copied before returning;
+ * byte lengths exclude NUL. URL is ASCII http(s), no userinfo/IPv6. Headers
+ * are CRLF-separated fields, no terminating empty line, <=32 fields; Host,
+ * Content-Length, Transfer-Encoding, Connection, Accept-Encoding, Expect and
+ * Upgrade are service-owned. Optional empty inputs require NULL, length=0.
+ * Only POST accepts a body. timeout 1..600000 ms includes DNS, TLS and reader
+ * backpressure; body_limit 1..64 MiB limits traffic, not allocation size.
+ * Two slots shared with TCP/UDP/CLI, one TLS slot. Terminal handles retain
+ * quota until close/APP exit. Requests do not automatically reconnect/retry.
+ */
+ASTER_I("aster_http_request") int32_t aster_http_request(
+    uint32_t method, const char *url, uint32_t url_length,
+    const char *headers, uint32_t headers_length, const void *body,
+    uint32_t body_length, uint32_t timeout_ms, uint32_t body_limit);
+/* Nonblocking calls may return EAGAIN; retry on a later event/timer.
+ * Output size >=sizeof(status), tail untouched, unaligned output allowed. */
+ASTER_I("aster_http_status") int32_t aster_http_status(
+    uint32_t handle, aster_http_status_t *status, uint32_t size);
+/* capacity 1..2048. Buffered bytes precede error/cancel; 0 means successful
+ * EOF only. Partial reads allowed. No data is consumed on invalid output. */
+ASTER_I("aster_http_read") int32_t aster_http_read(
+    uint32_t handle, void *data, uint32_t capacity);
+/* Case-insensitive ASCII token name; index selects duplicate field. Values
+ * are ASCII, no NUL added. Returns byte count, ENOENT, EAGAIN or EMSGSIZE.
+ * required is mandatory (4 bytes), receives field length on success/EMSGSIZE;
+ * it must not overlap output. capacity 0..2048; NULL only when capacity=0.
+ * Headers are available after FLAG_HEADERS; trailers update as received. */
+ASTER_I("aster_http_header") int32_t aster_http_header(
+    uint32_t handle, const char *name, uint32_t name_length, uint32_t index,
+    char *output, uint32_t capacity, uint32_t *required);
+/* Cancel keeps buffered data/status; close immediately invalidates the
+ * handle, cleanup may briefly retain quota. APP stop/trap/init failure closes
+ * its session. No borrowed guest pointer survives any call.
+ * Redirects <=3, cross-origin drops all custom headers; HTTPS downgrade is
+ * denied. TLS validates chain, name and date; a synchronized clock is needed.
+ * Root set is device/admin-owned (default ISRG Root X1), no skip-verify API.
+ * No HTTP2, decompression, cookie jar, persistent connections or listeners.
+ */
+ASTER_I("aster_http_cancel") int32_t aster_http_cancel(uint32_t handle);
+ASTER_I("aster_http_close") int32_t aster_http_close(uint32_t handle);
+#endif
+```
+
+错误码新增EPROTO=-26、ETLS=-27、ECERT=-28、ECLOCK=-29、EREDIRECT=-30。其余沿用第15节网络错误。JSON示例`apps/http-fetch`及下载示例`apps/http-download`可直接构建；每FRAME最多读取512B，检查HTTP码、EOF与内容，关闭请求释放名额。下载路径是APP沙箱`/data/download.bin`，普通失败/退出会删除部分文件；突然断电不保证文件事务性。
+
+开发用HTTP服务和模拟器命令、默认根证书范围及实机验证边界见[HTTP开发说明](http.md)。N2已完成本阶段双板APP验收，当前仍为工作区开发版，未发布Release；N4长时复合压力另行实施。

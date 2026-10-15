@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "product": "aster",
-  "abi": "3.8.0",
+  "abi": "3.9.0",
   "imports": {
     "env": [
       "__cxa_allocate_exception",
@@ -52,6 +52,12 @@
       "aster_gfx_fonts_pending",
       "aster_gfx_text_w",
       "aster_gyro_read",
+      "aster_http_cancel",
+      "aster_http_close",
+      "aster_http_header",
+      "aster_http_read",
+      "aster_http_request",
+      "aster_http_status",
       "aster_img_probe",
       "aster_img_render",
       "aster_imu_get_info",
@@ -215,6 +221,12 @@
     "aster_network_status": "(iii)i",
     "aster_network_cancel": "(i)i",
     "aster_network_close": "(i)i",
+    "aster_http_request": "(iiiiiiiii)i",
+    "aster_http_status": "(iii)i",
+    "aster_http_read": "(iii)i",
+    "aster_http_header": "(iiiiiii)i",
+    "aster_http_cancel": "(i)i",
+    "aster_http_close": "(i)i",
     "aster_wifi_scan_start": "()i",
     "aster_wifi_status": "(ii)i"
   },
@@ -247,6 +259,8 @@
     "psram": 13,
     "framebuffer": 14,
     "network": 15,
+    "http": 16,
+    "tls": 17,
     "storage.app": 11
   }
 }

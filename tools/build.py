@@ -95,7 +95,7 @@ LIFECYCLE_EXPORTS = [
 VALID_CAPS = {
     "display", "touch", "mouse", "keyboard", "camera", "audio-in", "audio-out",
     "wifi", "bluetooth", "accelerometer", "gyroscope", "filesystem", "storage.app",
-    "rtc", "psram", "framebuffer", "network",
+    "rtc", "psram", "framebuffer", "network", "http", "tls",
 }
 VALID_CATEGORIES = {"game", "tool", "system"}
 # The spellings live in aster_board.ORIENTATIONS -- one copy, shared with

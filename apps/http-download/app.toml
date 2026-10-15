@@ -1,0 +1,18 @@
+[app]
+id = "aster.http.download"
+name = "HTTP Download"
+description = "以固定缓冲下载文件，校验后报告完成。"
+version = "1.0.0"
+abi = "3.9.0"
+abi_min = "3.9"
+aot = true
+stack = 16384
+initial_memory = 262144
+max_memory = 524288
+heap = 65536
+requires = ["http", "filesystem"]
+permissions = ["net", "fs"]
+sources = ["src/main.c"]
+
+[build]
+defines = ['HTTP_DOWNLOAD=1', 'HTTP_URL="http://127.0.0.1:9080/fixed?n=65536"']

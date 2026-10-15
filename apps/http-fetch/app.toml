@@ -1,0 +1,18 @@
+[app]
+id = "aster.http.fetch"
+name = "HTTP Fetch"
+description = "异步获取 JSON，保持动画与交互响应。"
+version = "1.0.0"
+abi = "3.9.0"
+abi_min = "3.9"
+aot = true
+stack = 16384
+initial_memory = 262144
+max_memory = 524288
+heap = 65536
+requires = ["http"]
+permissions = ["net"]
+sources = ["src/main.c"]
+
+[build]
+defines = ['HTTP_URL="http://127.0.0.1:9080/json"']
