@@ -1,6 +1,6 @@
 # Aster APP SDK 开发手册（AI 可直接使用）
 
-适用版本：SDK ABI **3.7.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-3.7.0.zip`，更新日期 2026-10-14。具体开发板由固件选择，SDK 不提供 `--board`。
+适用版本：SDK ABI **3.8.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-3.8.0.zip`（工作区开发版），更新日期 2026-10-15。具体开发板由固件选择，SDK 不提供 `--board`。
 
 本文是独立开发所需的完整参考：创建工程、配置、生命周期、绘图、输入、资源、设备接口、构建、部署及排错。本文中的类型和函数签名来自此版本 SDK 的公开契约。阅读本文即可编写 APP；不需要再读取固件代码、SDK 头文件、模板代码或工具实现。编译器会自动使用 SDK 自带的头文件和辅助库。
 
@@ -125,8 +125,8 @@ my-counter/
 - `name`：显示名称，默认 ID。使用 UTF-8，建议短名称。
 - `description`：可选的 APP 简介，launcher 主页从安装包读取。单行 UTF-8 字符串，最多 127 字节（约 42 个汉字）；建议简短。缺省或空字符串时介绍区域留空。修改后重新构建并安装 `.ast` 包即可更新，无需修改 launcher。旧固件可能忽略此字段。
 - `version`：APP 自身版本字符串，默认 `"0.0.0"`，与 ABI 无关。
-- `abi`：编译目标 ABI，当前填 `"3.7.0"`；省略时使用 SDK 契约版本。
-- `abi_min`：最低固件 ABI，当前新工程填 `"3.7"`。不要为了兼容旧设备而降低它却继续引用新接口。它的主版本必须与 `abi` 相同。
+- `abi`：编译目标 ABI，当前填 `"3.8.0"`；省略时使用 SDK 契约版本。
+- `abi_min`：最低固件 ABI，当前新工程填 `"3.8"`。不要为了兼容旧设备而降低它却继续引用新接口。它的主版本必须与 `abi` 相同。
 - `aot`：真实设备必须为 `true`，包同时包含 WASM 与目标 CPU 的 AOT；缺少 AOT 编译器会报错。模拟器可使用 `false` / `--no-aot`。设备会拒绝缺少 AOT、CPU 不匹配或 AOT 加载失败的 APP，不会自动回退 WASM。AOT 不是跨 CPU 通用二进制。
 - `optimize`：`"O0"`、`"O1"`、`"O2"`、`"O3"`、`"Os"` 或 `"Oz"`，默认 `"O2"`；设备 APP 推荐 `"Os"`。
 - `orientation`：`"portrait"` 或 `"landscape"`，在初始化前应用。当前设备普通 APP 默认竖屏；需要横屏时明确声明，运行时仍必须查询坐标空间。
@@ -143,7 +143,7 @@ my-counter/
 - `icon`：可选，工程内 ASTI 格式图标的相对路径，例如 `"icon.bin"`；不能直接填 PNG。
 - `entry`：可选包元数据。普通 C APP 不设置，生命周期函数仍使用固定名称。
 
-支持的能力名称（精确拼写）：`display`、`touch`、`mouse`、`keyboard`、`camera`、`audio-in`、`audio-out`、`wifi`、`bluetooth`、`accelerometer`、`gyroscope`、`filesystem`、`storage.app`、`rtc`、`psram`、`framebuffer`。名字被接受不代表当前这块板具备该能力。打包只要求 `target_id` 等于平台名 `xtensa`。加速度计、屏幕尺寸等差异在设备上用 `aster_system_has_feature` 和 `aster_display_get_info` 判断，安装不会因为这些板级能力拒绝包。
+支持的能力名称（精确拼写）：`display`、`touch`、`mouse`、`keyboard`、`camera`、`audio-in`、`audio-out`、`wifi`、`bluetooth`、`accelerometer`、`gyroscope`、`filesystem`、`storage.app`、`rtc`、`psram`、`framebuffer`、`network`。名字被接受不代表当前这块板具备该能力。打包只要求 `target_id` 等于平台名 `xtensa`。加速度计、屏幕尺寸等差异在设备上用 `aster_system_has_feature` 和 `aster_display_get_info` 判断，安装不会因为这些板级能力拒绝包。
 
 支持的权限名称只有：
 
@@ -152,6 +152,7 @@ my-counter/
 - `"sd"`：访问 `/sd` 共享 SD 根目录，文件操作还需 `"fs"`。
 - `"appmgr"`：应用列表、启动其他 APP 和卸载。
 - `"wifi"`：公开 Wi-Fi station 控制接口。
+- `"net"`：TCP/UDP网络通信，不授予Wi-Fi配置权限。
 
 例如读图片需要 `permissions = ["fs"]`；有文件系统能力不等于有文件权限。显示、触摸、传感器、相机、录音、音量控制通过硬件能力检测，不存在 `"display"`、`"camera"`、`"audio"` 权限。
 
@@ -675,13 +676,13 @@ SDK 自带 `apps/imucube`：30 FPS 六轴采样、彩色 3D 立方体、重力�
 
 ## 9. 系统能力与其他接口
 
-`aster_system_has_feature(ASTER_FEATURE_...)` 的参数是**特性索引**，例如 DISPLAY=0、WIFI=7，不是 `1u << index`。返回 1 有、0 没有；错误为负时同样不能使用。`aster_system_get_abi_version()` 返回打包 u32：`0x00MMmmPP`，当前 `0x00030700`。需要额外检查时比较主版本兼容及最低版本，不能强制未来 minor 必须完全相等。
+`aster_system_has_feature(ASTER_FEATURE_...)` 的参数是**特性索引**，例如 DISPLAY=0、WIFI=7，不是 `1u << index`。返回 1 有、0 没有；错误为负时同样不能使用。`aster_system_get_abi_version()` 返回打包 u32：`0x00MMmmPP`，当前 `0x00030800`。需要额外检查时比较主版本兼容及最低版本，不能强制未来 minor 必须完全相等。
 
 虽然头文件声明了 `aster_system_info_t`，当前公开 API 没有 `aster_system_get_info()`。不要为该结构猜测查询函数。
 
 appmgr 需要 appmgr 权限：count 返回安装数；list 用 `aster_app_info_t` version=2 获取 ID、名称、状态、分类和图标信息。start 是单 APP 的切换，调用方会先 stop/destroy，然后启动目标，不是并行启动后台 APP；拒绝启动自己。uninstall 拒绝删除自己或正在运行/暂停的应用。
 
-本次不扩展网络。ABI 3.7 现有 Wi-Fi station 接口仍列在第 12 节：需要 wifi 能力和权限，scan/connect 等只提交请求，轮询 status 确认 operation 结束、last_result 成功；扫描结果最多 16 条。连接提交成功不等于已经获得 IP，检查 status.ipv4。**APP SDK 当前没有公开个人热点、DNS、TCP/UDP socket、HTTP/HTTPS、MQTT、WebSocket API**；固件设置页功能不能直接当作 APP 导入接口。
+ABI 3.8 新增TCP/UDP通信，完整接口和约束见第15节；需要network能力和net权限。DNS由连接/发送中的域名解析提供，不单独暴露解析器。Wi-Fi station接口仍需wifi能力和权限，连接提交不等于取得IP，检查status.ipv4。个人热点APP控制、HTTP/HTTPS、TLS、MQTT、WebSocket尚未提供。
 
 其他不存在的接口：没有公开蓝牙通信、线程创建、异步任务通用框架、桌面式文件选择器、原生输入框/键盘、UI 控件树。需要这些功能时在现有能力内自行实现交互，或提出明确 SDK 扩展需求。
 
@@ -702,7 +703,7 @@ aster verify dist/xtensa/com.example.counter.ast --target xtensa
 
 ### 真机部署
 
-设备应已装兼容 ABI 3.7 的 Aster 固件、可用 SD 卡与匹配系统字体。SDK 部署 APP 不等于刷整机固件。
+设备应已装与APP最低ABI兼容的 Aster 固件（本版网络APP需3.8）、可用 SD 卡与匹配系统字体。SDK 部署 APP 不等于刷整机固件。
 
 自动端口发现：
 
@@ -1571,7 +1572,7 @@ Linux/WSL 原生 USB Serial/JTAG 的设备工具关闭 HUPCL，避免关闭串�
 
 ### SDK 升级与发布兼容性
 
-本次单串口升级只修改 SDK 主机端设备工具及固件传输入口，公开 APP ABI 仍为 3.7.0、包格式仍为 ASTP、传输版本仍为 ASTERFS 3。已有 APP 工程与已安装 `.ast` 不需要重编。发布 SDK 时同步交付新版设备工具、本文和 `.agents/skills/aster-app-development/SKILL.md`；保留二者目录结构，使 Skill 相对链接可用。Windows 发布 EXE 必须从更新后的工具源码重新生成，不能只复制手册并沿用旧设备 EXE。旧固件继续支持显式双串口参数；串口功能升级不要求手工修改 APP 契约或目标文件。
+此前单串口升级只修改 SDK 主机端设备工具及固件传输入口，当时公开 APP ABI 为 3.7.0、包格式仍为 ASTP、传输版本仍为 ASTERFS 3。已有 APP 工程与已安装 `.ast` 不需要重编。发布 SDK 时同步交付新版设备工具、本文和 `.agents/skills/aster-app-development/SKILL.md`；保留二者目录结构，使 Skill 相对链接可用。Windows 发布 EXE 必须从更新后的工具源码重新生成，不能只复制手册并沿用旧设备 EXE。旧固件继续支持显式双串口参数；串口功能升级不要求手工修改 APP 契约或目标文件。
 
 ## 绘制提交与性能测量
 
@@ -1586,7 +1587,7 @@ Linux/WSL 原生 USB Serial/JTAG 的设备工具关闭 HUPCL，避免关闭串�
 
 这是 APP 侧的轻量保留对象层：矩形、图片、单行文本、裁剪容器，加最小行/列/Grid 布局和按钮/滚动。Host 不保存对象树。所有位置按实际 surface 像素计算，未增加缩放/旋转矩阵、富文本、自动换行、列表虚拟化、滚动惯性或任意形状控件。暂不迁移已有播放器/阅读器。
 
-C/WASM imports 和 ABI 版本保持 3.7.0。G7 增加的是现有帧事务的**可选能力**，旧版同 ABI Host 可能没有它们。`aster_scene_init` 会查询事务、裁剪、字体 epoch 三项；缺任何一项返回 `ASTER_ENOTSUP`，应提示升级配套固件或模拟器，不能靠忽略错误继续绘制。此工作区能力不等同于此前已发布的 3.7 SDK 成品。
+G7实施时C/WASM imports和ABI版本保持3.7.0；本版网络导入另要求3.8。G7 增加的是现有帧事务的**可选能力**，旧版同 ABI Host 可能没有它们。`aster_scene_init` 会查询事务、裁剪、字体 epoch 三项；缺任何一项返回 `ASTER_ENOTSUP`，应提示升级配套固件或模拟器，不能靠忽略错误继续绘制。此工作区能力不等同于此前已发布的 3.7 SDK 成品。
 
 Scene 独占一个普通 RGB565 surface 或 PANEL_CANVAS，使用 `acquire()` 实际返回的 `flags`，不支持 SCALE_FIT 标志。普通 surface 恢复旧/新边界的并集，并按绘制顺序重放相交对象；canvas 每次变更都全屏清除重绘。每个成功帧只 END 一次；静态页不 DRAW/END，但每次 render 仍 QUERY 字体状态。微雪物理面板仍可能全屏发送，不保证 FPS 因 Scene 自动提高。
 
@@ -1779,3 +1780,305 @@ python /absolute/path/to/aster-sdk/tools/prepare_image.py transparent.png images
 模拟器BMP命令按固件相同的RGB565通道混合、色键、裁剪和精确最近邻采样；PNG独立alpha先合成到黑色，fit尺寸采用固件的四舍五入规则。固定原生RGB565图片及采样/混合参考可逐像素比较。运行时不同解码器缩小照片的滤波结果不保证一致，离线预处理到相同尺寸可以避免二次采样差异。
 
 文字的主机系统字体/光栅器与真机cpfont不同，不能用整页文字零像素差证明一致。检查字号选择、基线/边界和覆盖率混合分别通过；对固定同一A8遮罩可要求混合逐像素一致，不同光栅器的字形外观仍需要实体确认，不以任意放宽容差代替检查。G8具体验收状态见固件随源码的验证记录，不复用上一版本的实体结论。
+
+
+## 15. TCP/UDP 网络通信（ABI 3.8）
+
+以下为工作区开发版，未作为Release发布；先前3.7成品不提供这些导入。
+
+
+`app.toml`设置`abi="3.8.0"`、`abi_min="3.8"`、`requires=["network"]`、`permissions=["net"]`。`wifi`权限只用于修改无线连接，不隐式授予网络通信。系统设置先联网，网络接口不会扫描、配网或重连路由器。
+
+```bash
+python tools/aster.py build apps/network-echo --target xtensa
+python tools/aster.py verify apps/network-echo/dist/xtensa/aster.network.echo.ast --target xtensa
+python tools/aster.py deploy apps/network-echo/dist/xtensa/aster.network.echo.ast --target xtensa --port auto --run
+```
+
+电脑运行`node tools/network_echo_server.cjs`。真机与电脑连接同一局域网，并把示例app.toml的`NETWORK_HOST`改为电脑的局域网IPv4。WSL NAT环境可以在Windows运行Node服务器、由WSL通过串口部署；连接目标必须是开发板能访问的Windows局域网地址。
+
+模拟器保持127.0.0.1，运行`node src/cli.js APP.ast --network`，或Windows模拟器带相同参数。`--wifi`只模拟无线状态，不启用真实socket；`--network`启用宿主机实际IPv4连接。真实网络不能与确定性replay同时使用。模拟器复现两槽和数据队列等API限制，不模拟ESP32无线时延、信号、电源或两套堆占用。
+
+### 接口规则
+
+包含`<aster_imports.h>`即可使用`aster_network_get_info/open/send/recv/status/cancel/close`。完整签名、结构和示例见本节下文。所有操作非阻塞；在FRAME或TIMER事件轮询，EAGAIN留到后续事件重试，不能忙循环等待。
+
+- `get_info`为只读快照，返回本机IPv4提示和连接/队列限额，不创建socket或扫描/联网。flags分别为PRESENT=1、UP=2、CARRIER=4、IPV4=8；UP仅代表接口启用，ESP载波标志可能在未关联时保留，不能据此证明关联或互联网可达。结构44字节，锁忙返回EAGAIN；模拟器地址是本机候选地址，不承诺与目标路由一致。
+- IPv4单播，DNS域名或数字IPv4；host是1..253字节ASCII明确长度，不含NUL，端口1..65535。
+- TCP打开异步返回正句柄；超时1..30000ms，涵盖DNS和连接。UDP打开使用空host、0长度、0端口、0超时，等READY再发包。
+- 两个全局连接名额，APP与CLI共用；APP不能读取或关闭其他会话/CLI句柄。每次启动创建新会话。关闭立即使句柄失效，后台完成回收前可能暂占名额，ENOSPC表示资源准入失败。
+- 单次IO最多2048字节，UDP最多1200字节，收发队列各两包。TCP返回入队字节数，必须继续发送未接受后缀；UDP原子排队，满队列EAGAIN。
+- 发送不是送达确认。TCP无进展5秒超时；UDP自入队起5秒（含DNS）。示例对二进制回包使用轮次号、每阶段最多3次超时重试；空包不能携带唯一轮次，不作为可靠消息ACK。自己设计消息边界、序号及重试规则，避免对不可重试操作盲目重复。
+- 收取UDP容量不足返回EMSGSIZE，packet.length给出所需长度，原包保留。packet输出必须有效且与数据区不重叠，先验证全部输出再消费数据。空包是合法长度0，不是断开；无包为EAGAIN。
+- TCP已缓存数据先于EOF/取消/错误返回；读到0是EOF，此后不能继续发送（EPIPE），本版不承诺半关闭后继续写。
+- cancel丢弃未发输出、保留已收输入与终态；close立即失效，APP退出、初始化失败或trap时自动对整个会话执行关闭。无需为清理申请wifi权限。暂停时连接保持活动，应用应考虑暂停期间有限RX队列可能满。
+- 输出结构必须传完整v1大小；更大size允许但只写v1前缀，尾部不改；size/version为输出值，不要求预填。invalid/foreign handle为EBADF，短结构/越界/溢出/重叠输出为EINVAL；不会把Zephyr errno泄漏给APP。
+
+新增稳定错误：ECANCELLED=-19、EMSGSIZE=-20、EPIPE=-21、EDNS=-22、ECONNRESET=-23、ECONNREFUSED=-24、ENETUNREACH=-25。连接超时仍为ETIMEDOUT=-8，队列/锁忙重试为EAGAIN=-15。状态字段phase区分socket、DNS、connect、TX、RX、cancel。不要用负数绝对值解释POSIX errno，也不要用发送入队量推断实际回包量。
+
+TCP服务私有缓冲每槽4KiB PSRAM，UDP每槽6568字节（Xtensa构建），另有常驻4KiB内部RAM线程栈；底层协议栈还占系统内存。不要按模拟器进程占用推算硬件APP可用内存，也不要将这些数字当作未来TLS预算。
+
+### 完整公开声明
+
+以下声明已由umbrella头引入，业务代码只需包含`<aster_imports.h>`，不要重复定义。
+
+```c
+/* SPDX-License-Identifier: MIT
+ * ABI 3.8: bounded asynchronous IPv4 TCP/UDP. Permission: "net";
+ * requires: "network". Does not grant Wi-Fi configuration or auto-reconnect.
+ */
+#ifndef ASTER_NETWORK_H
+#define ASTER_NETWORK_H
+#include "types.h"
+#define ASTER_NETWORK_TCP 1u
+#define ASTER_NETWORK_UDP 2u
+#define ASTER_NETWORK_HOST_MAX 253u
+#define ASTER_NETWORK_IO_MAX 2048u
+#define ASTER_NETWORK_UDP_MAX 1200u
+#define ASTER_NETWORK_SLOTS 2u /* shared by all APPs and diagnostic CLI */
+#define ASTER_NETWORK_OPENING 1u
+#define ASTER_NETWORK_RESOLVING 2u
+#define ASTER_NETWORK_CONNECTING 3u
+#define ASTER_NETWORK_READY 4u
+#define ASTER_NETWORK_EOF 5u
+#define ASTER_NETWORK_FAILED 6u
+#define ASTER_NETWORK_CANCELLED 7u
+#define ASTER_NETWORK_PHASE_SOCKET 1u
+#define ASTER_NETWORK_PHASE_DNS 2u
+#define ASTER_NETWORK_PHASE_CONNECT 3u
+#define ASTER_NETWORK_PHASE_TX 4u
+#define ASTER_NETWORK_PHASE_RX 5u
+#define ASTER_NETWORK_PHASE_CANCEL 6u
+
+#define ASTER_NETWORK_IF_PRESENT 1u
+#define ASTER_NETWORK_IF_UP 2u
+#define ASTER_NETWORK_IF_CARRIER 4u /* raw driver flag, not proof of association */
+#define ASTER_NETWORK_IF_IPV4 8u
+
+typedef struct {
+    uint32_t size, version; /* returned sizeof(struct), 1 */
+    uint32_t flags;
+    char ipv4[16]; /* local IPv4 hint, empty without a preferred address */
+    uint32_t max_connections, tcp_buffer_bytes, udp_payload_max, udp_queue_depth;
+} aster_network_info_t;
+/* Read cached interface/address state and service limits; no scan/connect or
+ * internet probe. A local address does not prove reachability. UP means the
+ * interface is enabled; ESP carrier can remain set while unassociated.
+ * Returns OK with zero flags when no interface exists. size >=sizeof(info).
+ */
+ASTER_I("aster_network_get_info") int32_t aster_network_get_info(
+    aster_network_info_t *info, uint32_t size);
+
+typedef struct {
+    uint32_t size, version; /* returned sizeof(struct), 1 */
+    uint32_t kind, state, phase;
+    int32_t error; /* stable ASTER_E..., never platform errno */
+    uint32_t tx_queued, rx_queued, dropped, local_port;
+    uint64_t tx_bytes, rx_bytes;
+} aster_network_status_t;
+typedef struct {
+    uint32_t size, version; /* returned sizeof(struct), 1 */
+    uint32_t length; /* received length; required length on EMSGSIZE */
+    uint32_t port; /* UDP source port on successful receive; TCP: 0 */
+    char ipv4[16]; /* UDP dotted IPv4 on successful receive; TCP/error: empty */
+} aster_network_packet_t;
+
+/* All calls return promptly. EAGAIN means retry on a later event/timer.
+ * Open returns a positive opaque handle, or ASTER_E.... Host strings use an
+ * explicit length (no NUL, ASCII hostname/IPv4, 1..253); IPv6/multicast are
+ * unsupported. TCP port 1..65535, timeout 1..30000 includes DNS+connect.
+ * UDP open requires host=NULL, host_len=port=timeout_ms=0. No listener API.
+ * Cancelled/failed/EOF handles retain their quota until close or APP exit.
+ */
+ASTER_I("aster_network_open") int32_t aster_network_open(
+    uint32_t kind, const char *host, uint32_t host_len,
+    uint32_t port, uint32_t timeout_ms);
+/* length <=2048, UDP <=1200. TCP: host=NULL, host_len=port=0; returns
+ * accepted byte count (may be partial). UDP: destination required; atomic
+ * datagram enqueue including zero-length. data=NULL is allowed only at zero
+ * length. Acceptance does not prove wire delivery. TCP output expires after
+ * 5s without progress; UDP after 5s total including DNS/queue residence.
+ * UDP TX/RX queue depth=2; oversized/full incoming packets drop and count.
+ */
+ASTER_I("aster_network_send") int32_t aster_network_send(
+    uint32_t handle, const void *data, uint32_t length,
+    const char *host, uint32_t host_len, uint32_t port);
+/* capacity <=2048; zero allowed only for UDP (data may be NULL). packet is
+ * mandatory, size >=sizeof(aster_network_packet_t); validates all outputs
+ * before consuming data. No overlapping data/packet ranges. Returns byte
+ * count, EAGAIN, or stable error. UDP EMSGSIZE preserves the packet and sets
+ * required length. TCP 0 means EOF; UDP 0 means an empty datagram. Buffered
+ * input precedes EOF/cancel/error. TCP writes after observed EOF fail EPIPE;
+ * native Zephyr cannot continue writing after a peer half-close.
+ */
+ASTER_I("aster_network_recv") int32_t aster_network_recv(
+    uint32_t handle, void *data, uint32_t capacity,
+    aster_network_packet_t *packet, uint32_t size);
+/* size >=sizeof(status); larger buffers accepted, tail left untouched. */
+ASTER_I("aster_network_status") int32_t aster_network_status(
+    uint32_t handle, aster_network_status_t *status, uint32_t size);
+/* Cancel retains buffered input/status, discards unsent data. Close makes
+ * the handle invalid immediately; worker cleanup may briefly retain quota.
+ * APP stop/trap/init failure automatically closes the entire session.
+ */
+ASTER_I("aster_network_cancel") int32_t aster_network_cancel(uint32_t handle);
+ASTER_I("aster_network_close") int32_t aster_network_close(uint32_t handle);
+#endif
+```
+
+### 完整事件驱动示例
+
+创建`app.toml`：
+
+```toml
+[app]
+id = "aster.network.echo"
+name = "Network Echo"
+description = "校验 TCP 和 UDP 的实际收发内容。"
+version = "1.0.0"
+abi = "3.8.0"
+abi_min = "3.8"
+aot = true
+stack = 16384
+initial_memory = 262144
+max_memory = 524288
+heap = 65536
+requires = ["network"]
+permissions = ["net"]
+sources = ["src/main.c"]
+
+[build]
+# Replace with the computer's LAN IPv4 for hardware. Loopback is for simulator.
+defines = ['NETWORK_HOST="127.0.0.1"', 'NETWORK_TCP_PORT=17780', 'NETWORK_UDP_PORT=17781']
+```
+
+创建`src/main.c`：
+
+```c
+/* SPDX-License-Identifier: MIT: asynchronous event-driven TCP + UDP echo. */
+#include <aster/aster.h>
+#include <aster_imports.h>
+#include <aster_gfx_engine.h>
+#ifndef NETWORK_HOST
+#define NETWORK_HOST "127.0.0.1"
+#endif
+#ifndef NETWORK_TCP_PORT
+#define NETWORK_TCP_PORT 17780
+#endif
+#ifndef NETWORK_UDP_PORT
+#define NETWORK_UDP_PORT 17781
+#endif
+#ifndef NETWORK_REPEAT
+#define NETWORK_REPEAT 1
+#endif
+#ifndef NETWORK_HOLD
+#define NETWORK_HOLD 0
+#endif
+static const char host[] = NETWORK_HOST;
+static int32_t tcp, udp;
+static uint32_t sent, received, udp_stage, rounds, started, closing;
+static uint32_t info_pending=1;
+static uint32_t udp_wait, udp_retries, retries_total, stale;
+static uint8_t body[1200], input[2048];
+static aster_handle_t surface;
+static aster_ge_t ge;
+static aster_gfx_cmd_t commands[12];
+static uint8_t arena[256];
+static void draw(void)
+{
+    if(!surface)return;
+    char label[80];
+    aster_ge_clear(&ge,ASTER_RGB565(16,20,32));
+    aster_ge_text(&ge,12,34,20,ASTER_WHITE,0,"Network Echo");
+    aster_snprintf(label,sizeof(label),"TCP %u/512  UDP %u",received,udp_stage);
+    aster_ge_text(&ge,12,68,14,ASTER_CYAN,0,label);
+    aster_snprintf(label,sizeof(label),"Rounds %u",rounds);
+    aster_ge_text(&ge,12,94,14,ASTER_WHITE,0,label);
+    aster_ge_rect(&ge,(aster_time_now_ms()/15)%(ge.w-24),124,24,24,ASTER_GREEN);
+    int rc=aster_ge_present(&ge);
+    if(rc<0){aster_logf(ASTER_LOG_ERROR,"NETAPP draw=%d",rc);aster_app_exit(1);}
+}
+static void fail(const char *where, int32_t code)
+{
+    aster_logf(ASTER_LOG_ERROR,"NETAPP FAIL %s code=%d",where,code);
+    aster_app_exit(1);
+}
+int aster_app_init(void)
+{
+    for (uint32_t i=0;i<sizeof(body);++i) body[i]=(uint8_t)i;
+    started=aster_time_now_ms();
+    if(aster_system_has_feature(ASTER_FEATURE_DISPLAY)>0){
+        aster_surface_desc_t desc={sizeof(desc),1,0,0,ASTER_PIXEL_RGB565,ASTER_SURFACE_F_PANEL_CANVAS};
+        aster_surface_buffer_t buffer={.size=sizeof(buffer),.version=1};
+        int rc=aster_surface_create(&desc,sizeof(desc),&surface);
+        if(rc)return rc;
+        rc=aster_surface_acquire(surface,&buffer,sizeof(buffer));if(rc)return rc;
+        if(buffer.width<=24)return ASTER_ENOTSUP;
+        aster_ge_init(&ge,surface,buffer.width,buffer.height,commands,12,arena,sizeof(arena));
+    }
+    return ASTER_OK;
+}
+static int ready(int32_t handle)
+{
+    aster_network_status_t status;
+    int32_t rc=aster_network_status(handle,&status,sizeof(status));
+    if(rc==ASTER_EAGAIN)return 0;
+    if(rc){fail("status",rc);return 0;}
+    if(status.state==ASTER_NETWORK_FAILED||status.state==ASTER_NETWORK_CANCELLED){fail("transport",status.error);return 0;}
+    return status.state==ASTER_NETWORK_READY||status.state==ASTER_NETWORK_EOF;
+}
+void aster_app_event(const aster_event_t *event)
+{
+    if(event->type!=ASTER_EVENT_FRAME)return;
+    draw();
+    if(info_pending){
+        aster_network_info_t info;int result=aster_network_get_info(&info,sizeof(info));
+        if(result==ASTER_EAGAIN)return;
+        if(result){fail("interface info",result);return;}
+        aster_logf(ASTER_LOG_INFO,"NETAPP interface=%s flags=%u slots=%u",info.ipv4,info.flags,info.max_connections);
+        info_pending=0;
+    }
+    if((uint32_t)(aster_time_now_ms()-started)>15000){fail("deadline",ASTER_ETIMEDOUT);return;}
+    uint32_t now=aster_time_now_ms();
+    if((udp_stage==1||udp_stage==2||udp_stage==4) && (uint32_t)(now-udp_wait)>1500){
+        if(udp_retries==3){fail("udp retries",ASTER_ETIMEDOUT);return;}
+        ++udp_retries;++retries_total;
+        udp_stage=udp_stage==4?3:0;
+        aster_logf(ASTER_LOG_WARN,"NETAPP udp retry=%u total=%u",udp_retries,retries_total);
+    }
+    if(closing){
+        if(tcp>0){int rc=aster_network_close(tcp);if(rc==ASTER_EAGAIN)return;tcp=0;}
+        if(udp>0){int rc=aster_network_close(udp);if(rc==ASTER_EAGAIN)return;udp=0;}
+        aster_logf(ASTER_LOG_INFO,"NETAPP PASS rounds=%u retries=%u stale=%u",rounds,retries_total,stale);aster_app_exit(0);return;
+    }
+    if(!tcp){int rc=aster_network_open(ASTER_NETWORK_TCP,host,sizeof(host)-1,NETWORK_TCP_PORT,5000);if(rc==ASTER_EAGAIN)return;if(rc<0){fail("tcp open",rc);return;}tcp=rc;aster_logf(ASTER_LOG_INFO,"NETAPP tcp=%d",tcp);}
+    if(!udp){int rc=aster_network_open(ASTER_NETWORK_UDP,NULL,0,0,0);if(rc==ASTER_EAGAIN)return;if(rc<0){fail("udp open",rc);return;}udp=rc;aster_logf(ASTER_LOG_INFO,"NETAPP udp=%d",udp);}
+    if(!ready(tcp)||!ready(udp))return;
+    if(sent<512){int rc=aster_network_send(tcp,body+sent,512-sent,NULL,0,0);if(rc==ASTER_EAGAIN)return;if(rc<0){fail("tcp send",rc);return;}sent+=rc;}
+    if(received<512){aster_network_packet_t packet;int rc=aster_network_recv(tcp,input,512-received,&packet,sizeof(packet));if(rc!=ASTER_EAGAIN){if(rc<=0||memcmp(input,body+received,rc)){fail("tcp bytes",rc);return;}received+=rc;}}
+    if(udp_stage==0){
+        /* Correlate retried binary datagrams; never count an old echo as new. */
+        body[1196]=(uint8_t)rounds;body[1197]=(uint8_t)(rounds>>8);
+        body[1198]=(uint8_t)(rounds>>16);body[1199]=(uint8_t)(rounds>>24);
+        int rc=aster_network_send(udp,body,1200,host,sizeof(host)-1,NETWORK_UDP_PORT);if(rc==ASTER_EAGAIN)return;if(rc!=1200){fail("udp send",rc);return;}udp_stage=1;udp_wait=now;}
+    if(udp_stage==1){aster_network_packet_t packet;int rc=aster_network_recv(udp,input,1199,&packet,sizeof(packet));if(rc==0){++stale;return;}if(rc!=ASTER_EAGAIN){if(rc!=ASTER_EMSGSIZE||packet.length!=1200){fail("udp short",rc);return;}udp_stage=2;}}
+    if(udp_stage==2){aster_network_packet_t packet;int rc=aster_network_recv(udp,input,sizeof(input),&packet,sizeof(packet));if(rc==ASTER_EAGAIN)return;if(rc!=1200||packet.port!=NETWORK_UDP_PORT){fail("udp bytes",rc);return;}if(memcmp(input+1196,body+1196,4)){++stale;udp_stage=1;return;}if(memcmp(input,body,1200)){fail("udp bytes",rc);return;}udp_retries=0;udp_stage=3;}
+    if(udp_stage==3){int rc=aster_network_send(udp,NULL,0,host,sizeof(host)-1,NETWORK_UDP_PORT);if(rc==ASTER_EAGAIN)return;if(rc){fail("udp empty send",rc);return;}udp_stage=4;udp_wait=now;}
+    if(udp_stage==4){aster_network_packet_t packet;int rc=aster_network_recv(udp,NULL,0,&packet,sizeof(packet));if(rc==ASTER_EAGAIN)return;if(rc==ASTER_EMSGSIZE){rc=aster_network_recv(udp,input,sizeof(input),&packet,sizeof(packet));if(rc>=0){++stale;return;}if(rc==ASTER_EAGAIN)return;}if(rc){fail("udp empty recv",rc);return;}udp_retries=0;udp_stage=5;}
+    if(received==512&&udp_stage==5){
+        ++rounds;if(rounds==1||rounds%50==0)aster_logf(ASTER_LOG_INFO,"NETAPP round=%u tcp=512 udp=1200 empty=ok",rounds);
+        if(NETWORK_HOLD){started=aster_time_now_ms();udp_stage=0;return;}
+        if(rounds>=NETWORK_REPEAT){closing=1;return;}
+        /* Reuse UDP for more rounds. TCP EOF is kept until final close. */
+        udp_stage=0;started=aster_time_now_ms();
+    }
+}
+void aster_app_stop(void)
+{
+    /* Best effort only: runtime also closes all session handles on stop/trap. */
+    if(tcp>0)(void)aster_network_close(tcp);
+    if(udp>0)(void)aster_network_close(udp);
+}
+
+void aster_app_resume(void) { started=aster_time_now_ms(); }
+```

@@ -15,7 +15,7 @@ tests/              契约、目标选择、能力、内存、设备身份和构
 
 ## AI 开发手册与 Skill
 
-[APP 开发手册](docs/app-development.md) 是 ABI 3.7 的自包含开发参考，包含完整工程、准确接口签名、资源与内存规则以及构建部署命令。AI 可以只读取这一份手册来创建工程、编写 APP 和执行构建，无需阅读 SDK/固件源码或工具实现。
+[APP 开发手册](docs/app-development.md) 是 ABI 3.8 的自包含开发参考，包含完整工程、准确接口签名、资源与内存规则以及构建部署命令。AI 可以只读取这一份手册来创建工程、编写 APP 和执行构建，无需阅读 SDK/固件源码或工具实现。
 
 项目提供 [aster-app-development Skill](.agents/skills/aster-app-development/SKILL.md)，入口引用同一份手册。从 SDK 根目录启动支持项目 Skill 的 AI 工具后，可请求“使用 aster-app-development 创建 APP”；其他工具直接读取手册即可。工程可创建在 SDK 外。复制 Skill 到其他位置时需一并携带手册并修正链接。
 
@@ -86,7 +86,7 @@ python tools/aster.py deploy dist/xtensa/aster.gfxshow.ast \
 ## 升级接口契约
 
 ```bash
-python tools/import_contract.py /path/to/aster-contract-3.7.0.zip
+python tools/import_contract.py /path/to/aster-contract-3.8.0.zip
 python -m unittest discover -s tests -v
 ```
 
@@ -120,3 +120,5 @@ orientation = "landscape" # 或 "portrait"；不设置时从竖屏启动
 `tools/prepare_image.py` 可从原图一次生成实际显示尺寸的RGB PNG/BMP：像素画选择 `--kind pixel`（最近邻），照片选择 `--kind photo`（Lanczos）。这是可选Python+Pillow素材工具，普通APP编译不依赖它；便携SDK的三个EXE没有新增图片处理子命令。透明素材需明确底色，launcher独立alpha图标继续使用ASTI RGB565A8。
 
 当前完整开发套件：[`sdk-v3.7.0-20261015.1`](https://github.com/hello-myj/aster-sdk/releases/tag/sdk-v3.7.0-20261015.1)。本版同步图形/Scene、字形清晰度及launcher交互改进，固件内核堆为96 KiB；公开ABI保持3.7.0，尚未增加HTTP/TCP/MQTT接口。配套版本与验证边界见[完整开发套件](docs/development-kit.md)。
+
+工作区开发版ABI3.8新增有界TCP/UDP，尚未发布为Release；此前3.7发布包不能运行这些新导入。见[网络开发说明](docs/network.md)和[Echo示例](apps/network-echo/README.md)。

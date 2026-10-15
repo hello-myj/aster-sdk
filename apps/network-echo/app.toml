@@ -1,0 +1,19 @@
+[app]
+id = "aster.network.echo"
+name = "Network Echo"
+description = "校验 TCP 和 UDP 的实际收发内容。"
+version = "1.0.0"
+abi = "3.8.0"
+abi_min = "3.8"
+aot = true
+stack = 16384
+initial_memory = 262144
+max_memory = 524288
+heap = 65536
+requires = ["network"]
+permissions = ["net"]
+sources = ["src/main.c"]
+
+[build]
+# Replace with the computer's LAN IPv4 for hardware. Loopback is for simulator.
+defines = ['NETWORK_HOST="127.0.0.1"', 'NETWORK_TCP_PORT=17780', 'NETWORK_UDP_PORT=17781']

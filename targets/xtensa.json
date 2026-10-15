@@ -2,7 +2,7 @@
   "schema": 1,
   "id": "xtensa",
   "product": "aster",
-  "abi": "3.7.0",
+  "abi": "3.8.0",
   "system": "zephyr",
   "cpu": "xtensa",
   "aot_target": "xtensa",
@@ -22,7 +22,8 @@
     "storage.app",
     "rtc",
     "psram",
-    "framebuffer"
+    "framebuffer",
+    "network"
   ],
   "deployment": {
     "transport": "serial",

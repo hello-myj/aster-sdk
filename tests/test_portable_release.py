@@ -22,10 +22,11 @@ class PortableReleaseTests(unittest.TestCase):
             platform = (ROOT / 'targets/xtensa.json').read_bytes()
             (root / 'targets/xtensa.json').write_bytes(platform)
             api = (ROOT / 'contract/api.json').read_bytes()
+            abi = json.loads(api)['abi']
             files = {'contract/api.json': api, 'include/aster/new.h': b'void aster_new(void);'}
             for name, limit, caps in [('lckfb-s3', 7864320, ['camera']),
                                       ('waveshare-35b', 4194304, ['display'])]:
-                target = {'schema': 1, 'id': name, 'product': 'aster', 'abi': '3.7.0',
+                target = {'schema': 1, 'id': name, 'product': 'aster', 'abi': abi,
                           'cpu': 'xtensa', 'aot_target': 'xtensa', 'system': 'zephyr',
                           'capabilities': caps, 'display': {'width': 320, 'height': 240},
                           'memory': {'max_linear': limit}}
@@ -37,7 +38,7 @@ class PortableReleaseTests(unittest.TestCase):
             (root / 'contract/lock.json').write_text(json.dumps(previous))
             bundle = Path(folder) / 'contract.zip'
             def write_bundle():
-                lock = {'schema': 1, 'product': 'aster', 'abi': '3.7.0',
+                lock = {'schema': 1, 'product': 'aster', 'abi': abi,
                         'sha256': {n: hashlib.sha256(d).hexdigest() for n, d in files.items()}}
                 with zipfile.ZipFile(bundle, 'w') as archive:
                     archive.writestr('contract/lock.json', json.dumps(lock))

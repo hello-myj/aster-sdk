@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "product": "aster",
-  "abi": "3.7.0",
+  "abi": "3.8.0",
   "imports": {
     "env": [
       "__cxa_allocate_exception",
@@ -63,6 +63,13 @@
       "aster_kv_get",
       "aster_kv_set",
       "aster_log",
+      "aster_network_cancel",
+      "aster_network_close",
+      "aster_network_get_info",
+      "aster_network_open",
+      "aster_network_recv",
+      "aster_network_send",
+      "aster_network_status",
       "aster_surface_acquire",
       "aster_surface_create",
       "aster_surface_destroy",
@@ -201,6 +208,13 @@
     "aster_wifi_get_saved_ssid": "(ii)i",
     "aster_wifi_reconnect": "()i",
     "aster_wifi_scan_results": "(ii)i",
+    "aster_network_get_info": "(ii)i",
+    "aster_network_open": "(iiiii)i",
+    "aster_network_send": "(iiiiii)i",
+    "aster_network_recv": "(iiiii)i",
+    "aster_network_status": "(iii)i",
+    "aster_network_cancel": "(i)i",
+    "aster_network_close": "(i)i",
     "aster_wifi_scan_start": "()i",
     "aster_wifi_status": "(ii)i"
   },
@@ -232,6 +246,7 @@
     "rtc": 12,
     "psram": 13,
     "framebuffer": 14,
+    "network": 15,
     "storage.app": 11
   }
 }

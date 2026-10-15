@@ -95,7 +95,7 @@ LIFECYCLE_EXPORTS = [
 VALID_CAPS = {
     "display", "touch", "mouse", "keyboard", "camera", "audio-in", "audio-out",
     "wifi", "bluetooth", "accelerometer", "gyroscope", "filesystem", "storage.app",
-    "rtc", "psram", "framebuffer",
+    "rtc", "psram", "framebuffer", "network",
 }
 VALID_CATEGORIES = {"game", "tool", "system"}
 # The spellings live in aster_board.ORIENTATIONS -- one copy, shared with
@@ -103,7 +103,7 @@ VALID_CATEGORIES = {"game", "tool", "system"}
 # verifier has to run anywhere). Two values and no "any": an absent key is how
 # a package says "follow the panel" (see ASTER_ORIENT_ANY in aster_pkg.h).
 VALID_ORIENTATIONS = aster_board.ORIENTATIONS
-VALID_PERMS = {"fs", "kv", "appmgr", "sd", "wifi"}
+VALID_PERMS = {"fs", "kv", "appmgr", "sd", "wifi", "net"}
 
 
 # ---------- toolchain discovery (env -> repo-bundled -> /opt -> PATH) ----------
