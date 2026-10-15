@@ -1818,6 +1818,9 @@ python tools/aster.py deploy apps/network-echo/dist/xtensa/aster.network.echo.as
 
 TCP服务私有缓冲每槽4KiB PSRAM，UDP每槽6568字节（Xtensa构建），另有常驻4KiB内部RAM线程栈；底层协议栈还占系统内存。不要按模拟器进程占用推算硬件APP可用内存，也不要将这些数字当作未来TLS预算。
 
+当前两板固件另有共享的底层协议固定池：数据分片256字节，RX24片、TX32片，net_pkt描述符RX/TX各8个。两板ELF中的数据与net_buf数组合计15904字节PSRAM；这部分由系统与APP共用，不能算成每个APP的私有配额。两连接准入不等于系统协议资源永远充足，APP仍需处理底层资源不足和UDP有限重试。诊断采样器不包含在日常固件中。
+
+
 ### 完整公开声明
 
 以下声明已由umbrella头引入，业务代码只需包含`<aster_imports.h>`，不要重复定义。
