@@ -2,14 +2,14 @@
 
 SDK 是独立的 APP 开发环境。开发 APP 无需安装 Zephyr、ESP-IDF 或下载 Espressif 驱动库，也不依赖固件源码目录。固件维护者构建整机镜像时才使用这些依赖。
 
-从 [SDK Release](https://github.com/hello-myj/aster-sdk/releases/tag/sdk-v3.7.0-20261015) 下载自己平台的完整 SDK 包：Windows ZIP 或 Linux tar.gz。每个包同时包含：
+从 [SDK Release](https://github.com/hello-myj/aster-sdk/releases/tag/sdk-v3.7.0-20261015.1) 下载自己平台的完整 SDK 包：Windows ZIP 或 Linux tar.gz。每个包同时包含：
 
 - APP 开发 SDK：CLI、WASM/Xtensa AOT 编译器、开发手册、AI Skill、示例及素材。
 - `firmware/`：LCKFB 与微雪两款板的独立固件镜像、构建身份和 SD 字体资源。
 - `simulator/`：对应主机的便携模拟器与 Node 运行时，无需另装 Node。
 - `development-kit.json` 和 `contract/release-family.json`：这组 SDK、固件和模拟器的 tag、完整提交号、ABI、AOT 格式、镜像与组合载荷的 SHA256。
 
-本组版本为 SDK `sdk-v3.7.0-20261015`、固件 `firmware-v0.1.0-20261015`、模拟器 `sim-v0.2.0-20261015`，公开 ABI 为 3.7.0，Xtensa AOT 格式为 6。版本以包内 JSON 为准，SDK Release 汇集全部成品，不需要到其他仓库寻找配套版本。其他 ABI 相同的组合不自动视为已验收组合。
+本组版本为 SDK `sdk-v3.7.0-20261015.1`、固件 `firmware-v0.1.0-20261015`、模拟器 `sim-v0.2.0-20261015`，公开 ABI 为 3.7.0，Xtensa AOT 格式为 6。版本以包内 JSON 为准，SDK Release 汇集全部成品，不需要到其他仓库寻找配套版本。其他 ABI 相同的组合不自动视为已验收组合。
 
 模拟器实现这组公开 APP 接口的主机模型：执行 WASM，模拟图形、输入、存储和部分外设，忽略 AOT；不模拟 ESP32 CPU、Zephyr 调度、QSPI/I2C、电气故障或固件 watchdog 的完整复位。模拟通过后仍需在所选开发板镜像上验证 AOT 与硬件行为。
 

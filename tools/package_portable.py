@@ -164,6 +164,13 @@ def stage_compilers(args, plan, host, cache):
         raise ValueError('a --*-wamrc override pins one compiler; stage each profile locally instead')
     if windows and args.windows_toolchain_bundle and len(plan) > 1:
         raise ValueError('a pinned toolchain bundle serves one profile; stage each profile locally instead')
+    if windows and args.windows_toolchain_bundle:
+        # Clean release runners have no local Windows compiler cache. Validate
+        # and load the supplied bundle before checking any source-tree paths.
+        wasi, compiler = load_toolchain_bundle(args.windows_toolchain_bundle,
+                                              cache/'selected-windows-toolchain', args.boards[0])
+        backend, = next(iter(plan.values()))['backends']
+        return wasi, {backend: compiler}
     wamrcs = {}
     for name, record in sorted(plan.items()):
         backend, = record['backends']
@@ -176,11 +183,6 @@ def stage_compilers(args, plan, host, cache):
         wamrcs[backend] = wamrc
         if wasi is None:
             wasi = ROOT / entry['wasi']
-    if windows and args.windows_toolchain_bundle:
-        # Pinned remote bundles carry one profile's compiler; --target selects among the rest.
-        wasi, bundle_wamrc = load_toolchain_bundle(args.windows_toolchain_bundle, cache/'selected-windows-toolchain', args.boards[0])
-        backend, = next(iter(plan.values()))['backends']
-        wamrcs[backend] = bundle_wamrc
     return wasi, wamrcs
 
 

@@ -119,4 +119,4 @@ orientation = "landscape" # 或 "portrait"；不设置时从竖屏启动
 
 `tools/prepare_image.py` 可从原图一次生成实际显示尺寸的RGB PNG/BMP：像素画选择 `--kind pixel`（最近邻），照片选择 `--kind photo`（Lanczos）。这是可选Python+Pillow素材工具，普通APP编译不依赖它；便携SDK的三个EXE没有新增图片处理子命令。透明素材需明确底色，launcher独立alpha图标继续使用ASTI RGB565A8。
 
-当前完整开发套件：[`sdk-v3.7.0-20261015`](https://github.com/hello-myj/aster-sdk/releases/tag/sdk-v3.7.0-20261015)。本版同步图形/Scene、字形清晰度及launcher交互改进，固件内核堆为96 KiB；公开ABI保持3.7.0，尚未增加HTTP/TCP/MQTT接口。配套版本与验证边界见[完整开发套件](docs/development-kit.md)。
+当前完整开发套件：[`sdk-v3.7.0-20261015.1`](https://github.com/hello-myj/aster-sdk/releases/tag/sdk-v3.7.0-20261015.1)。本版同步图形/Scene、字形清晰度及launcher交互改进，固件内核堆为96 KiB；公开ABI保持3.7.0，尚未增加HTTP/TCP/MQTT接口。配套版本与验证边界见[完整开发套件](docs/development-kit.md)。

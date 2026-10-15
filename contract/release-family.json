@@ -1,10 +1,10 @@
 {
   "schema": 1,
   "family": "aster-20261015",
-  "sdk_tag": "sdk-v3.7.0-20261015",
+  "sdk_tag": "sdk-v3.7.0-20261015.1",
   "abi": "3.7.0",
-  "release_url": "https://github.com/hello-myj/aster-sdk/releases/tag/sdk-v3.7.0-20261015",
-  "download_base": "https://github.com/hello-myj/aster-sdk/releases/download/sdk-v3.7.0-20261015",
+  "release_url": "https://github.com/hello-myj/aster-sdk/releases/tag/sdk-v3.7.0-20261015.1",
+  "download_base": "https://github.com/hello-myj/aster-sdk/releases/download/sdk-v3.7.0-20261015.1",
   "components": {
     "firmware": {
       "repository": "hello-myj/aster-firmware",

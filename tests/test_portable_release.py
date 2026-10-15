@@ -180,6 +180,33 @@ class PortableReleaseTests(unittest.TestCase):
                 self.assertEqual(build.find_wamrc('riscv32'),riscv)   # multi-CPU packages pick per backend
                 self.assertEqual(build.bundled_wamrcs(),{'riscv32':riscv})
 
+    def test_windows_bundle_works_without_local_compilers(self):
+        from types import SimpleNamespace
+        import toolchain_bundle
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);bundle=root/'compiler.zip'
+            files={'wamrc.exe':b'validated native compiler', 'wasi/bin/clang.exe':b'clang'}
+            info={'schema':1,'profile':'p1','host':'windows-x64',
+                  'sha256':{n:hashlib.sha256(v).hexdigest() for n,v in files.items()}}
+            with zipfile.ZipFile(bundle,'w') as z:
+                for name,data in files.items():z.writestr(name,data)
+                z.writestr('bundle.json',json.dumps(info))
+            args=SimpleNamespace(windows_wasi=None,windows_wamrc=None,
+                                 windows_toolchain_bundle=bundle,boards=['xtensa'])
+            entry={'wamrc':'missing/wamrc.exe','wasi':'missing/wasi',
+                   'wamrc_sha256':info['sha256']['wamrc.exe']}
+            plan={'p1':{'entry':entry,'backends':{'xtensa':['xtensa']}}}
+            selected=({}, {'profile':'p1'}, {}, entry)
+            with patch.object(package_portable,'ROOT',root), patch.object(toolchain_bundle,'select',return_value=selected):
+                wasi,compilers=package_portable.stage_compilers(args,plan,'windows-x64',root/'cache')
+                self.assertEqual((wasi/'bin/clang.exe').read_bytes(),files['wasi/bin/clang.exe'])
+                self.assertEqual(compilers['xtensa'].read_bytes(),files['wamrc.exe'])
+                self.assertFalse((root/'missing').exists())
+                # The early bundle route must retain native compiler hash validation.
+                entry['wamrc_sha256']='0'*64
+                with self.assertRaisesRegex(ValueError,'SHA256'):
+                    package_portable.stage_compilers(args,plan,'windows-x64',root/'other-cache')
+
     def test_wrong_native_compiler_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             binary=Path(folder)/'wamrc';binary.write_bytes(b'wrong architecture')
