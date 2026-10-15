@@ -1,0 +1,16 @@
+[app]
+id = "aster.music.online"
+name = "在线音乐"
+description = "国内曲目在线点播，边下载边播放，无需保存整首歌。"
+version = "1.0.0"
+abi = "3.10.0"
+abi_min = "3.10"
+aot = true
+stack = 16384
+initial_memory = 262144
+max_memory = 524288
+heap = 65536
+category = "tool"
+requires = ["display", "touch", "http", "tls", "audio-out", "audio-stream"]
+permissions = ["net"]
+sources = ["src/main.c"]

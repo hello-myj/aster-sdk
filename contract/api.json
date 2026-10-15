@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "product": "aster",
-  "abi": "3.9.0",
+  "abi": "3.10.0",
   "imports": {
     "env": [
       "__cxa_allocate_exception",
@@ -31,6 +31,11 @@
       "aster_audio_set_volume",
       "aster_audio_start_file",
       "aster_audio_stop",
+      "aster_audio_stream_close",
+      "aster_audio_stream_finish",
+      "aster_audio_stream_open",
+      "aster_audio_stream_status",
+      "aster_audio_stream_write",
       "aster_cam_info",
       "aster_cam_read",
       "aster_display_count",
@@ -163,6 +168,11 @@
     "aster_audio_seek": "(i)i",
     "aster_audio_set_volume": "(i)i",
     "aster_audio_start_file": "(ii)i",
+    "aster_audio_stream_open": "(i)i",
+    "aster_audio_stream_write": "(iii)i",
+    "aster_audio_stream_finish": "(i)i",
+    "aster_audio_stream_status": "(iii)i",
+    "aster_audio_stream_close": "(i)i",
     "aster_audio_stop": "()i",
     "aster_display_count": "()i",
     "aster_display_get_info": "(iii)i",
@@ -261,6 +271,7 @@
     "network": 15,
     "http": 16,
     "tls": 17,
+    "audio-stream": 18,
     "storage.app": 11
   }
 }
