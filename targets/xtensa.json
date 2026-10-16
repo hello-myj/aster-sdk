@@ -2,7 +2,7 @@
   "schema": 1,
   "id": "xtensa",
   "product": "aster",
-  "abi": "3.10.0",
+  "abi": "3.11.0",
   "system": "zephyr",
   "cpu": "xtensa",
   "aot_target": "xtensa",
@@ -26,7 +26,8 @@
     "network",
     "http",
     "tls",
-    "audio-stream"
+    "audio-stream",
+    "mqtt"
   ],
   "deployment": {
     "transport": "serial",

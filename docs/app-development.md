@@ -1,6 +1,6 @@
 # Aster APP SDK 开发手册（AI 可直接使用）
 
-适用版本：SDK ABI **3.10.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-3.10.0.zip`（工作区开发版），更新日期 2026-10-16。具体开发板由固件选择，SDK 不提供 `--board`。
+适用版本：SDK ABI **3.11.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-3.11.0.zip`（工作区开发版），更新日期 2026-10-16。具体开发板由固件选择，SDK 不提供 `--board`。
 
 本文是独立开发所需的完整参考：创建工程、配置、生命周期、绘图、输入、资源、设备接口、构建、部署及排错。本文中的类型和函数签名来自此版本 SDK 的公开契约。阅读本文即可编写 APP；不需要再读取固件代码、SDK 头文件、模板代码或工具实现。编译器会自动使用 SDK 自带的头文件和辅助库。
 
@@ -126,8 +126,8 @@ my-counter/
 - `name`：显示名称，默认 ID。使用 UTF-8，建议短名称。
 - `description`：可选的 APP 简介，launcher 主页从安装包读取。单行 UTF-8 字符串，最多 127 字节（约 42 个汉字）；建议简短。缺省或空字符串时介绍区域留空。修改后重新构建并安装 `.ast` 包即可更新，无需修改 launcher。旧固件可能忽略此字段。
 - `version`：APP 自身版本字符串，默认 `"0.0.0"`，与 ABI 无关。
-- `abi`：编译目标 ABI，当前填 `"3.10.0"`；省略时使用 SDK 契约版本。
-- `abi_min`：最低固件 ABI，当前新工程填 `"3.10"`。不要为了兼容旧设备而降低它却继续引用新接口。它的主版本必须与 `abi` 相同。
+- `abi`：编译目标 ABI，当前填 `"3.11.0"`；省略时使用 SDK 契约版本。
+- `abi_min`：最低固件 ABI，当前新工程填 `"3.11"`。不要为了兼容旧设备而降低它却继续引用新接口。它的主版本必须与 `abi` 相同。
 - `aot`：真实设备必须为 `true`，包同时包含 WASM 与目标 CPU 的 AOT；缺少 AOT 编译器会报错。模拟器可使用 `false` / `--no-aot`。设备会拒绝缺少 AOT、CPU 不匹配或 AOT 加载失败的 APP，不会自动回退 WASM。AOT 不是跨 CPU 通用二进制。
 - `optimize`：`"O0"`、`"O1"`、`"O2"`、`"O3"`、`"Os"` 或 `"Oz"`，默认 `"O2"`；设备 APP 推荐 `"Os"`。
 - `orientation`：`"portrait"` 或 `"landscape"`，在初始化前应用。当前设备普通 APP 默认竖屏；需要横屏时明确声明，运行时仍必须查询坐标空间。
@@ -2214,3 +2214,110 @@ HTTP read 返回 0 后调用 finish，等状态 DONE，再 close；HTTP 失败�
 完整事件驱动代码见 `apps/online-music/src/main.c`，包含部分写入、取消、切歌、HTTP/音频句柄回收和有界 JSON 解析。当前模拟器未提供流式音频能力，不应宣告 `audio-stream`；此示例需匹配的实机固件。
 
 MP3音质优化固件按源采样率输出（8–48kHz），原生PCM/录音/音效仍以audio_get_info返回的格式为准，不需要更换ABI或重编APP。
+
+## 18. MQTT/MQTTS（ABI 3.11 工作区开发版）
+
+工程设置 `abi="3.11.0"`、`abi_min="3.11"`、`requires=["mqtt","network"]`、`permissions=["net"]`；MQTTS 另需 `tls` 能力。模拟器需 `--network`，使用系统真实时间，不支持确定性 replay 中的真实网络。该接口仍独立于 TCP/UDP/HTTP；后续网络统一接口迁移将单独进行。
+
+公开类型、常量和签名如下，所有返回值采用第 15 节稳定错误域，禁止使用平台 errno：
+
+```c
+/* SPDX-License-Identifier: MIT
+ * ABI 3.11: bounded asynchronous MQTT 3.1.1. Permission "net", feature
+ * "mqtt"; TLS connections additionally require "tls". No Wi-Fi setup API.
+ */
+#ifndef ASTER_MQTT_H
+#define ASTER_MQTT_H
+#include "types.h"
+#define ASTER_MQTT_TOPIC_LIMIT 128u
+#define ASTER_MQTT_PAYLOAD_LIMIT 1024u
+#define ASTER_MQTT_FLAG_TLS 1u
+#define ASTER_MQTT_FLAG_RECONNECT 2u
+#define ASTER_MQTT_FLAG_WILL_RETAIN 4u
+#define ASTER_MQTT_MESSAGE_RETAIN 1u
+#define ASTER_MQTT_MESSAGE_DUP 2u
+#define ASTER_MQTT_STATE_CONNECTING 1u
+#define ASTER_MQTT_STATE_HANDSHAKE 2u
+#define ASTER_MQTT_STATE_CONNACK 3u
+#define ASTER_MQTT_STATE_READY 4u
+#define ASTER_MQTT_STATE_BACKOFF 5u
+#define ASTER_MQTT_STATE_FAILED 6u
+#define ASTER_MQTT_STATE_CANCELLED 7u
+typedef struct {
+    uint32_t size, version; /* sizeof=80, version=1; reserved must be zero */
+    uint32_t flags, port, timeout_ms, keepalive_s, will_qos, reserved;
+    /* Exact byte lengths, excluding NUL; no UINT32_MAX string mode.
+     * Absent optional fields MUST be {0,0}. Password/will_payload binary. */
+    aster_string_t host, client_id, username, password, will_topic, will_payload;
+} aster_mqtt_options_t;
+typedef struct {
+    uint32_t size, version, state;
+    int32_t error;
+    uint32_t reconnects, queued, pending, subscriptions, received, sent;
+    uint32_t connack, last_operation, last_operation_kind;
+    int32_t operation_error;
+    uint32_t certificate_flags, reserved; /* certificate bits: ASTER_HTTP_CERT_* */
+} aster_mqtt_status_t; /* sizeof=64 */
+typedef struct {
+    uint32_t size, version, length, topic_length, qos, flags;
+    char topic[128]; /* exact topic_length bytes; no NUL required */
+    uint8_t data[1024]; /* exact length bytes, may contain NUL or be empty */
+} aster_mqtt_message_t; /* sizeof=1176; unused bytes zero */
+/* Positive opaque handle or stable ASTER_E*. All inputs copied on success.
+ * Host: ASCII DNS/IPv4 <=253B; client ID UTF-8 1..64B; username <=128B,
+ * password <=128B and requires username; Will topic <=128B, payload <=256B.
+ * port 1..65535; timeout 100..30000ms per connection attempt;
+ * keepalive 5..300s, serviced without APP polling. QoS only 0/1.
+ * clean_session=true. Two transport slots globally shared with TCP/UDP/HTTP,
+ * one verified TLS slot. No caller CA/skip-verify; synchronized clock required.
+ * Every call is nonblocking and may return EAGAIN; retry on a later timer.
+ */
+ASTER_I("aster_mqtt_connect") int32_t aster_mqtt_connect(
+    const aster_mqtt_options_t *options, uint32_t size);
+ASTER_I("aster_mqtt_status") int32_t aster_mqtt_status(
+    uint32_t handle, aster_mqtt_status_t *status, uint32_t size);
+/* Publish/sub/unsub return a positive operation sequence, not delivery proof.
+ * At most 2 queued operations, 4 filters, 2 received messages per client.
+ * Topic names reject wildcards; filters permit full-level + and terminal #.
+ * publish data=NULL only with length=0; retain 0/1; UTF-8 topic <=128 bytes.
+ */
+ASTER_I("aster_mqtt_publish") int32_t aster_mqtt_publish(uint32_t handle,
+    const char *topic, uint32_t topic_length, const void *data, uint32_t length,
+    uint32_t qos, uint32_t retain);
+ASTER_I("aster_mqtt_subscribe") int32_t aster_mqtt_subscribe(uint32_t handle,
+    const char *filter, uint32_t length, uint32_t qos);
+ASTER_I("aster_mqtt_unsubscribe") int32_t aster_mqtt_unsubscribe(
+    uint32_t handle, const char *filter, uint32_t length);
+/* operation: OK writes stable completion error (inspect it); EAGAIN pending;
+ * ENOENT unknown/evicted (last 4 completions). QoS0 means queued to transport;
+ * QoS1 means PUBACK, not application/business acknowledgement.
+ * recv: OK copies one whole message including empty payload; EAGAIN empty.
+ * Invalid output never consumes data. Unaligned output allowed; tail untouched.
+ */
+ASTER_I("aster_mqtt_operation") int32_t aster_mqtt_operation(
+    uint32_t handle, uint32_t sequence, int32_t *error);
+ASTER_I("aster_mqtt_recv") int32_t aster_mqtt_recv(
+    uint32_t handle, aster_mqtt_message_t *message, uint32_t size);
+/* Reconnect backoff 1..30s restores confirmed subscriptions only. Pending ops
+ * fail on loss; no offline/retry publish queue. Duplicates carry DUP; consumers
+ * must drain messages or backpressure may lead to keepalive timeout.
+ * cancel aborts (may trigger Will); close invalidates immediately and attempts
+ * bounded DISCONNECT (unavailable links may still trigger Will). Terminal
+ * handles retain quota until close/APP exit. Stop/trap/init failure closes all.
+ */
+ASTER_I("aster_mqtt_cancel") int32_t aster_mqtt_cancel(uint32_t handle);
+ASTER_I("aster_mqtt_close") int32_t aster_mqtt_close(uint32_t handle);
+#endif
+
+```
+
+实现步骤：
+
+1. 初始化图形及状态，首个 FRAME 中构造 options。size=sizeof(options)、version=1，其他字段清零。host/client_id 等引用使用 `(aster_string_t){(uint32_t)(uintptr_t)text, byte_length}`；宿主同步复制后可释放或修改。可选空字段使用 `{0,0}`。
+2. connect 返回正句柄后，用 FRAME/TIMER 非阻塞查询 status；EAGAIN 下帧重试。只在 READY 时订阅/发送；FAILED/CANCELLED 保留错误与配额，必须 close。
+3. subscribe 返回正操作序号后查询 operation。函数返回 OK 仅表示查询成功，必须检查输出 error；EAGAIN 表示仍未完成。只保存最近四个完成结果，及时读取，不在 UI 线程循环等待。
+4. publish 同样查询完成结果。QoS0 表示进入传输层，QoS1 表示 broker PUBACK；业务可靠交付仍需消息唯一 ID、应用层确认和去重。重连不会重新发送未确认业务消息。
+5. recv 一次复制整条消息，返回 OK 时 length=0 仍是有效空消息。topic 按 topic_length 读取，不能直接当 NUL 结束字符串。缓冲无效时不消费消息；每帧有界循环排空，避免阻塞心跳。DUP 标记不能替代业务 ID。
+6. 退出时可 best-effort close；Runtime 仍会在停止、初始化失败或 trap 后关闭该 APP 的会话。cancel 不释放句柄配额，且可能触发遗嘱；close 尝试发送 DISCONNECT，但断网时无法保证抑制遗嘱。
+
+完整工程见 SDK 自带 `apps/mqtt-echo`。默认 broker 为模拟器本机 127.0.0.1:1883；实机改成设备能访问的 LAN 地址。每台设备使用唯一 client_id；不要在公开源码写生产密码。MQTTS 使用管理员根证书及已同步时钟，APP 无关闭校验的选项。

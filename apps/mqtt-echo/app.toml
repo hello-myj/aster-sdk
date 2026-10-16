@@ -1,0 +1,20 @@
+[app]
+id = "aster.mqtt.echo"
+name = "MQTT Echo"
+description = "通过 MQTT 实际收发消息，显示连接和校验计数。"
+version = "1.0.0"
+abi = "3.11.0"
+abi_min = "3.11"
+aot = true
+stack = 16384
+initial_memory = 262144
+max_memory = 524288
+heap = 65536
+requires = ["mqtt", "network"]
+permissions = ["net"]
+sources = ["src/main.c"]
+
+[build]
+# Simulator loopback. Hardware: replace with the broker's LAN hostname/IPv4.
+# TLS additionally needs requires=["mqtt","network","tls"] and a trusted root.
+defines = ['MQTT_HOST="127.0.0.1"', 'MQTT_PORT=1883', 'MQTT_TLS=0']

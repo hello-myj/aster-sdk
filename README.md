@@ -15,7 +15,7 @@ tests/              契约、目标选择、能力、内存、设备身份和构
 
 ## AI 开发手册与 Skill
 
-[APP 开发手册](docs/app-development.md) 是 ABI 3.10 的自包含开发参考，包含完整工程、准确接口签名、资源与内存规则以及构建部署命令。AI 可以只读取这一份手册来创建工程、编写 APP 和执行构建，无需阅读 SDK/固件源码或工具实现。
+[APP 开发手册](docs/app-development.md) 是 ABI 3.11 的自包含开发参考，包含完整工程、准确接口签名、资源与内存规则以及构建部署命令。AI 可以只读取这一份手册来创建工程、编写 APP 和执行构建，无需阅读 SDK/固件源码或工具实现。
 
 项目提供 [aster-app-development Skill](.agents/skills/aster-app-development/SKILL.md)，入口引用同一份手册。从 SDK 根目录启动支持项目 Skill 的 AI 工具后，可请求“使用 aster-app-development 创建 APP”；其他工具直接读取手册即可。工程可创建在 SDK 外。复制 Skill 到其他位置时需一并携带手册并修正链接。
 
@@ -86,7 +86,7 @@ python tools/aster.py deploy dist/xtensa/aster.gfxshow.ast \
 ## 升级接口契约
 
 ```bash
-python tools/import_contract.py /path/to/aster-contract-3.10.0.zip
+python tools/import_contract.py /path/to/aster-contract-3.11.0.zip
 python -m unittest discover -s tests -v
 ```
 
@@ -126,3 +126,5 @@ orientation = "landscape" # 或 "portrait"；不设置时从竖屏启动
 ABI3.9阶段已完成HTTP/HTTPS的N2双板验收，未发布Release；参见[HTTP开发说明](docs/http.md)及开发手册第16节。
 
 ABI 3.10 工作区增加 [MP3 分段流输入](docs/audio-stream.md) 和 [在线音乐示例](apps/online-music/README.md)，未发布 Release。
+
+ABI 3.11 工作区增加有界 MQTT/MQTTS 客户端及 [MQTT Echo](apps/mqtt-echo/README.md)，尚未发布 Release。

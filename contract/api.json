@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "product": "aster",
-  "abi": "3.10.0",
+  "abi": "3.11.0",
   "imports": {
     "env": [
       "__cxa_allocate_exception",
@@ -74,6 +74,15 @@
       "aster_kv_get",
       "aster_kv_set",
       "aster_log",
+      "aster_mqtt_cancel",
+      "aster_mqtt_close",
+      "aster_mqtt_connect",
+      "aster_mqtt_operation",
+      "aster_mqtt_publish",
+      "aster_mqtt_recv",
+      "aster_mqtt_status",
+      "aster_mqtt_subscribe",
+      "aster_mqtt_unsubscribe",
       "aster_network_cancel",
       "aster_network_close",
       "aster_network_get_info",
@@ -237,6 +246,15 @@
     "aster_http_header": "(iiiiiii)i",
     "aster_http_cancel": "(i)i",
     "aster_http_close": "(i)i",
+    "aster_mqtt_connect": "(ii)i",
+    "aster_mqtt_status": "(iii)i",
+    "aster_mqtt_publish": "(iiiiiii)i",
+    "aster_mqtt_subscribe": "(iiii)i",
+    "aster_mqtt_unsubscribe": "(iii)i",
+    "aster_mqtt_operation": "(iii)i",
+    "aster_mqtt_recv": "(iii)i",
+    "aster_mqtt_cancel": "(i)i",
+    "aster_mqtt_close": "(i)i",
     "aster_wifi_scan_start": "()i",
     "aster_wifi_status": "(ii)i"
   },
@@ -271,6 +289,7 @@
     "network": 15,
     "http": 16,
     "tls": 17,
+    "mqtt": 19,
     "audio-stream": 18,
     "storage.app": 11
   }
