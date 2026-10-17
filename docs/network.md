@@ -1,6 +1,6 @@
 # APP 网络通信（ABI 3.8，工作区开发版）
 
-公开TCP/UDP需要配套ABI3.8固件/模拟器；此前3.7 Release不具备这些导入。只需APP SDK进行开发，不依赖固件源码、Zephyr、ESP-IDF或芯片驱动。旧APP继续可用；引用新导入的APP必须设置`abi_min="3.8"`。当前工作区ABI3.9新增HTTP/HTTPS客户端，见[HTTP开发说明](http.md)。MQTT、个人热点APP控制尚未提供；N2已完成本阶段双板验收，未发布Release。
+公开TCP/UDP需要配套ABI3.8固件/模拟器；此前3.7 Release不具备这些导入。只需APP SDK进行开发，不依赖固件源码、Zephyr、ESP-IDF或芯片驱动。旧APP继续可用；引用新导入的APP必须设置`abi_min="3.8"`。当前工作区ABI3.11已包含TCP/UDP（最低ABI3.8）、HTTP/HTTPS（最低ABI3.9）及MQTT/MQTTS（最低ABI3.11）；见[HTTP开发说明](http.md)和[开发手册第18节](app-development.md#18-mqttmqttsabi-311-工作区开发版)。N1–N3已完成本阶段双板验收，N4复合验收范围与结果由对应固件验证记录维护；上述新增接口尚未发布Release。个人热点APP控制尚未提供。
 
 ## 工程与运行
 
@@ -23,7 +23,7 @@ python tools/aster.py deploy apps/network-echo/dist/xtensa/aster.network.echo.as
 - `get_info`为只读快照，返回本机IPv4提示和连接/队列限额，不创建socket或扫描/联网。flags分别为PRESENT=1、UP=2、CARRIER=4、IPV4=8；UP仅代表接口启用，ESP载波标志可能在未关联时保留，不能据此证明关联或互联网可达。结构44字节，锁忙返回EAGAIN；模拟器地址是本机候选地址，不承诺与目标路由一致。
 - IPv4单播，DNS域名或数字IPv4；host是1..253字节ASCII明确长度，不含NUL，端口1..65535。
 - TCP打开异步返回正句柄；超时1..30000ms，涵盖DNS和连接。UDP打开使用空host、0长度、0端口、0超时，等READY再发包。
-- 两个全局连接名额，APP与CLI共用；APP不能读取或关闭其他会话/CLI句柄。每次启动创建新会话。关闭立即使句柄失效，后台完成回收前可能暂占名额，ENOSPC表示资源准入失败。
+- 两个全局传输名额，TCP/UDP、HTTP/HTTPS、MQTT/MQTTS及CLI共用；HTTPS与MQTTS另共用一个TLS名额；APP不能读取或关闭其他会话/CLI句柄。每次启动创建新会话。关闭立即使句柄失效，后台完成回收前可能暂占名额，ENOSPC表示资源准入失败。
 - 单次IO最多2048字节，UDP最多1200字节，收发队列各两包。TCP返回入队字节数，必须继续发送未接受后缀；UDP原子排队，满队列EAGAIN。
 - 发送不是送达确认。TCP无进展5秒超时；UDP自入队起5秒（含DNS）。示例对二进制回包使用轮次号、每阶段最多3次超时重试；空包不能携带唯一轮次，不作为可靠消息ACK。自己设计消息边界、序号及重试规则，避免对不可重试操作盲目重复。
 - 收取UDP容量不足返回EMSGSIZE，packet.length给出所需长度，原包保留。packet输出必须有效且与数据区不重叠，先验证全部输出再消费数据。空包是合法长度0，不是断开；无包为EAGAIN。

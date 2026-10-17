@@ -683,7 +683,7 @@ SDK 自带 `apps/imucube`：30 FPS 六轴采样、彩色 3D 立方体、重力�
 
 appmgr 需要 appmgr 权限：count 返回安装数；list 用 `aster_app_info_t` version=2 获取 ID、名称、状态、分类和图标信息。start 是单 APP 的切换，调用方会先 stop/destroy，然后启动目标，不是并行启动后台 APP；拒绝启动自己。uninstall 拒绝删除自己或正在运行/暂停的应用。
 
-ABI 3.8 新增TCP/UDP通信，完整接口和约束见第15节；需要network能力和net权限。DNS由连接/发送中的域名解析提供，不单独暴露解析器。Wi-Fi station接口仍需wifi能力和权限，连接提交不等于取得IP，检查status.ipv4。HTTP/HTTPS客户端在ABI3.9接入，见第16节；个人热点APP控制、MQTT、WebSocket尚未提供。
+ABI 3.8 新增TCP/UDP通信，完整接口和约束见第15节；需要network能力和net权限。DNS由连接/发送中的域名解析提供，不单独暴露解析器。Wi-Fi station接口仍需wifi能力和权限，连接提交不等于取得IP，检查status.ipv4。HTTP/HTTPS客户端在ABI3.9接入，见第16节；MQTT/MQTTS在ABI3.11接入，见第18节。个人热点APP控制和WebSocket尚未提供。
 
 其他不存在的接口：没有公开蓝牙通信、线程创建、异步任务通用框架、桌面式文件选择器、原生输入框/键盘、UI 控件树。需要这些功能时在现有能力内自行实现交互，或提出明确 SDK 扩展需求。
 
