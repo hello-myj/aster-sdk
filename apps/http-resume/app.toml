@@ -1,0 +1,19 @@
+[app]
+id = "aster.http.resume"
+name = "HTTP Resume"
+description = "Range/If-Range 续传下载参考示例：临时文件、校验、复制提交与取消保留。"
+version = "1.0.0"
+abi = "3.12.0"
+abi_min = "3.9"
+aot = true
+stack = 16384
+initial_memory = 262144
+max_memory = 524288
+heap = 65536
+requires = ["http", "filesystem", "network"]
+permissions = ["net", "fs"]
+sources = ["src/main.c"]
+
+[build]
+# Fixture honors Range/ETag/If-Range and may drop mid-stream to force resume.
+defines = ['HTTP_URL="http://127.0.0.1:9082/resume?n=65536&cut=20000"', 'HTTP_PATTERN=1', 'HTTP_MAX_ATTEMPTS=4']

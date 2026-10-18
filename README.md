@@ -130,3 +130,5 @@ ABI 3.10 工作区增加 [MP3 分段流输入](docs/audio-stream.md) 和 [在线
 ABI 3.11 工作区增加有界 MQTT/MQTTS 客户端及 [MQTT Echo](apps/mqtt-echo/README.md)，尚未发布 Release。
 
 ABI 3.12 工作区增加有界 WebSocket/WSS 客户端及 [WS Echo](apps/ws-echo/README.md)，尚未发布 Release。
+
+ABI 3.12 工作区另附 [HTTP Resume](apps/http-resume/README.md) N5.4 参考示例（Range/If-Range 续传纪律，固件与 ABI 不变），未发布 Release。
