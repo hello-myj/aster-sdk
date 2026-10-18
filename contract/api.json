@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "product": "aster",
-  "abi": "3.11.0",
+  "abi": "3.12.0",
   "imports": {
     "env": [
       "__cxa_allocate_exception",
@@ -109,6 +109,12 @@
       "aster_wifi_scan_results",
       "aster_wifi_scan_start",
       "aster_wifi_status",
+      "aster_ws_cancel",
+      "aster_ws_close",
+      "aster_ws_connect",
+      "aster_ws_recv",
+      "aster_ws_send",
+      "aster_ws_status",
       "atoi",
       "calloc",
       "clock",
@@ -255,6 +261,12 @@
     "aster_mqtt_recv": "(iii)i",
     "aster_mqtt_cancel": "(i)i",
     "aster_mqtt_close": "(i)i",
+    "aster_ws_connect": "(iii)i",
+    "aster_ws_status": "(iii)i",
+    "aster_ws_send": "(iiii)i",
+    "aster_ws_recv": "(iii)i",
+    "aster_ws_cancel": "(i)i",
+    "aster_ws_close": "(i)i",
     "aster_wifi_scan_start": "()i",
     "aster_wifi_status": "(ii)i"
   },
@@ -291,6 +303,7 @@
     "tls": 17,
     "mqtt": 19,
     "audio-stream": 18,
+    "websocket": 20,
     "storage.app": 11
   }
 }

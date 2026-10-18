@@ -1,6 +1,6 @@
 ---
 name: aster-app-development
-description: 使用 Aster APP SDK ABI 3.11 开发 C/WASM/AOT 应用。当用户要求创建 Aster APP 工程、编写游戏或图形应用、添加触摸交互和设备功能、构建打包部署，或要求只读开发手册进行开发时使用。基于自包含手册，不需要读取 SDK、固件或工具源码。
+description: 使用 Aster APP SDK ABI 3.12 开发 C/WASM/AOT 应用。当用户要求创建 Aster APP 工程、编写游戏或图形应用、添加触摸交互和设备功能、构建打包部署，或要求只读开发手册进行开发时使用。基于自包含手册，不需要读取 SDK、固件或工具源码。
 ---
 
 # Aster APP 开发
@@ -21,6 +21,6 @@ description: 使用 Aster APP SDK ABI 3.11 开发 C/WASM/AOT 应用。当用户�
 
 字体与图片质量按手册第14节处理：保持原生小字号和整数基线；透明文字更新先恢复旧背景。像素画与照片按实际显示尺寸选择采样；可选素材脚本依赖Pillow，不是APP编译或固件环境依赖。不要把GFX的黑色透明键误当独立alpha。
 
-网络应用按手册第15节：公共TCP/UDP导入需要ABI最低3.8、network能力及net权限。Wi-Fi配置另需wifi权限；连接/发送入队不代表成功。使用事件驱动轮询与有界缓冲，处理EAGAIN、部分TCP接受、UDP短缓冲和EOF，退出自动回收。模拟器真实通信显式加--network，不能与确定性replay混用；HTTP/HTTPS按第16节使用ABI最低3.9、http/tls能力；MQTT/MQTTS按第18节使用ABI最低3.11、mqtt能力及net权限；使用操作序号查询完成结果，及时排空两条消息队列；全系统共享两个传输连接和一个TLS名额。
+网络应用按手册第15节：公共TCP/UDP导入需要ABI最低3.8、network能力及net权限。Wi-Fi配置另需wifi权限；连接/发送入队不代表成功。使用事件驱动轮询与有界缓冲，处理EAGAIN、部分TCP接受、UDP短缓冲和EOF，退出自动回收。模拟器真实通信显式加--network，不能与确定性replay混用；HTTP/HTTPS按第16节使用ABI最低3.9、http/tls能力；MQTT/MQTTS按第18节使用ABI最低3.11、mqtt能力及net权限；使用操作序号查询完成结果，及时排空两条消息队列；全系统共享两个传输连接和一个TLS名额。WebSocket/WSS按第19节使用ABI最低3.12、websocket能力及net权限（wss另需tls）；单设备一个客户端，保留文本/二进制消息边界，length=0为合法空消息，recv EAGAIN表示暂无消息而非空；发送OK只是入队，EAGAIN稍后重试不盲目重发；CLOSED取完缓冲后为EPIPE，终态后必须close再connect；空闲保活与分片超时由固件负责，不自动重连。
 
 MP3 边下载边播放按手册第17节：ABI最低3.10、audio-out/audio-stream能力；保留write部分接受尾部，HTTP成功EOF才finish，检查DONE后close，退出自动回收。模拟器尚不支持audio-stream。

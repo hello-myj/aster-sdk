@@ -1,6 +1,6 @@
 # Aster APP SDK 开发手册（AI 可直接使用）
 
-适用版本：SDK ABI **3.11.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-3.11.0.zip`（工作区开发版），更新日期 2026-10-16。具体开发板由固件选择，SDK 不提供 `--board`。
+适用版本：SDK ABI **3.12.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-3.12.0.zip`（工作区开发版），更新日期 2026-10-17。具体开发板由固件选择，SDK 不提供 `--board`。
 
 本文是独立开发所需的完整参考：创建工程、配置、生命周期、绘图、输入、资源、设备接口、构建、部署及排错。本文中的类型和函数签名来自此版本 SDK 的公开契约。阅读本文即可编写 APP；不需要再读取固件代码、SDK 头文件、模板代码或工具实现。编译器会自动使用 SDK 自带的头文件和辅助库。
 
@@ -126,8 +126,8 @@ my-counter/
 - `name`：显示名称，默认 ID。使用 UTF-8，建议短名称。
 - `description`：可选的 APP 简介，launcher 主页从安装包读取。单行 UTF-8 字符串，最多 127 字节（约 42 个汉字）；建议简短。缺省或空字符串时介绍区域留空。修改后重新构建并安装 `.ast` 包即可更新，无需修改 launcher。旧固件可能忽略此字段。
 - `version`：APP 自身版本字符串，默认 `"0.0.0"`，与 ABI 无关。
-- `abi`：编译目标 ABI，当前填 `"3.11.0"`；省略时使用 SDK 契约版本。
-- `abi_min`：最低固件 ABI，当前新工程填 `"3.11"`。不要为了兼容旧设备而降低它却继续引用新接口。它的主版本必须与 `abi` 相同。
+- `abi`：编译目标 ABI，当前填 `"3.12.0"`；省略时使用 SDK 契约版本。
+- `abi_min`：最低固件 ABI，当前新工程填 `"3.12"`。不要为了兼容旧设备而降低它却继续引用新接口。它的主版本必须与 `abi` 相同。
 - `aot`：真实设备必须为 `true`，包同时包含 WASM 与目标 CPU 的 AOT；缺少 AOT 编译器会报错。模拟器可使用 `false` / `--no-aot`。设备会拒绝缺少 AOT、CPU 不匹配或 AOT 加载失败的 APP，不会自动回退 WASM。AOT 不是跨 CPU 通用二进制。
 - `optimize`：`"O0"`、`"O1"`、`"O2"`、`"O3"`、`"Os"` 或 `"Oz"`，默认 `"O2"`；设备 APP 推荐 `"Os"`。
 - `orientation`：`"portrait"` 或 `"landscape"`，在初始化前应用。当前设备普通 APP 默认竖屏；需要横屏时明确声明，运行时仍必须查询坐标空间。
@@ -677,13 +677,13 @@ SDK 自带 `apps/imucube`：30 FPS 六轴采样、彩色 3D 立方体、重力�
 
 ## 9. 系统能力与其他接口
 
-`aster_system_has_feature(ASTER_FEATURE_...)` 的参数是**特性索引**，例如 DISPLAY=0、WIFI=7，不是 `1u << index`。返回 1 有、0 没有；错误为负时同样不能使用。`aster_system_get_abi_version()` 返回打包 u32：`0x00MMmmPP`，当前 `0x00030800`。需要额外检查时比较主版本兼容及最低版本，不能强制未来 minor 必须完全相等。
+`aster_system_has_feature(ASTER_FEATURE_...)` 的参数是**特性索引**，例如 DISPLAY=0、WIFI=7，不是 `1u << index`。返回 1 有、0 没有；错误为负时同样不能使用。`aster_system_get_abi_version()` 返回打包 u32：`0x00MMmmPP`，当前 `0x00030C00`。需要额外检查时比较主版本兼容及最低版本，不能强制未来 minor 必须完全相等。
 
 虽然头文件声明了 `aster_system_info_t`，当前公开 API 没有 `aster_system_get_info()`。不要为该结构猜测查询函数。
 
 appmgr 需要 appmgr 权限：count 返回安装数；list 用 `aster_app_info_t` version=2 获取 ID、名称、状态、分类和图标信息。start 是单 APP 的切换，调用方会先 stop/destroy，然后启动目标，不是并行启动后台 APP；拒绝启动自己。uninstall 拒绝删除自己或正在运行/暂停的应用。
 
-ABI 3.8 新增TCP/UDP通信，完整接口和约束见第15节；需要network能力和net权限。DNS由连接/发送中的域名解析提供，不单独暴露解析器。Wi-Fi station接口仍需wifi能力和权限，连接提交不等于取得IP，检查status.ipv4。HTTP/HTTPS客户端在ABI3.9接入，见第16节；MQTT/MQTTS在ABI3.11接入，见第18节。个人热点APP控制和WebSocket尚未提供。
+ABI 3.8 新增TCP/UDP通信，完整接口和约束见第15节；需要network能力和net权限。DNS由连接/发送中的域名解析提供，不单独暴露解析器。Wi-Fi station接口仍需wifi能力和权限，连接提交不等于取得IP，检查status.ipv4。HTTP/HTTPS客户端在ABI3.9接入，见第16节；MQTT/MQTTS在ABI3.11接入，见第18节；WebSocket/WSS客户端在ABI3.12接入，见第19节。个人热点APP控制尚未提供。
 
 其他不存在的接口：没有公开蓝牙通信、线程创建、异步任务通用框架、桌面式文件选择器、原生输入框/键盘、UI 控件树。需要这些功能时在现有能力内自行实现交互，或提出明确 SDK 扩展需求。
 
@@ -2321,3 +2321,110 @@ ASTER_I("aster_mqtt_close") int32_t aster_mqtt_close(uint32_t handle);
 6. 退出时可 best-effort close；Runtime 仍会在停止、初始化失败或 trap 后关闭该 APP 的会话。cancel 不释放句柄配额，且可能触发遗嘱；close 尝试发送 DISCONNECT，但断网时无法保证抑制遗嘱。
 
 完整工程见 SDK 自带 `apps/mqtt-echo`。默认 broker 为模拟器本机 127.0.0.1:1883；实机改成设备能访问的 LAN 地址。每台设备使用唯一 client_id；不要在公开源码写生产密码。MQTTS 使用管理员根证书及已同步时钟，APP 无关闭校验的选项。
+
+## 19. WebSocket/WSS（ABI 3.12 工作区开发版）
+
+工程设置 `abi="3.12.0"`、`abi_min="3.12"`、`requires=["websocket","network"]`、`permissions=["net"]`；WSS 另需 `tls` 能力。模拟器需 `--network`，使用系统真实时间，不支持确定性 replay 中的真实网络。该接口独立于 TCP/UDP/HTTP/MQTT；后续网络统一接口迁移（N6）将单独进行。
+
+公开类型、常量和签名如下，所有返回值采用第 15 节稳定错误域，禁止使用平台 errno：
+
+```c
+/* SPDX-License-Identifier: MIT
+ * ABI 3.12: bounded asynchronous RFC 6455 WebSocket/WSS client.
+ * Permission "net"; feature "websocket"; wss:// additionally requires the
+ * "tls" feature and the device trust store. No raw frame or listener API.
+ */
+#ifndef ASTER_WS_H
+#define ASTER_WS_H
+#include "types.h"
+#define ASTER_WS_URL_LIMIT 1024u
+#define ASTER_WS_MESSAGE_LIMIT 4096u
+#define ASTER_WS_OPCODE_TEXT 1u
+#define ASTER_WS_OPCODE_BINARY 2u
+/* Values match the internal service state machine one-for-one; the bridge
+ * static-asserts the equivalence so an internal reorder cannot silently
+ * change the public ABI. CLOSING drains buffered messages; CLOSED/FAILED/
+ * CANCELLED are terminal and retain quota until close or APP exit. */
+#define ASTER_WS_STATE_CONNECTING 1u
+#define ASTER_WS_STATE_TLS 2u
+#define ASTER_WS_STATE_UPGRADE 3u
+#define ASTER_WS_STATE_READY 4u
+#define ASTER_WS_STATE_CLOSING 5u
+#define ASTER_WS_STATE_CLOSED 6u
+#define ASTER_WS_STATE_FAILED 7u
+#define ASTER_WS_STATE_CANCELLED 8u
+typedef struct {
+    uint32_t size, version, state; /* returned sizeof(struct), 1, state */
+    int32_t error; /* stable ASTER_E... once terminal; 0 before */
+    uint32_t queued, pending; /* 1 full received message waiting; 1 APP send flushing */
+    uint32_t received, sent; /* completed message counters */
+    uint32_t close_code; /* peer close code once CLOSED; 0 before */
+    uint32_t certificate_flags; /* ASTER_HTTP_CERT_* bits on WSS failure */
+    uint32_t reserved[2]; /* must be 0 */
+} aster_ws_status_t; /* sizeof=48 */
+typedef struct {
+    uint32_t size, version; /* returned sizeof(struct), 1; layout 4124 bytes */
+    uint32_t opcode; /* ASTER_WS_OPCODE_* of the delivered message */
+    uint32_t length; /* exact message bytes 0..4096; 0 is a valid empty message */
+    uint32_t reserved[3]; /* must be 0 */
+    uint8_t data[4096]; /* exact length bytes; untouched beyond length */
+} aster_ws_message_t;
+/* Every call is nonblocking and may return ASTER_EAGAIN; retry on a later
+ * event/timer. connect copies the URL before returning: ASCII ws(s):// with
+ * IPv4 or DNS host, optional port (80/443 by scheme), path may contain a
+ * query, no userinfo/fragment/extensions/subprotocols; url_length 1..1024
+ * bytes excluding NUL (exact bytes, no implicit terminator). timeout
+ * 100..30000 ms bounds DNS, TCP, TLS and the HTTP upgrade together. Returns
+ * a positive opaque handle or stable ASTER_E*.
+ * One WebSocket client per device, shared with the diagnostic CLI; its TCP
+ * transport uses the global two-slot budget shared with TCP/UDP/HTTP/MQTT,
+ * and wss:// uses the single shared verified-TLS slot and the device/admin
+ * trust store (no caller CA, no skip-verify, synchronized clock required).
+ */
+ASTER_I("aster_ws_connect") int32_t aster_ws_connect(
+    const char *url, uint32_t url_length, uint32_t timeout_ms);
+/* status/recv: output size must be >= sizeof(struct), tail untouched,
+ * unaligned output allowed. EAGAIN on lock contention only. */
+ASTER_I("aster_ws_status") int32_t aster_ws_status(
+    uint32_t handle, aster_ws_status_t *status, uint32_t size);
+/* send: opcode TEXT/BINARY; text must be valid UTF-8. length 0..4096; data
+ * NULL only with length 0. Accepted into one bounded outgoing slot: OK is
+ * queue admission, never peer acknowledgement; EAGAIN while a previous
+ * message is still flushing (safe to retry; never blind-resend on error). */
+ASTER_I("aster_ws_send") int32_t aster_ws_send(
+    uint32_t handle, uint32_t opcode, const void *data, uint32_t length);
+/* recv: delivers one whole message with boundary and opcode. Server
+ * fragmentation (total <=4096) and interleaved control frames are handled
+ * internally; the client masks all frames and answers pings automatically.
+ * OK copies the message (length may be 0: a real empty message), EAGAIN
+ * means none waiting, EPIPE means closed with the buffer drained. Failed or
+ * cancelled handles return their stable terminal error instead, then keep
+ * quota until close or APP exit. Invalid output never consumes a message. */
+ASTER_I("aster_ws_recv") int32_t aster_ws_recv(
+    uint32_t handle, aster_ws_message_t *message, uint32_t size);
+/* cancel keeps the handle and a terminal state (CANCELLED) until close;
+ * close immediately invalidates the handle, attempting a bounded close
+ * handshake (grace <=1500 ms) before releasing transport/TLS quota. Idle
+ * connections ping every 15 s and fail after 10 s without the matching
+ * pong; an incomplete fragmented message fails after 30 s. No automatic
+ * reconnect: after CLOSED/FAILED/CANCELLED, close then connect a new client.
+ * APP stop, init failure and traps close the session and release resources;
+ * handles belong to one APP session and are never accepted across sessions.
+ */
+ASTER_I("aster_ws_cancel") int32_t aster_ws_cancel(uint32_t handle);
+ASTER_I("aster_ws_close") int32_t aster_ws_close(uint32_t handle);
+#endif
+```
+
+实现步骤：
+
+1. 首个 FRAME 组装 URL 字符串（`ws://host:port/path` 或 `wss://…`，不含 NUL 的精确字节长度），调用 `aster_ws_connect(url,length,timeout)`。它立即返回句柄或稳定错误；EAGAIN 下帧重试。返回句柄只表示连接任务受理，不代表已 READY。
+2. 用 FRAME/TIMER 事件轮询 `aster_ws_status`，只在 state=READY 后收发；TLS/UPGRADE 状态说明握手中。CONNECTING/TLS/UPGRADE 超过 connect 的 timeout 会进入 FAILED，错误为稳定 ETIMEDOUT。
+3. `aster_ws_send` 一次接受一条消息（文本须为合法 UTF-8，`length=0` 与 data=NULL 组合有效，表示合法空消息）。返回 OK 只是入队成功，不代表服务端业务确认；前一条尚未发出时返回 EAGAIN，稍后重试即可，绝不能把 EAGAIN 当失败去盲目重发业务消息。
+4. `aster_ws_recv` 一次交付一条完整消息，保留 opcode 与边界；服务端分片、穿插 ping 由固件透明处理，空消息（length=0）与"无消息"（EAGAIN）严格区分。缓冲无效或结构过小时不会消费消息。终端状态先交付已完成消息，再返回稳定终态错误（FAILED 的协议/证书错误，或 CLOSED 后的 EPIPE）。
+5. 空闲保活：无流量约 15 秒后固件自动发 ping，10 秒内没有匹配的 pong 即 FAILED；分片消息 30 秒未组装完成同样超时。断线不自动重连：收到 CLOSED/FAILED/CANCELLED 后必须 close，再按业务规则重新 connect，不能假设旧会话可恢复。
+6. cancel 保留句柄与 CANCELLED 终态直到 close；close 立即使句柄失效并启动有界（≤1500ms）关闭收尾。APP 停止、初始化失败或 trap 后 Runtime 关闭该会话并释放传输/TLS 名额；重开的新会话不会收到旧会话结果。
+
+配额与边界：全设备只有一个 WebSocket 客户端（与诊断 CLI 共用），占用时 connect 返回明确错误而不是排队；它的 TCP 连接与 HTTP/MQTT/TCP-UDP/CLI 共用两个全局传输名额，WSS 与 HTTPS/MQTTS 共用一个已验证 TLS 名额。单条消息最大 4096 字节；不能依据远端声明的长度分配缓存，超限在帧头阶段拒绝。证书由设备管理员信任源校验，APP 无跳过校验选项；WSS 需要已同步的时钟。
+
+完整工程见 SDK 自带 `apps/ws-echo`。默认回环服务为模拟器本机 127.0.0.1:17880（固件仓库 `tools/validation/network_ws_peer.cjs` 的 `/echo`）；实机改成设备能访问的局域网地址。不要在示例源码写生产凭据。该接口固件侧已完成双板 G1；APP 路径 G2 已在 LCKFB 与微雪分别实机通过（2026-10-18，含明文与 WSS 内容回环、边界探针、预算争用与停止回收及实体反馈），模拟器 Windows/Linux 各 95 项零跳过复跑完成，见固件 `docs/validation/network-n5-ws-app-g2-2026-10-18.md`。未发布 Release，SDK 需与 ABI 3.12 固件/模拟器配套。
