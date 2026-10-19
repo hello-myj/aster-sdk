@@ -49,4 +49,4 @@ python tools/release_check.py --sdk ../aster-sdk --sim ../aster-sim --require-cl
 
 该命令在固件仓库执行，不刷机，也不创建 Release。
 
-完整套件把 SDK、固件镜像、SD 字体和模拟器打在一起。配套版本写在 `contract/release-family.json`。用法见 [development-kit.md](development-kit.md)。
+有 `contract/release-family.json` 时，打包会把已固定的固件镜像和模拟器放进同一个包。用法见 [development-kit.md](development-kit.md)。
