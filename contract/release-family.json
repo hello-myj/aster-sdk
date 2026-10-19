@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "family": "aster-20261019",
-  "sdk_tag": "sdk-v4.0.0-20261019.1",
+  "sdk_tag": "sdk-v4.0.0",
   "abi": "4.0.0",
-  "release_url": "https://github.com/hello-myj/aster-sdk/releases/tag/sdk-v4.0.0-20261019.1",
+  "release_url": "https://github.com/hello-myj/aster-sdk/releases/tag/sdk-v4.0.0",
   "download_base": "https://github.com/hello-myj/aster-sdk/releases/download/sdk-v4.0.0-20261019",
   "components": {
     "firmware": {

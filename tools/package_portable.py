@@ -266,6 +266,9 @@ def package(platform, args):
         copy_sdk(out, args.boards, platform)
         (windows_package if platform=='windows' else linux_package)(out, cache, args, plan)
         stage_development_kit(ROOT, out, platform+'-x64', cache, args.development_kit_dir)
+        guide = (ROOT / 'docs/使用说明.md').read_text(encoding='utf-8')
+        (out / '使用说明.md').write_text(guide, encoding='utf-8')
+        (out / 'README.txt').write_text(guide, encoding='utf-8')
         profiles = {name: {'aot_format': record['profile']['aot_format'],
                            'wasi_sdk': record['profile']['wasi_sdk'],
                            'backends': sorted(record['backends']),

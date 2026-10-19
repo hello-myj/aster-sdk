@@ -6,21 +6,7 @@
 
 ## 使用
 
-解压后执行 `aster install`，再激活 `env.sh` 或 `env.ps1`。Linux 需要 Python 3.12。
-
-```text
-aster init my-app --template hello --id com.example.hello --target xtensa
-aster build my-app --aot
-aster run my-app --port <串口>
-```
-
-模拟器执行包里的 WASM。立创竖屏用 `--resolution 240x320`，微雪竖屏用 `--resolution 320x480`。
-
-设备固件和 SD 字体从固件仓库取得。两款板的镜像分开烧录：
-
-```text
-aster flash <镜像> --port <串口>
-```
+下载、安装、烧录和模拟器步骤见 [使用说明](使用说明.md)。
 
 ## 维护
 
