@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "family": "aster-20261019",
+  "sdk_tag": "sdk-v4.0.0-20261019.1",
+  "abi": "4.0.0",
+  "release_url": "https://github.com/hello-myj/aster-sdk/releases/tag/sdk-v4.0.0-20261019.1",
+  "download_base": "https://github.com/hello-myj/aster-sdk/releases/download/sdk-v4.0.0-20261019",
+  "components": {
+    "firmware": {
+      "repository": "hello-myj/aster-firmware",
+      "revision": "ccf8e3b101a6ca95297f6f5e126a1cca6b4cf4c9",
+      "abi": "4.0.0",
+      "aot_format": 6,
+      "images": {
+        "lckfb-s3": {
+          "path": "firmware/aster-firmware-4.0.0-lckfb-s3.bin",
+          "sha256": "c8dee09c4b46de70d5021f37696b16027a4242d563e06a9f15abe0d9964baec9",
+          "flash_address": "0x0",
+          "build_identity": "firmware/lckfb-s3-identity.json"
+        },
+        "waveshare-35b": {
+          "path": "firmware/aster-firmware-4.0.0-waveshare-35b.bin",
+          "sha256": "d361be3201397ceeb90420a7b15f3ce168577c52915bbdbb7d2909e72f0bf1c9",
+          "flash_address": "0x0",
+          "build_identity": "firmware/waveshare-35b-identity.json"
+        }
+      }
+    },
+    "simulator": {
+      "repository": "hello-myj/aster-sim",
+      "revision": "632fa8ef92f4aaa0643689c28c7d4f67a8845e26",
+      "version": "0.2.0",
+      "abi": "4.0.0",
+      "execution": "WASM API model; not an ESP32/Zephyr emulator",
+      "firmware_reference": {
+        "revision": "ccf8e3b101a6ca95297f6f5e126a1cca6b4cf4c9"
+      }
+    }
+  },
+  "payloads": {
+    "linux-x64": {
+      "file": "aster-development-kit-20261019-linux-x64.tar.gz",
+      "sha256": "571db7649ad5f8b2562f7eeb2382dedba1ce99c75d573eea98dc74d0b776da2d",
+      "format": "tar.gz"
+    },
+    "windows-x64": {
+      "file": "aster-development-kit-20261019-windows-x64.zip",
+      "sha256": "a1cccd05386a9e6c98868c61a4f55ce3dfa94bb9236f8704231161663eb54de3",
+      "format": "zip"
+    }
+  },
+  "contract_api_sha256": "6b0a4019f646b2de0bc0c3d5d6d25654ec0d44f786884993710cf55e96cfb2e8"
+}
