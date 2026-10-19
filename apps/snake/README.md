@@ -1,5 +1,10 @@
 # Snake
 
-滑动转向，死亡后轻触重新开始。每前进一步有 70 毫秒移动提示声，吃到食物、死亡和重新开始各有独立音效；不播放 BGM。没有音频输出能力的设备仍可正常运行游戏。
+滑动转向。死亡后轻触重新开始。移动、吃到食物和死亡各有短音效。
 
-音效通过 ABI 3.4 接口预加载到固件缓存中，播放时不重新打开文件。不同音效可同时混合，因此移动声不会截断吃食物的提示声。退出应用会停止音频并释放缓存。`audio/` 中的素材由本目录 `make_audio.py` 原创合成；正常构建只使用已提交的 WAV 文件。
+```text
+aster build apps/snake --target xtensa --aot
+aster deploy apps/snake/dist/xtensa/aster.snake.ast --target xtensa --port <串口> --run
+```
+
+没有音频输出时游戏仍然运行。

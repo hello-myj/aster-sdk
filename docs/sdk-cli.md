@@ -22,7 +22,7 @@ aster doctor
 完整解压到固定目录，保留三个 EXE 和 `runtime/`、`tools/`、`toolchain/` 等所有子目录。便携包包含 Python 依赖、Wasm 编译器和 Xtensa AOT 编译器，不需要安装 Python、WSL 或 Visual Studio。
 
 ```powershell
-cd E:\AsterTools
+cd <SDK目录>
 .\aster.exe install --add-path
 . .\env.ps1
 aster doctor
@@ -52,7 +52,7 @@ aster run
 - `--target`：CPU 平台，保存到项目 `app.toml` 的 `[sdk] target` 中。当前为 `xtensa`（工具链目录只能编译 Xtensa，所以没有 riscv/arm 目标文件）。SDK 不提供开发板选择，也不接受 `--board`。以 `aster targets` 输出为准。
 - `build [项目目录]`：编译并验证 `.ast` 包，省略目录时使用当前目录。真实设备必须包含 AOT；`--aot` 强制开启，`--no-aot` 仅用于模拟器/主机测试。设备安装和启动均不回退 WASM。
 - `run [项目目录]`：编译、传输、安装并启动应用。`--no-build` 使用已有包。
-- `--port`：文件传输端口。新固件同时在 shell 串口提供文件服务，探测返回 `serial=shared` 时，安装和运行自动使用同一个端口，无需指定 `--console`。例如 `aster run --port COM24` 或 `aster run --port /dev/ttyUSB0`。`--console` 仍可覆盖选择，以兼容旧固件的双串口模式。监视器与上传工具不能同时独立打开、读取同一个串口：上传前关闭监视器，完成后重新打开。
+- `--port`：文件传输端口，填系统枚举到的串口，例如 `aster run --port <串口>`。探测返回 `serial=shared` 时，安装和运行使用同一个端口。上传前关闭占用该口的监视器。
 
 Linux 串口需要当前用户具有读写权限；通常由设备所属的 dialout/uucp 组控制，按发行版配置后重新登录。`install` 不自动修改用户组或使用 sudo。
 
@@ -64,12 +64,12 @@ Linux 串口需要当前用户具有读写权限；通常由设备所属的 dial
 aster targets
 aster doctor
 aster verify dist/xtensa/com.example.mygame.ast --target xtensa
-aster deploy dist/xtensa/com.example.mygame.ast --target xtensa --port COM24 --run
+aster deploy dist/xtensa/com.example.mygame.ast --target xtensa --port <串口> --run
 aster ports
-aster probe --port COM24
-aster debug --console COM24
-aster screenshot screen.png --console COM24
-aster shell --console COM24 aster sys info
+aster probe --port <串口>
+aster debug --console <串口>
+aster screenshot screen.png --console <串口>
+aster shell --console <串口> aster sys info
 ```
 
 `doctor` 检查依赖与工具链位置；`verify` 离线检查包；`deploy` 只传输和安装现成包，`--run` 安装后启动。`debug` 查看串口日志，`screenshot` 保存实机 PNG。设备子命令的其他参数通过 `aster <命令> --help` 查询。
@@ -78,12 +78,4 @@ aster shell --console COM24 aster sys info
 
 保留旧命令 `aster new`、`aster build --all --target xtensa`，底层 `tools/build.py` 和原有两种 Windows EXE 也可以继续使用。`aster build --clean` 删除当前项目的整个 build/dist 目录（项目构建产物）；不要在这些目录保存源码。
 
-## 本次验证
-
-- Linux：独立 venv 安装、source 激活、hello / swipe-game 模板在 SDK 外真实编译并验证 Xtensa AOT 包。
-- Windows：原生 EXE 安装、用户 PATH、PowerShell 5 中文路径激活、SDK 外带空格的游戏项目创建及 AOT 编译验证。
-- 早期双串口固件：COM22 数据口 / COM24 控制台完成 APP 传输和启动。
-- 2026-10-05 LCKFB 新固件：同一个 `/dev/ttyUSB0` 完成上传、安装、启动、shell 和截图；错误 CRC 拒绝及断点续传通过。微雪共享 USB 模式使用同一接口。
-- SDK 回归测试按平台目标 `xtensa` 构建，不再按开发板拆分用例。
-
-创建独立工程、构建、校验、模拟及真机部署的可执行流程见 [快速入门](https://github.com/hello-myj/aster-firmware/blob/main/docs/quickstart.md)。当前三仓库版本组合由固件候选发布检查固定；模拟器按 WASM 执行，设备要求匹配 CPU 的 AOT。
+从工程到设备的步骤见固件仓库 `docs/quickstart.md`。模拟器执行 WASM，设备运行匹配 CPU 的 AOT。

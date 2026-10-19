@@ -1,59 +1,33 @@
-# Wi-Fi API
+# Wi-Fi
 
-Wi-Fi station calls are available in ABI 3.5 when the device reports
-`ASTER_FEATURE_WIFI`. The app manifest must declare both:
+设备报告 `ASTER_FEATURE_WIFI` 时可以使用 station 接口。manifest：
 
 ```toml
 requires = ["wifi"]
 permissions = ["wifi"]
 ```
 
-Scan, connect, disconnect, reconnect and forget calls enqueue one operation
-and return immediately. An operation already in progress returns
-`ASTER_EBUSY`. Poll `aster_wifi_status()` for completion; its `operation`
-field is nonzero while work is running, then `last_operation` and
-`last_result` report the result.
+扫描、连接、断开、重连和忘记网络都是提交一次操作后立即返回。已有操作在进行时返回 `ASTER_EBUSY`。用 `aster_wifi_status()` 看结果：`operation` 非 0 表示还在进行，结束后看 `last_operation` 和 `last_result`。
 
 ```c
 aster_wifi_ap_info_t aps[ASTER_WIFI_AP_MAX];
-aster_wifi_info_t wifi = {
-    .size = sizeof(wifi),
-    .version = 1,
-};
+aster_wifi_info_t wifi = { .size = sizeof(wifi), .version = 1 };
 
 if (aster_system_has_feature(ASTER_FEATURE_WIFI) > 0) {
-    (void)aster_wifi_scan_start();
-    /* In the app event loop: call later, not in a tight loop. */
+    aster_wifi_scan_start();
     int count = aster_wifi_scan_results(aps, ASTER_WIFI_AP_MAX);
-    if (count == ASTER_EAGAIN) {
-        /* scan is still running */
-    } else if (count >= 0) {
-        /* `count` AP records, strongest RSSI first */
-    }
-
-    (void)aster_wifi_status(&wifi, sizeof(wifi));
+    aster_wifi_status(&wifi, sizeof(wifi));
 }
 ```
 
-To join, pass string pointers and their byte lengths. A zero password length
-selects an open network; personal-network passwords must be 8 to 64 bytes.
-Connection success is reported asynchronously in `last_result`.
+`count == ASTER_EAGAIN` 时扫描还没结束。连接时传入 SSID、密码和各自的字节长度。密码长度为 0 表示开放网络；个人网络密码为 8 到 64 字节。
 
 ```c
 const char *ssid = "home-wifi";
 const char *password = "example-passphrase";
-int err = aster_wifi_connect(ssid, strlen(ssid), password,
-                             strlen(password));
+aster_wifi_connect(ssid, strlen(ssid), password, strlen(password));
 ```
 
-The device keeps one most recently successful profile, retries it after boot
-when the SD card mounts, and exposes `aster_wifi_reconnect()`,
-`aster_wifi_get_saved_ssid()` and `aster_wifi_forget()`. The quick-settings
-panel can reconnect or disconnect that profile; `hw wifi scan/connect/status`
-are available in the firmware shell.
+设备保存最近一次成功的配置，SD 挂载后自动重连。相关函数是 `aster_wifi_reconnect()`、`aster_wifi_get_saved_ssid()` 和 `aster_wifi_forget()`。密码以明文存在系统 KV 里。
 
-The saved profile lives in the system KV under the SD card's system directory.
-Its passphrase is not encrypted, so anyone who can read the card can read it.
-The current station implementation supports 2.4 GHz open and personal
-networks. Enterprise authentication, WEP, SoftAP, IPv6, and general TCP/UDP
-socket imports are outside this API.
+当前支持 2.4 GHz 的开放网络和个人网络。TCP/UDP 使用 `net` 权限，见 [network.md](network.md)。

@@ -1,7 +1,8 @@
 # Chess
 
-玩家执白、设备执黑。轻触自己的棋子，再轻触亮点或高亮的目标格走棋。底部 `NEW` 开新局，`UNDO` 撤销一个回合；兵到达底线时可选后、车、象、马升变。
+玩家执白，设备执黑。点自己的棋子，再点目标格走棋。`NEW` 开新局，`UNDO` 撤销一个回合。
 
-规则包含王车易位、吃过路兵、升变、将军、将死、逼和、50 回合规则和常见子力不足和棋；游戏期间也检测三次重复局面。设备使用本地两层搜索 AI，不需要联网。
-
-黑棋使用浅色描边，方便在深色格上辨认。双方每次落子播放一次短促的木质敲击音；`audio/move.wav` 由 `make_audio.py` 生成，启动时预加载，落子时不会重复读取文件。
+```text
+aster build apps/chess --target xtensa --aot
+aster deploy apps/chess/dist/xtensa/aster.chess.ast --target xtensa --port <串口> --run
+```

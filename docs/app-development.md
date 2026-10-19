@@ -683,7 +683,7 @@ SDK 自带 `apps/imucube`：30 FPS 六轴采样、彩色 3D 立方体、重力�
 
 appmgr 需要 appmgr 权限：count 返回安装数；list 用 `aster_app_info_t` version=2 获取 ID、名称、状态、分类和图标信息。start 是单 APP 的切换，调用方会先 stop/destroy，然后启动目标，不是并行启动后台 APP；拒绝启动自己。uninstall 拒绝删除自己或正在运行/暂停的应用。
 
-ABI 3.8 新增TCP/UDP通信，完整接口和约束见第15节；需要network能力和net权限。DNS由连接/发送中的域名解析提供，不单独暴露解析器。Wi-Fi station接口仍需wifi能力和权限，连接提交不等于取得IP，检查status.ipv4。HTTP/HTTPS客户端在ABI3.9接入，见第16节；MQTT/MQTTS在ABI3.11接入，见第18节；WebSocket/WSS客户端在ABI3.12接入，见第19节。ABI 3.13 起，网络句柄状态变化通过 `ASTER_EVENT_SYS` / `ASTER_SYS_NET_STATE` 通知，见第 5 节事件结构；没有新的网络函数。个人热点APP控制尚未提供。
+当前 ABI 为 4.0.0。TCP/UDP 见第 15 节，HTTP/HTTPS 见第 16 节，MP3 流见第 17 节，MQTT 见第 18 节，WebSocket 见第 19 节。应用继续调用原来的函数名，SDK 转到 `aster_net_*`。网络句柄状态变化通过 `ASTER_EVENT_SYS` / `ASTER_SYS_NET_STATE` 通知，见第 5 节。DNS 在连接或发送时解析。Wi-Fi 仍使用 `wifi` 能力和权限。
 
 其他不存在的接口：没有公开蓝牙通信、线程创建、异步任务通用框架、桌面式文件选择器、原生输入框/键盘、UI 控件树。需要这些功能时在现有能力内自行实现交互，或提出明确 SDK 扩展需求。
 
@@ -716,21 +716,20 @@ aster run
 新固件的文件传输、安装与启动共用 shell 串口。部署目标是平台 `xtensa`，端口由 `--port` 给出，不从板号推断：
 
 ```text
-aster run --port /dev/ttyUSB0
-aster run --no-build --port /dev/ttyUSB0
-aster deploy dist/xtensa/com.example.counter.ast --target xtensa --port /dev/ttyUSB0 --run
-aster deploy dist/xtensa/com.example.counter.ast --target xtensa --port /dev/ttyACM0 --run
+aster run --port <串口>
+aster run --no-build --port <串口>
+aster deploy dist/xtensa/com.example.counter.ast --target xtensa --port <串口> --run
 ```
 
-Windows 对应 `--port COM24`（替换为实际发现的端口）。便携包按主机平台发布：Windows/Linux 各一个包，包内携带 `xtensa` 平台目标。具体开发板的烧录留在固件仓库。SDK 的 `ASTERPING` 握手包含 `serial=shared` 时，安装、运行自动使用文件传输的同一连接，不需要另指定 `--console`。旧固件不返回该标记时仍使用双串口，可显式指定 `--port /dev/ttyACM0 --console /dev/ttyUSB0`。run = 构建、部署并启动；deploy 只装包，带 --run 才启动。
+`--port` 使用系统枚举到的串口。握手包含 `serial=shared` 时，安装和运行使用同一连接。run 会构建、部署并启动；deploy 只装包，加上 `--run` 才启动。
 
 调试与截图：
 
 ```text
-aster probe --port /dev/ttyUSB0 --target xtensa
-aster shell --console /dev/ttyUSB0 aster sys info
-aster debug --console /dev/ttyUSB0 --seconds 10 --read-only
-aster screenshot screen.png --console /dev/ttyUSB0
+aster probe --port <串口> --target xtensa
+aster shell --console <串口> aster sys info
+aster debug --console <串口> --seconds 10 --read-only
+aster screenshot screen.png --console <串口>
 ```
 
 上传、安装、截图前关闭独立串口监视器，完成后可在同一端口恢复。一个接收流不能由两个独立程序同时读取。传文件期间固件日志继续输出，SDK 自动识别协议回复；APP 不需要实现传输协议。截图与 shell 也是串口操作，需要设备响应。日志推荐 init 完成、关键操作、失败码，不要每 FRAME 连续输出大量文本。
@@ -1580,7 +1579,7 @@ Linux/WSL 原生 USB Serial/JTAG 的设备工具关闭 HUPCL，避免关闭串�
 
 ## 绘制提交与性能测量
 
-现有 `aster_ge_*` 命令环已可将一帧图形合并为 `aster_gfx_exec`；避免无意逐条提交。微雪固定全帧矩形场景中，17 次独立提交合并为 1 次后平均耗时约从 362.5 ms 降至 42.5 ms，最终像素一致；这个数值不适用于所有字体、图片和动态场景。详见 [固件图形基准](https://github.com/hello-myj/aster-firmware/blob/main/docs/graphics-benchmark.md)。`app stats` 的 peak 现为有效 Guest 线性内存范围的字节峰值，不包含 AOT、字体或前缓冲，也不是 malloc 当前用量。
+把一帧里的 `aster_ge_*` 命令放进同一次 `aster_gfx_exec`。`app stats` 的 peak 是 Guest 线性内存字节峰值。
 
 
 ## 13. Scene、布局与控件（G7）
@@ -2430,4 +2429,4 @@ ASTER_I("aster_ws_close") int32_t aster_ws_close(uint32_t handle);
 
 配额与边界：全设备只有一个 WebSocket 客户端（与诊断 CLI 共用），占用时 connect 返回明确错误而不是排队；它的 TCP 连接与 HTTP/MQTT/TCP-UDP/CLI 共用两个全局传输名额，WSS 与 HTTPS/MQTTS 共用一个已验证 TLS 名额。单条消息最大 4096 字节；不能依据远端声明的长度分配缓存，超限在帧头阶段拒绝。证书由设备管理员信任源校验，APP 无跳过校验选项；WSS 需要已同步的时钟。
 
-完整工程见 SDK 自带 `apps/ws-echo`。默认回环服务为模拟器本机 127.0.0.1:17880（固件仓库 `tools/validation/network_ws_peer.cjs` 的 `/echo`）；实机改成设备能访问的局域网地址。不要在示例源码写生产凭据。该接口固件侧已完成双板 G1；APP 路径 G2 已在 LCKFB 与微雪分别实机通过（2026-10-18，含明文与 WSS 内容回环、边界探针、预算争用与停止回收及实体反馈），模拟器 Windows/Linux 各 95 项零跳过复跑完成，见固件 `docs/validation/network-n5-ws-app-g2-2026-10-18.md`。未发布 Release，SDK 需与 ABI 3.12 固件/模拟器配套。
+完整工程见 `apps/ws-echo`。模拟器默认连 `127.0.0.1:17880`。真机把 URL 改成设备能访问的地址。当前 ABI 为 4.0.0。

@@ -1,16 +1,8 @@
 # Star Catch
 
-Drag the catcher to collect yellow stars and avoid red meteors. Missing a star
-or touching a meteor costs one life; the game ends after three losses. Tap to
-start or retry. Left/right keys also move the catcher; Enter or Space starts.
+拖动接住黄星，避开红陨石。漏接或碰到陨石扣一条命，三条命后结束。点按开始或重试。左右键也能移动。
 
-Activate the SDK environment, then build from the SDK root:
-
-```powershell
-aster build apps\starcatch --target xtensa --aot
-aster verify apps\starcatch\dist\xtensa\aster.starcatch.ast --target xtensa
+```text
+aster build apps/starcatch --target xtensa --aot
+aster deploy apps/starcatch/dist/xtensa/aster.starcatch.ast --target xtensa --port <串口> --run
 ```
-
-The icon is reproducible with `python3 apps/starcatch/make_icon.py`.
-The package is `apps/starcatch/dist/xtensa/aster.starcatch.ast`. The target board may run
-in landscape or portrait mode; gameplay scales to the surface dimensions.

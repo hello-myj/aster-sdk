@@ -1,5 +1,8 @@
 # Hello Aster
 
-Run `aster build` to compile an AOT package, then `aster run` to install and start it.
-Edit `src/main.c` and `app.toml`. Build outputs stay under this project (`build/`, `dist/`).
-Use `aster run --port COM22 --console COM24` on Windows, or actual `/dev/tty*` ports on Linux.
+```text
+aster build
+aster run --port <串口>
+```
+
+改 `src/main.c` 和 `app.toml`。产物在本目录的 `build/` 和 `dist/`。

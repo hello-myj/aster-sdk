@@ -32,17 +32,17 @@ aster-toolchain.exe verify dist\xtensa\my.app.ast --target xtensa
 aster-device.exe build C:\work\my-app --toolchain C:\tools\aster-toolchain.exe --target xtensa
 aster-device.exe ports
 aster-device.exe probe --target xtensa
-aster-device.exe build-deploy C:\work\my-app --toolchain C:\tools\aster-toolchain.exe --port COM6 --run
-aster-device.exe push C:\work\sample.txt /SD:/sample.txt --port COM6
-aster-device.exe shell --console COM6 aster app list
-aster-device.exe debug --console COM6 --log C:\work\aster.log
-aster-device.exe screenshot C:\work\screen.png --console COM6
-aster-device.exe flash C:\work\merged-firmware.bin --port COM6 --address 0x0
+aster-device.exe build-deploy C:\work\my-app --toolchain C:\tools\aster-toolchain.exe --port <串口> --run
+aster-device.exe push C:\work\sample.txt /SD:/sample.txt --port <串口>
+aster-device.exe shell --console <串口> aster app list
+aster-device.exe debug --console <串口> --log C:\work\aster.log
+aster-device.exe screenshot C:\work\screen.png --console <串口>
+aster-device.exe flash C:\work\merged-firmware.bin --port <串口> --address 0x0
 ```
 
 `build-deploy` 先本机编译，再经 USB 串口传输并安装 APP。没有显式指定数据串口时，
 工具枚举 Windows COM 口并用 `ASTERPING` 识别文件服务；控制台也可自动探测。
-新固件探测回复包含 `serial=shared`，同一个 COM 口即可传包、安装和运行，部署工具复用同一连接；旧固件仍可用 `--port COM5 --console COM6`。独立监视器应在传包、shell 或截图操作前关闭。CH340 设备工具已调整 DTR/RTS，避免打开串口的控制线切换触发重启。固件烧录使用 esptool，必须显式提供
+探测回复包含 `serial=shared` 时，同一个串口即可传包、安装和运行。上传前关闭占用该口的监视器。固件烧录使用 esptool，必须显式提供
 烧录串口；`flash` 默认按 ESP32-S3 的合并镜像从 `0x0` 写入，可用 `--address`
 覆盖镜像偏移。`debug` 监视串口日志，也可输入 shell 命令；`shell` 发送单条控制台命令。
 目前不包含源码级 GDB 调试。
