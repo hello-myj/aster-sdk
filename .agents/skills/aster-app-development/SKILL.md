@@ -1,6 +1,6 @@
 ---
 name: aster-app-development
-description: 使用 Aster APP SDK ABI 3.13 开发 C/WASM/AOT 应用。当用户要求创建 Aster APP 工程、编写游戏或图形应用、添加触摸交互和设备功能、构建打包部署，或要求只读开发手册进行开发时使用。基于自包含手册，不需要读取 SDK、固件或工具源码。
+description: 使用 Aster APP SDK ABI 4.0 开发 C/WASM/AOT 应用。当用户要求创建 Aster APP 工程、编写游戏或图形应用、添加触摸交互和设备功能、构建打包部署，或要求只读开发手册进行开发时使用。基于自包含手册，不需要读取 SDK、固件或工具源码。4.0 不兼容 3.x，旧 APP 必须重编后重装。
 ---
 
 # Aster APP 开发

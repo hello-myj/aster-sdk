@@ -2,8 +2,8 @@
 id = "com.example.neonduel"
 name = "霓虹对决"
 version = "1.0.1"
-abi = "3.7.0"
-abi_min = "3.7"
+abi      = "4.0.0"
+abi_min  = "4.0"
 aot = true
 optimize = "Os"
 orientation = "landscape"

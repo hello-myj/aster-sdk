@@ -1,6 +1,6 @@
 # Aster APP SDK 开发手册（AI 可直接使用）
 
-适用版本：SDK ABI **3.13.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-3.13.0.zip`（工作区开发版），更新日期 2026-10-19。具体开发板由固件选择，SDK 不提供 `--board`。
+适用版本：SDK ABI **4.0.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-4.0.0.zip`（工作区开发版），更新日期 2026-10-19。具体开发板由固件选择，SDK 不提供 `--board`。ABI 4.0 不兼容 3.x：网络只保留 `aster_net_info/open/io/status/cancel/close` 六个导入，旧的 `aster_network_*`、`aster_http_*`、`aster_mqtt_*`、`aster_ws_*` 由 SDK 库包装。已安装的 3.x 包必须用本 SDK 重新编译后再安装。
 
 本文是独立开发所需的完整参考：创建工程、配置、生命周期、绘图、输入、资源、设备接口、构建、部署及排错。本文中的类型和函数签名来自此版本 SDK 的公开契约。阅读本文即可编写 APP；不需要再读取固件代码、SDK 头文件、模板代码或工具实现。编译器会自动使用 SDK 自带的头文件和辅助库。
 

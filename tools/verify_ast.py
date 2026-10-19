@@ -218,6 +218,9 @@ def check(path, pub_pem=None, board=None):
         elif nm not in allow:
             bad.append(f"env.{nm}")
     assert not bad, f"imports not provided by firmware: {bad}"
+    obsolete = [nm for mod, nm, kind in imports if nm.startswith((
+        "aster_network_", "aster_http_", "aster_mqtt_", "aster_ws_"))]
+    assert not obsolete, f"obsolete network imports: {obsolete}"
 
     n_aster = sum(1 for m, n, k in imports if m == "env" and n.startswith("aster_"))
     n_libc = len(imports) - n_aster

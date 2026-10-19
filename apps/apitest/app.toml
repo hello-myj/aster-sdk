@@ -8,8 +8,8 @@ version = "1.0.0"
 # fields are never written, so the checks below would be reading whatever was
 # in the app's buffer -- a false pass or a confusing false fail, either way not
 # a test. abi_min is the honest statement of "this package needs 3.2".
-abi     = "3.2.0"
-abi_min = "3.2"
+abi      = "4.0.0"
+abi_min  = "4.0"
 optimize = "Os"
 icon     = "icon.bin"
 category = "system"

@@ -2,8 +2,8 @@
 id = "aster.hello"
 name = "Hello Aster"
 version = "1.0.0"
-abi = "3.2.0"
-abi_min = "3.2"
+abi      = "4.0.0"
+abi_min  = "4.0"
 aot = true
 stack = 16384
 initial_memory = 131072
