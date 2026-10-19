@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "product": "aster",
-  "abi": "3.12.0",
+  "abi": "3.13.0",
   "imports": {
     "env": [
       "__cxa_allocate_exception",

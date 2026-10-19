@@ -15,7 +15,7 @@ tests/              契约、目标选择、能力、内存、设备身份和构
 
 ## AI 开发手册与 Skill
 
-[APP 开发手册](docs/app-development.md) 是 ABI 3.12 的自包含开发参考，包含完整工程、准确接口签名、资源与内存规则以及构建部署命令。AI 可以只读取这一份手册来创建工程、编写 APP 和执行构建，无需阅读 SDK/固件源码或工具实现。
+[APP 开发手册](docs/app-development.md) 是 ABI 3.13 的自包含开发参考，包含完整工程、准确接口签名、资源与内存规则以及构建部署命令。AI 可以只读取这一份手册来创建工程、编写 APP 和执行构建，无需阅读 SDK/固件源码或工具实现。
 
 项目提供 [aster-app-development Skill](.agents/skills/aster-app-development/SKILL.md)，入口引用同一份手册。从 SDK 根目录启动支持项目 Skill 的 AI 工具后，可请求“使用 aster-app-development 创建 APP”；其他工具直接读取手册即可。工程可创建在 SDK 外。复制 Skill 到其他位置时需一并携带手册并修正链接。
 
@@ -132,3 +132,5 @@ ABI 3.11 工作区增加有界 MQTT/MQTTS 客户端及 [MQTT Echo](apps/mqtt-ech
 ABI 3.12 工作区增加有界 WebSocket/WSS 客户端及 [WS Echo](apps/ws-echo/README.md)，尚未发布 Release。
 
 ABI 3.12 工作区另附 [HTTP Resume](apps/http-resume/README.md) N5.4 参考示例（Range/If-Range 续传纪律，固件与 ABI 不变），未发布 Release。
+
+ABI 3.13 工作区增加 `ASTER_SYS_NET_STATE` 网络状态通知（仅常量，无新函数），尚未发布 Release。

@@ -1,6 +1,6 @@
 # Aster APP SDK 开发手册（AI 可直接使用）
 
-适用版本：SDK ABI **3.12.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-3.12.0.zip`（工作区开发版），更新日期 2026-10-17。具体开发板由固件选择，SDK 不提供 `--board`。
+适用版本：SDK ABI **3.13.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-3.13.0.zip`（工作区开发版），更新日期 2026-10-19。具体开发板由固件选择，SDK 不提供 `--board`。
 
 本文是独立开发所需的完整参考：创建工程、配置、生命周期、绘图、输入、资源、设备接口、构建、部署及排错。本文中的类型和函数签名来自此版本 SDK 的公开契约。阅读本文即可编写 APP；不需要再读取固件代码、SDK 头文件、模板代码或工具实现。编译器会自动使用 SDK 自带的头文件和辅助库。
 
@@ -126,8 +126,8 @@ my-counter/
 - `name`：显示名称，默认 ID。使用 UTF-8，建议短名称。
 - `description`：可选的 APP 简介，launcher 主页从安装包读取。单行 UTF-8 字符串，最多 127 字节（约 42 个汉字）；建议简短。缺省或空字符串时介绍区域留空。修改后重新构建并安装 `.ast` 包即可更新，无需修改 launcher。旧固件可能忽略此字段。
 - `version`：APP 自身版本字符串，默认 `"0.0.0"`，与 ABI 无关。
-- `abi`：编译目标 ABI，当前填 `"3.12.0"`；省略时使用 SDK 契约版本。
-- `abi_min`：最低固件 ABI，当前新工程填 `"3.12"`。不要为了兼容旧设备而降低它却继续引用新接口。它的主版本必须与 `abi` 相同。
+- `abi`：编译目标 ABI，当前填 `"3.13.0"`；省略时使用 SDK 契约版本。
+- `abi_min`：最低固件 ABI，当前新工程填 `"3.13"`。不要为了兼容旧设备而降低它却继续引用新接口。它的主版本必须与 `abi` 相同。只用到某次增量之前的接口时，可以把 `abi_min` 降到该接口引入的版本（例如只用 WebSocket 可填 `"3.12"`）。
 - `aot`：真实设备必须为 `true`，包同时包含 WASM 与目标 CPU 的 AOT；缺少 AOT 编译器会报错。模拟器可使用 `false` / `--no-aot`。设备会拒绝缺少 AOT、CPU 不匹配或 AOT 加载失败的 APP，不会自动回退 WASM。AOT 不是跨 CPU 通用二进制。
 - `optimize`：`"O0"`、`"O1"`、`"O2"`、`"O3"`、`"Os"` 或 `"Oz"`，默认 `"O2"`；设备 APP 推荐 `"Os"`。
 - `orientation`：`"portrait"` 或 `"landscape"`，在初始化前应用。当前设备普通 APP 默认竖屏；需要横屏时明确声明，运行时仍必须查询坐标空间。
@@ -683,7 +683,7 @@ SDK 自带 `apps/imucube`：30 FPS 六轴采样、彩色 3D 立方体、重力�
 
 appmgr 需要 appmgr 权限：count 返回安装数；list 用 `aster_app_info_t` version=2 获取 ID、名称、状态、分类和图标信息。start 是单 APP 的切换，调用方会先 stop/destroy，然后启动目标，不是并行启动后台 APP；拒绝启动自己。uninstall 拒绝删除自己或正在运行/暂停的应用。
 
-ABI 3.8 新增TCP/UDP通信，完整接口和约束见第15节；需要network能力和net权限。DNS由连接/发送中的域名解析提供，不单独暴露解析器。Wi-Fi station接口仍需wifi能力和权限，连接提交不等于取得IP，检查status.ipv4。HTTP/HTTPS客户端在ABI3.9接入，见第16节；MQTT/MQTTS在ABI3.11接入，见第18节；WebSocket/WSS客户端在ABI3.12接入，见第19节。个人热点APP控制尚未提供。
+ABI 3.8 新增TCP/UDP通信，完整接口和约束见第15节；需要network能力和net权限。DNS由连接/发送中的域名解析提供，不单独暴露解析器。Wi-Fi station接口仍需wifi能力和权限，连接提交不等于取得IP，检查status.ipv4。HTTP/HTTPS客户端在ABI3.9接入，见第16节；MQTT/MQTTS在ABI3.11接入，见第18节；WebSocket/WSS客户端在ABI3.12接入，见第19节。ABI 3.13 起，网络句柄状态变化通过 `ASTER_EVENT_SYS` / `ASTER_SYS_NET_STATE` 通知，见第 5 节事件结构；没有新的网络函数。个人热点APP控制尚未提供。
 
 其他不存在的接口：没有公开蓝牙通信、线程创建、异步任务通用框架、桌面式文件选择器、原生输入框/键盘、UI 控件树。需要这些功能时在现有能力内自行实现交互，或提出明确 SDK 扩展需求。
 
@@ -1012,6 +1012,7 @@ void aster_log(uint32_t level, const char *msg, uint32_t len);
 
 #define ASTER_SYS_MEM_PRESSURE 1u
 #define ASTER_SYS_ORIENT       2u
+#define ASTER_SYS_NET_STATE    3u
 
 typedef struct {
 	uint32_t size;
@@ -1045,6 +1046,8 @@ typedef struct {
 	} u;
 } aster_event_t;
 ```
+
+`ASTER_EVENT_SYS` 且 `u.sys.code == ASTER_SYS_NET_STATE`（ABI 3.13）表示本 APP 的一个网络句柄改变了状态。`u.sys.value` 是句柄，`u.data[2]` 是协议种类（1 TCP、2 UDP、3 HTTP、4 MQTT、5 WS），`u.data[3]` 是该协议的状态号。事件里没有载荷；用对应的 status 接口读取细节。同一句柄只保留最新一次变化，每帧最多投递一条。
 
 ### display.h
 

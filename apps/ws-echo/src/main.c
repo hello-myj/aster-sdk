@@ -118,6 +118,11 @@ int aster_app_init(void)
 }
 void aster_app_event(const aster_event_t *e)
 {
+    if (e->type == ASTER_EVENT_SYS && e->u.sys.code == ASTER_SYS_NET_STATE) {
+        aster_logf(ASTER_LOG_INFO, "WSAPP NETSTATE handle=%u kind=%u state=%u",
+                   e->u.sys.value, e->u.data[2], e->u.data[3]);
+        return;
+    }
     if (e->type == ASTER_EVENT_TOUCH && e->u.touch.action == ASTER_TOUCH_UP) { paused = !paused; return; }
     if (e->type != ASTER_EVENT_FRAME) return;
     draw();

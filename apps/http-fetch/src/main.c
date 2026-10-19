@@ -53,6 +53,11 @@ static void draw(void)
 }
 void aster_app_event(const aster_event_t *event)
 {
+    if(event->type==ASTER_EVENT_SYS && event->u.sys.code==ASTER_SYS_NET_STATE){
+        aster_logf(ASTER_LOG_INFO,"HTTPAPP NETSTATE handle=%u kind=%u state=%u",
+                   event->u.sys.value,event->u.data[2],event->u.data[3]);
+        return;
+    }
     if(event->type!=ASTER_EVENT_FRAME)return;
     draw();
     if(close_pending){
