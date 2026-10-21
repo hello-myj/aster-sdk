@@ -214,7 +214,7 @@ ASTER_APP_EXPORT int aster_app_init(void)
         aster_printf("audio effects loaded: %d/4",loaded);
     }else aster_logf(ASTER_LOG_WARN,"audio output unavailable");
     rc=aster_app_set_framerate(30);if(rc<0){release();return rc;}
-    aster_printf("Neon Duel ready: %ux%u, logical 320x240, ABI 3.7",width,height);return ASTER_OK;
+    aster_printf("Neon Duel ready: %ux%u, logical 320x240, ABI 4.0",width,height);return ASTER_OK;
 }
 ASTER_APP_EXPORT void aster_app_start(void){play_effect(3);}
 ASTER_APP_EXPORT void aster_app_event(const aster_event_t *ev)
