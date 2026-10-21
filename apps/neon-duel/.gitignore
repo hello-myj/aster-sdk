@@ -3,3 +3,6 @@
 /tests/combat-test
 /tests/*.png
 /tests/*.json
+
+# Source replay fixture, not a generated diagnostics report.
+!/tests/two-touch.replay.json

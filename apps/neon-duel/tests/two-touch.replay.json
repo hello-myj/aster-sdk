@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "frames": 160,
+  "step_ms": 33,
+  "seed": 42,
+  "events": [
+    {
+      "frame": 0,
+      "type": "touch",
+      "action": 1,
+      "x": 200,
+      "y": 140
+    },
+    {
+      "frame": 1,
+      "type": "touch",
+      "action": 3,
+      "x": 200,
+      "y": 140
+    },
+    {
+      "frame": 50,
+      "type": "touch",
+      "action": 1,
+      "slot": 0,
+      "x": 68,
+      "y": 210
+    },
+    {
+      "frame": 51,
+      "type": "touch",
+      "action": 1,
+      "slot": 1,
+      "x": 195,
+      "y": 210
+    },
+    {
+      "frame": 70,
+      "type": "touch",
+      "action": 3,
+      "slot": 1,
+      "x": 195,
+      "y": 210
+    },
+    {
+      "frame": 90,
+      "type": "touch",
+      "action": 3,
+      "slot": 0,
+      "x": 68,
+      "y": 210
+    },
+    {
+      "frame": 100,
+      "type": "pause",
+      "paused": true
+    },
+    {
+      "frame": 110,
+      "type": "pause",
+      "paused": false
+    },
+    {
+      "frame": 111,
+      "type": "touch",
+      "action": 2,
+      "slot": 1,
+      "x": 195,
+      "y": 210
+    },
+    {
+      "frame": 120,
+      "type": "touch",
+      "action": 1,
+      "slot": 0,
+      "x": 110,
+      "y": 210
+    },
+    {
+      "frame": 120,
+      "type": "touch",
+      "action": 1,
+      "slot": 1,
+      "x": 242,
+      "y": 210
+    },
+    {
+      "frame": 140,
+      "type": "touch",
+      "action": 3,
+      "slot": 0,
+      "x": 110,
+      "y": 210
+    },
+    {
+      "frame": 145,
+      "type": "touch",
+      "action": 3,
+      "slot": 1,
+      "x": 242,
+      "y": 210
+    }
+  ]
+}

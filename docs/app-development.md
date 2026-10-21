@@ -386,6 +386,8 @@ int32_t held = aster_input_keys_state((uint32_t)(uintptr_t)keys, 8);
 
 优先使用 TOUCH/KEY 事件避免重复触发。轮询结果返回写入数量或负错误。
 
+双触点输入：先通过 `aster_input_get_info` 查询 `max_points`。事件的 `ev->u.touch.slot` 在该手指按住期间保持稳定，两指分别产生 DOWN/MOVE/UP；不要用事件先后顺序当作手指身份。当前两板驱动上限为两点，实际屏模组效果须以各板验收为准。轮询数组每点仍是 12 字节的 x/y/action，不含 slot，活跃点会压紧排列；需要独立控制状态时应使用事件 slot。APP 在 pause/resume、退出或切换页面时清空所有触点捕获。原始多点输入不自动提供缩放/旋转手势；双指同时操作时系统边缘上下拉会抑制到全部抬起。可参考 `apps/neon-duel` 的方向与攻击组合。
+
 两种时间：
 
 - `aster_time_now_ms()` 返回 **uint32_t**，当前 APP 启动后经过的单调毫秒数，约 49.7 天回绕。间隔计算用 `(uint32_t)(now - previous)`，不要当 UTC。
