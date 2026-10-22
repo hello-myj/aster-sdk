@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import locale
 import os
 import platform as _platform
 import re
@@ -305,8 +306,24 @@ class App:
             sys.exit(f"error: {toml}: unknown requires {bad} (valid: {sorted(VALID_CAPS)})")
 
 
+def capture_tool(cmd):
+    # Native Windows compilers may emit ANSI diagnostics even when Python
+    # runs in UTF-8 mode. Read bytes first so a decoder thread cannot fail
+    # and silently discard the compiler's diagnostic output.
+    result = subprocess.run(cmd, capture_output=True)
+    for name in ('stdout', 'stderr'):
+        data = getattr(result, name)
+        if isinstance(data, bytes):
+            try:
+                data = data.decode('utf-8')
+            except UnicodeDecodeError:
+                data = data.decode(locale.getencoding(), errors='replace')
+            setattr(result, name, data)
+    return result
+
+
 def run(cmd: list[str], what: str) -> None:
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    r = capture_tool(cmd)
     if r.returncode != 0:
         print(f"[FAIL] {what}\n$ {' '.join(cmd)}\n{r.stderr or r.stdout}", file=sys.stderr)
         sys.exit(1)
@@ -402,7 +419,7 @@ def build_wasm(app: App, obj_dir: Path, wasm_path: Path) -> None:
     # verify every required export really landed
     nm = clang.parent / ("llvm-nm.exe" if os.name == "nt" else "llvm-nm")
     if nm.is_file():
-        r = subprocess.run([str(nm), str(wasm_path)], capture_output=True, text=True)
+        r = capture_tool([str(nm), str(wasm_path)])
         exported = set()
         for line in (r.stdout or "").splitlines():
             parts = line.split()
@@ -418,10 +435,9 @@ def opt_wasm(wasm_path: Path) -> None:
     if not wo:
         return
     tmp = wasm_path.with_suffix(".opt.wasm")
-    r = subprocess.run([str(wo), "-Oz", "--enable-bulk-memory", "--enable-sign-ext",
+    r = capture_tool([str(wo), "-Oz", "--enable-bulk-memory", "--enable-sign-ext",
                         "--enable-mutable-globals", "--strip-debug",
-                        "-o", str(tmp), str(wasm_path)],
-                       capture_output=True, text=True)
+                        "-o", str(tmp), str(wasm_path)])
     if r.returncode == 0 and tmp.stat().st_size < wasm_path.stat().st_size:
         tmp.replace(wasm_path)
     else:
