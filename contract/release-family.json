@@ -1,65 +1,66 @@
 {
   "schema": 1,
-  "family": "aster-4.1.0-rc.1-20261022",
-  "sdk_tag": "sdk-v4.1.0-rc.1",
+  "family": "aster-4.1.0-20261022",
+  "sdk_tag": "sdk-v4.1.0",
   "abi": "4.1.0",
-  "release_url": "https://github.com/hello-myj/aster-sdk/releases/tag/sdk-v4.1.0-rc.1",
-  "download_base": "https://github.com/hello-myj/aster-sdk/releases/download/sdk-v4.1.0-rc.1",
+  "release_url": "https://github.com/hello-myj/aster-sdk/releases/tag/sdk-v4.1.0",
+  "download_base": "https://github.com/hello-myj/aster-sdk/releases/download/sdk-v4.1.0",
   "components": {
     "firmware": {
       "repository": "hello-myj/aster-firmware",
-      "revision": "af3e0ee679224117804ccc5eeb83d01aa62d5f8e",
+      "tag": "firmware-v4.1.0",
+      "revision": "3d8ea31a25b5e0252b50eadfc2616f31179eee1e",
       "abi": "4.1.0",
       "aot_format": 6,
       "images": {
         "lckfb-s3": {
-          "path": "firmware/aster-firmware-4.1.0-rc.1-lckfb-s3.bin",
-          "sha256": "0181e3ae83829d5bdf958485717631b283854939293fa076bdd25804bb2eebcf",
+          "path": "firmware/aster-firmware-4.1.0-lckfb-s3.bin",
+          "sha256": "4879cb45502a1f229883333d8d0ef61e486a66e85c54154ca4c37b069b9c9a5d",
           "flash_address": "0x0",
           "build_identity": "firmware/lckfb-s3-identity.json"
         },
         "waveshare-35b": {
-          "path": "firmware/aster-firmware-4.1.0-rc.1-waveshare-35b.bin",
-          "sha256": "4a0e12e77bbca6152b31b35e8cda9b15f5a1f9768c331591749700337de2e4e8",
+          "path": "firmware/aster-firmware-4.1.0-waveshare-35b.bin",
+          "sha256": "2700c1baa86619b2d5bbcc35b880536f4b4b1f4478286360020268542ca669f0",
           "flash_address": "0x0",
           "build_identity": "firmware/waveshare-35b-identity.json"
         }
-      },
-      "tag": "firmware-v4.1.0-rc.1"
+      }
     },
     "simulator": {
       "repository": "hello-myj/aster-sim",
-      "revision": "4146fab6da302cdde2c2092fec7c82edc5267d01",
-      "version": "0.3.0-rc.1",
+      "tag": "sim-v0.3.0",
+      "revision": "9814d0c02f28c4653c4dc17c41bb975efed6ffb0",
+      "version": "0.3.0",
       "abi": "4.1.0",
       "execution": "WASM API model; not an ESP32/Zephyr emulator",
       "firmware_reference": {
-        "revision": "af3e0ee679224117804ccc5eeb83d01aa62d5f8e"
+        "tag": "firmware-v4.1.0",
+        "revision": "3d8ea31a25b5e0252b50eadfc2616f31179eee1e"
       },
-      "tag": "sim-v0.3.0-rc.1",
-      "sdk_contract_revision": "6b9e9db20990404567b2692856f96c6f2ea80516"
+      "sdk_contract_revision": "b01c7a1097e26840f293e70124f2c9e4daa5247b"
     }
   },
   "payloads": {
     "linux-x64": {
-      "file": "aster-development-kit-4.1.0-rc.1-linux-x64.tar.gz",
-      "format": "tar.gz",
-      "sha256": "3e6eae59ca3ca2a8c5961a208e4626ccf95f1e1bb794ace8c4d306633c7539d2"
+      "file": "aster-development-kit-4.1.0-linux-x64.tar.gz",
+      "sha256": "f2ea98ae882ae95798eb3eefe0b9d1aa32cdb21a718fb04f5900002bd077f203",
+      "format": "tar.gz"
     },
     "windows-x64": {
-      "file": "aster-development-kit-4.1.0-rc.1-windows-x64.zip",
-      "format": "zip",
-      "sha256": "a120204bf25c4c8a736437e38a70b5c49f931c6b34f7c93d5ef2fa1fec213ff2"
+      "file": "aster-development-kit-4.1.0-windows-x64.zip",
+      "sha256": "66907eb24713d0a8f80ff2b8afb95fe0c18797d94339ae5b2384c6c99133bd0f",
+      "format": "zip"
     }
   },
   "contract_api_sha256": "740a2510fd027b29e029838e43f2a4f17bd8691f635fc4dc896b02f26a302149",
-  "release_channel": "prerelease",
+  "release_channel": "stable",
   "validation": {
-    "scope": "Reuse recorded validation; packaging compilation and integrity checks only.",
+    "scope": "Two-board normal audio/UI acceptance; firmware and SDK host tests; SDK examples and native templates; Linux/Windows simulator regression.",
     "known_issues": [
-      "Windows WASM Trap reporting intermittently exits with 0xC0000005.",
-      "Waveshare AXS15231B invalid touch report warnings remain.",
-      "Seamless music switching, SD/decode/output separation and OutRun integration are unfinished."
+      "Seamless music switching, independent output thread, and application-specific game integration are outside this version.",
+      "Hardware DMA depth/underrun telemetry is unavailable; injected SD/allocation faults and long combined stress remain unverified.",
+      "Waveshare has a pre-existing invalid touch report warning; normal user interaction passed."
     ],
     "hardware_record": "aster-firmware/docs/continuous-audio-implementation.zh-CN.md"
   }
