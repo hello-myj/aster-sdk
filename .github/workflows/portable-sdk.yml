@@ -87,5 +87,5 @@ jobs:
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             echo "Existing Release preserved; validated packages are available in the sdk-portable CI artifact."
           else
-            gh release create "$GITHUB_REF_NAME" artifacts/* --verify-tag --title "Aster SDK 4.0.0" --notes-file docs/使用说明.md
+            gh release create "$GITHUB_REF_NAME" artifacts/* --verify-tag --title "Aster SDK ${GITHUB_REF_NAME#sdk-v}" --notes-file docs/使用说明.md
           fi

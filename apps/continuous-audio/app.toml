@@ -1,0 +1,13 @@
+[app]
+id = "aster.example.continuousaudio"
+name = "Continuous Audio"
+description = "5 FPS animation with a worker-driven looping effect."
+version = "0.1.0"
+abi = "4.1.0"
+abi_min = "4.1"
+aot = true
+stack = 8192
+initial_memory = 131072
+max_memory = 262144
+requires = ["display", "touch", "audio-out", "audio-effects"]
+permissions = ["fs"]

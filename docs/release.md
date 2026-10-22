@@ -1,6 +1,6 @@
 # 发布 Windows 和 Linux 包
 
-在 Ubuntu x86_64 上一次打出两个主机包。Windows 包是便携目录 ZIP，带 `aster.exe`、`aster-toolchain.exe`、`aster-device.exe`。Linux 包是 tar.gz，运行需要 Python 3.12。当前 ABI 为 4.0.0，CPU 目标是 `xtensa`。
+在 Ubuntu x86_64 上一次打出两个主机包。Windows 包是便携目录 ZIP，带 `aster.exe`、`aster-toolchain.exe`、`aster-device.exe`。Linux 包是 tar.gz，运行需要 Python 3.12。当前 ABI 为 4.1.0，CPU 目标是 `xtensa`。
 
 ## 准备
 
