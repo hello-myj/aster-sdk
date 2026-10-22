@@ -1,6 +1,6 @@
 # HTTP/HTTPS
 
-当前 ABI 为 4.0.0。应用调用 `aster_http_request`、`aster_http_status`、`aster_http_read`、`aster_http_header`、`aster_http_cancel`、`aster_http_close`。
+当前 ABI 为 4.1.0。应用调用 `aster_http_request`、`aster_http_status`、`aster_http_read`、`aster_http_header`、`aster_http_cancel`、`aster_http_close`。
 
 ```toml
 abi_min = "4.0"

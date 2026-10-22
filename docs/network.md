@@ -1,6 +1,6 @@
 # TCP/UDP
 
-当前 ABI 为 4.0.0。应用调用 `aster_network_get_info`、`aster_network_open`、`aster_network_send`、`aster_network_recv`、`aster_network_status`、`aster_network_cancel`、`aster_network_close`。SDK 把它们转到 `aster_net_*`。
+当前 ABI 为 4.1.0。应用调用 `aster_network_get_info`、`aster_network_open`、`aster_network_send`、`aster_network_recv`、`aster_network_status`、`aster_network_cancel`、`aster_network_close`。SDK 把它们转到 `aster_net_*`。
 
 `app.toml`：
 

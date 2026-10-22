@@ -1,6 +1,6 @@
 # Aster APP SDK 开发手册（AI 可直接使用）
 
-适用版本：SDK ABI **4.0.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-4.0.0.zip`（工作区开发版），更新日期 2026-10-19。具体开发板由固件选择，SDK 不提供 `--board`。ABI 4.0 不兼容 3.x：网络只保留 `aster_net_info/open/io/status/cancel/close` 六个导入，旧的 `aster_network_*`、`aster_http_*`、`aster_mqtt_*`、`aster_ws_*` 由 SDK 库包装。已安装的 3.x 包必须用本 SDK 重新编译后再安装。
+适用版本：SDK ABI **4.1.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-4.1.0.zip`（工作区开发版），更新日期 2026-10-21。具体开发板由固件选择，SDK 不提供 `--board`。ABI 4.1 不兼容 3.x：网络只保留 `aster_net_info/open/io/status/cancel/close` 六个导入，旧的 `aster_network_*`、`aster_http_*`、`aster_mqtt_*`、`aster_ws_*` 由 SDK 库包装。已安装的 3.x 包必须用本 SDK 重新编译后再安装。
 
 本文是独立开发所需的完整参考：创建工程、配置、生命周期、绘图、输入、资源、设备接口、构建、部署及排错。本文中的类型和函数签名来自此版本 SDK 的公开契约。阅读本文即可编写 APP；不需要再读取固件代码、SDK 头文件、模板代码或工具实现。编译器会自动使用 SDK 自带的头文件和辅助库。
 
@@ -576,7 +576,7 @@ int32_t rc = aster_audio_start_file(music, (uint32_t)strlen(music));
 
 start_file 后台流式播放 WAV/PCM/MP3，**替换当前背景会话**，不是每次调用叠加声音。用 pause/resume/stop 控制；get_state 读取播放状态、进度和时长，version=2。没有通用音频完成事件，按低频 timer/FRAME 读取状态即可。未知时长 `msec_total` 可能为 0。
 
-短音效（ABI 3.4）：effect_load 返回**正句柄**或负错误；上限四个，每个最多 64 KiB 的原生格式立体声 PCM WAV。先加载音效再启动背景音乐；effect_play 与音乐混音，不替换音乐；重放同句柄重启该音效。退出 effect_unload，不要每次点击重新解码加载。
+短音效（ABI 3.4）：effect_load 返回**正句柄**或负错误；上限四个，每个最多 64 KiB 的 PCM16 WAV；4.1 支持单声道/立体声、8–48 kHz 及 RIFF 附加块。先加载音效再启动背景音乐；effect_play 与音乐混音，不替换音乐；重放同句柄重启该音效。退出 effect_unload，不要每次点击重新解码加载。
 
 ```c
 int32_t cue = aster_audio_effect_load("/assets/audio/click.wav", 23);
@@ -588,6 +588,10 @@ if (cue > 0) aster_audio_effect_unload((uint32_t)cue);
 上例路径长度 23，也可以统一用 strlen 防止改文件名后漏改长度。volume 范围 0–100；get_volume 返回该数值或负错误。seek 参数毫秒，MP3 为近似定位。get_lyrics 返回 UTF-8 字节数，不保证 NUL，准备 `capacity-1` 并手动终止。
 
 record 需要 AUDIO_INPUT，填满指定 PCM 缓冲前会阻塞；根据 get_info 计算时长，避免把数秒大录音放在小栈。没有公开流式录音 start/read/stop 接口。旧 aster_audio_play/start 已删除，不能使用。
+
+### 连续音效（ABI 4.1 开发分支）
+
+[完整调用示例、描述结构与首版边界](continuous-audio.md)。循环由固件音频线程推进，不依赖 FRAME；APP 只提交启动、参数变化与停止。新增导入的应用必须 `abi_min = "4.1"`、requires 包含 `audio-effects`，不能只用运行时 feature 判断规避旧设备缺失导入。最低固件版本仍为 4.0 的旧应用无需改动。
 
 ### 图片
 
@@ -685,7 +689,7 @@ SDK 自带 `apps/imucube`：30 FPS 六轴采样、彩色 3D 立方体、重力�
 
 appmgr 需要 appmgr 权限：count 返回安装数；list 用 `aster_app_info_t` version=2 获取 ID、名称、状态、分类和图标信息。start 是单 APP 的切换，调用方会先 stop/destroy，然后启动目标，不是并行启动后台 APP；拒绝启动自己。uninstall 拒绝删除自己或正在运行/暂停的应用。
 
-当前 ABI 为 4.0.0。TCP/UDP 见第 15 节，HTTP/HTTPS 见第 16 节，MP3 流见第 17 节，MQTT 见第 18 节，WebSocket 见第 19 节。应用继续调用原来的函数名，SDK 转到 `aster_net_*`。网络句柄状态变化通过 `ASTER_EVENT_SYS` / `ASTER_SYS_NET_STATE` 通知，见第 5 节。DNS 在连接或发送时解析。Wi-Fi 仍使用 `wifi` 能力和权限。
+当前 ABI 为 4.1.0。TCP/UDP 见第 15 节，HTTP/HTTPS 见第 16 节，MP3 流见第 17 节，MQTT 见第 18 节，WebSocket 见第 19 节。应用继续调用原来的函数名，SDK 转到 `aster_net_*`。网络句柄状态变化通过 `ASTER_EVENT_SYS` / `ASTER_SYS_NET_STATE` 通知，见第 5 节。DNS 在连接或发送时解析。Wi-Fi 仍使用 `wifi` 能力和权限。
 
 其他不存在的接口：没有公开蓝牙通信、线程创建、异步任务通用框架、桌面式文件选择器、原生输入框/键盘、UI 控件树。需要这些功能时在现有能力内自行实现交互，或提出明确 SDK 扩展需求。
 
@@ -1245,6 +1249,20 @@ int32_t aster_audio_start_file(const char *path, uint32_t path_len);
 int32_t aster_audio_effect_load(const char *path, uint32_t path_len);
 int32_t aster_audio_effect_play(uint32_t handle);
 int32_t aster_audio_effect_unload(uint32_t handle);
+
+#define ASTER_AUDIO_EFFECT_F_LOOP 1u
+typedef struct {
+    uint32_t size, version; /* 36, 1 */
+    uint32_t flags, loop_start_frame, loop_end_frame, crossfade_frames;
+    uint32_t pitch_q16, gain_q16, fade_in_ms;
+} aster_audio_effect_play_desc_t;
+typedef struct {
+    uint32_t size, version; /* 20, 1 */
+    uint32_t pitch_q16, gain_q16, ramp_ms;
+} aster_audio_effect_params_t;
+int32_t aster_audio_effect_play_ex(uint32_t handle, const aster_audio_effect_play_desc_t *desc, uint32_t size);
+int32_t aster_audio_effect_set_params(uint32_t handle, const aster_audio_effect_params_t *params, uint32_t size);
+int32_t aster_audio_effect_stop(uint32_t handle, uint32_t fade_out_ms);
 
 int32_t aster_audio_pause(void);
 int32_t aster_audio_resume(void);
@@ -2431,4 +2449,4 @@ ASTER_I("aster_ws_close") int32_t aster_ws_close(uint32_t handle);
 
 配额与边界：全设备只有一个 WebSocket 客户端（与诊断 CLI 共用），占用时 connect 返回明确错误而不是排队；它的 TCP 连接与 HTTP/MQTT/TCP-UDP/CLI 共用两个全局传输名额，WSS 与 HTTPS/MQTTS 共用一个已验证 TLS 名额。单条消息最大 4096 字节；不能依据远端声明的长度分配缓存，超限在帧头阶段拒绝。证书由设备管理员信任源校验，APP 无跳过校验选项；WSS 需要已同步的时钟。
 
-完整工程见 `apps/ws-echo`。模拟器默认连 `127.0.0.1:17880`。真机把 URL 改成设备能访问的地址。当前 ABI 为 4.0.0。
+完整工程见 `apps/ws-echo`。模拟器默认连 `127.0.0.1:17880`。真机把 URL 改成设备能访问的地址。当前 ABI 为 4.1.0。

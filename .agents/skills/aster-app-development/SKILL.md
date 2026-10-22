@@ -1,6 +1,6 @@
 ---
 name: aster-app-development
-description: 使用 Aster APP SDK ABI 4.0 开发 C/WASM/AOT 应用。当用户要求创建 Aster APP 工程、编写游戏或图形应用、添加触摸交互和设备功能、构建打包部署，或要求只读开发手册进行开发时使用。基于自包含手册，不需要读取 SDK、固件或工具源码。4.0 不兼容 3.x，旧 APP 必须重编后重装。
+description: 使用 Aster APP SDK ABI 4.1 开发 C/WASM/AOT 应用。当用户要求创建 Aster APP 工程、编写游戏或图形应用、添加触摸交互和设备功能、构建打包部署，或要求只读开发手册进行开发时使用。基于自包含手册，不需要读取 SDK、固件或工具源码。4.0 不兼容 3.x，旧 APP 必须重编后重装。
 ---
 
 # Aster APP 开发
@@ -24,3 +24,5 @@ description: 使用 Aster APP SDK ABI 4.0 开发 C/WASM/AOT 应用。当用户�
 网络应用的 `abi_min` 为 4.0。TCP/UDP 按第 15 节，需要 `network` 和 `net`。HTTP 按第 16 节，MQTT 按第 18 节，WebSocket 按第 19 节。调用原来的函数名。全设备两个连接槽，TLS 一个名额。在事件里轮询，`EAGAIN` 下次再试。终态句柄要 close。模拟器真实通信加 `--network`，不与回放同时使用。
 
 MP3 边下载边播放按第 17 节，需要 `audio-out` 和 `audio-stream`。`write` 可能只接受一部分。HTTP 成功结束才 `finish`。模拟器不提供 `audio-stream`。
+
+持续引擎音等使用 ABI 4.1 的连续音效，先读 [连续音效说明](../../../docs/continuous-audio.md)。play_ex 启动一次；参数变化使用 set_params，单独停止使用 effect_stop。新导入必须 abi_min=4.1；不要用低频 FRAME 反复 play 模拟循环。首版切歌、流式音乐交接和 SD 压力连续性尚未验收，不能承诺无缝。

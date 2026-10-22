@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "product": "aster",
-  "abi": "4.0.0",
+  "abi": "4.1.0",
   "imports": {
     "env": [
       "__cxa_allocate_exception",
@@ -19,6 +19,9 @@
       "aster_appmgr_uninstall",
       "aster_audio_effect_load",
       "aster_audio_effect_play",
+      "aster_audio_effect_play_ex",
+      "aster_audio_effect_set_params",
+      "aster_audio_effect_stop",
       "aster_audio_effect_unload",
       "aster_audio_get_info",
       "aster_audio_get_lyrics",
@@ -154,6 +157,9 @@
     "aster_audio_get_volume": "()i",
     "aster_audio_effect_load": "(ii)i",
     "aster_audio_effect_play": "(i)i",
+    "aster_audio_effect_play_ex": "(iii)i",
+    "aster_audio_effect_set_params": "(iii)i",
+    "aster_audio_effect_stop": "(ii)i",
     "aster_audio_effect_unload": "(i)i",
     "aster_audio_pause": "()i",
     "aster_audio_record": "(ii)i",
@@ -217,14 +223,14 @@
     "aster_wifi_get_saved_ssid": "(ii)i",
     "aster_wifi_reconnect": "()i",
     "aster_wifi_scan_results": "(ii)i",
-    "aster_wifi_scan_start": "()i",
-    "aster_wifi_status": "(ii)i",
     "aster_net_info": "(ii)i",
     "aster_net_open": "(ii)i",
     "aster_net_io": "(iiii)i",
     "aster_net_status": "(iii)i",
     "aster_net_cancel": "(i)i",
-    "aster_net_close": "(i)i"
+    "aster_net_close": "(i)i",
+    "aster_wifi_scan_start": "()i",
+    "aster_wifi_status": "(ii)i"
   },
   "package_format": "ASTP",
   "runtime": {
@@ -260,6 +266,7 @@
     "mqtt": 19,
     "audio-stream": 18,
     "websocket": 20,
+    "audio-effects": 21,
     "storage.app": 11
   }
 }

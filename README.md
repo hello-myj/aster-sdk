@@ -1,6 +1,6 @@
 # Aster SDK
 
-应用开发仓库。代码包含 `<aster/aster.h>`，通过 `aster_*` 调用设备功能。当前 ABI 为 4.0.0，CPU 目标是 `xtensa`，同一包可用于立创和微雪 ESP32-S3。3.x 包需要用本 SDK 重新编译后再安装。
+应用开发仓库。代码包含 `<aster/aster.h>`，通过 `aster_*` 调用设备功能。当前 ABI 为 4.1.0，CPU 目标是 `xtensa`，同一包可用于立创和微雪 ESP32-S3。3.x 包需要用本 SDK 重新编译后再安装。
 
 网络代码继续调用 `aster_network_*`、`aster_http_*`、`aster_mqtt_*`、`aster_ws_*`。这些函数在 `lib/aster/aster_netlib.c` 里转到六个导入：`aster_net_info`、`aster_net_open`、`aster_net_io`、`aster_net_status`、`aster_net_cancel`、`aster_net_close`。应用 manifest 的 `abi_min` 设为 `4.0`。
 
@@ -67,10 +67,12 @@ orientation = "landscape"
 ## 更新契约
 
 ```bash
-python tools/import_contract.py /path/to/aster-contract-4.0.0.zip
+python tools/import_contract.py /path/to/aster-contract-4.1.0.zip
 python -m unittest discover -s tests -v
 ```
 
 导入后一起提交 `include/`、`contract/` 和 `targets/`。日常构建只读仓库里的副本。
 
 发布步骤见 [docs/release.md](docs/release.md)。命令说明见 [docs/sdk-cli.md](docs/sdk-cli.md)。许可见 [NOTICE.md](NOTICE.md)。
+
+当前连续音效功能以 `sdk-v4.1.0-rc.1` 候选版提供；下载该版本的完整开发包即可获得匹配固件和模拟器。它不替代4.0稳定版，限制与已完成验证范围见 [连续音效说明](docs/continuous-audio.md)。
