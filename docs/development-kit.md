@@ -16,8 +16,8 @@
 bash release.sh --hosts linux-x64,windows-x64 --development-kit-dir /path/to/pinned-payloads
 ```
 
-## 4.1 候选版的源码关系
+## 4.1 正式版的源码关系
 
-`sdk-v4.1.0-rc.1` 为预发布版，保留4.0稳定版。固件和模拟器均绑定功能分支的精确提交。SDK首先提交公开契约和功能，再提交最终配套产物哈希；模拟器快照的 `sdkCommit` 指向清单中 `components.simulator.sdk_contract_revision`，最终 SDK 提交另由包内 `release.json.commit` 标明。两者可以只因发布元数据而不同，公开契约哈希必须一致。
+`sdk-v4.1.0` 为正式版。固件和模拟器均绑定各自主分支的精确提交。SDK首先提交公开契约和功能，再提交最终配套产物哈希；模拟器快照的 `sdkCommit` 指向清单中 `components.simulator.sdk_contract_revision`，最终 SDK 提交另由包内 `release.json.commit` 标明。两者可以只因发布元数据而不同，公开契约哈希必须一致。
 
-候选版不表示无缝切歌、SD/解码解耦或OutRun适配完成。Windows Trap间歇失败与微雪已知触摸报文警告见 [连续音效说明](continuous-audio.md)。
+本版包含 SD 预读与连续音效；无缝切歌、解码/输出线程解耦不在本版范围。完整边界与验证说明见 [连续音效说明](continuous-audio.md)。

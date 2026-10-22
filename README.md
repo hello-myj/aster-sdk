@@ -75,4 +75,4 @@ python -m unittest discover -s tests -v
 
 发布步骤见 [docs/release.md](docs/release.md)。命令说明见 [docs/sdk-cli.md](docs/sdk-cli.md)。许可见 [NOTICE.md](NOTICE.md)。
 
-当前连续音效功能以 `sdk-v4.1.0-rc.1` 候选版提供；下载该版本的完整开发包即可获得匹配固件和模拟器。它不替代4.0稳定版，限制与已完成验证范围见 [连续音效说明](docs/continuous-audio.md)。
+当前正式版本为 `sdk-v4.1.0`；下载本机平台的完整开发包即可获得 APP SDK、匹配的两款固件和便携模拟器。功能边界与已完成验证范围见 [连续音效说明](docs/continuous-audio.md)。
