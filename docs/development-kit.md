@@ -1,6 +1,6 @@
 # 完整开发套件
 
-从 SDK Release 下载本机平台的包。包内有 APP SDK、手册、示例和 `xtensa` 工具链。当前 ABI 为 4.1.0。
+从 SDK Release 下载本机平台的包。包内有 APP SDK、手册、示例和 `xtensa` 工具链。当前 ABI 为 4.2.0。
 
 固件镜像和模拟器只在仓库里有 `contract/release-family.json` 时打进同一个包。没有这份清单时，发布包只有 SDK。
 

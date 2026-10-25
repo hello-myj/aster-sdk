@@ -1,6 +1,6 @@
 # 连续音效
 
-当前 ABI 为 4.1.0，随 `sdk-v4.1.0` 正式开发包提供，源码已合入三个仓库的 main。此版本实现连续音效及固件 MP3 文件预读，完整接口边界如下。
+当前 ABI 为 4.2.0（源码开发版，尚未发布对应安装包）。ABI4.1已提供连续音效及MP3文件预读；4.2新增内存WAV加载，旧4.1接口保持兼容。完整接口边界如下。
 
 ## 工程配置
 
@@ -85,3 +85,12 @@ python tools/build.py apps/continuous-audio --target xtensa
 微雪与 LCKFB 均完成 48 kHz MP3、暂停/跳转、长短文件 EOF、反复启停与内存回收、循环音效接续及上下拉检查，用户确认声音、画面与实体上下拉正常。微雪另有此前 600.57 秒单循环记录。完整验证记录位于固件仓库 docs/continuous-audio-implementation.zh-CN.md。
 
 本版不包含无缝切歌、独立输出线程或具体游戏源码改造；硬件欠载与 DMA 实时水位未知，SD 断卡/分配失败/长期复合压力尚未验收。浏览器端播放与 I²S 真机的验证范围分别记录，不能互相替代。
+
+
+## ABI 4.2 内存音效加载（本地源码候选）
+
+新增 `audio-effects-memory` 能力（feature 22）及 `aster_audio_effect_load_memory(const void *wav, uint32_t wav_bytes)`，签名 `(ii)i`。APP必须声明ABI/min 4.2和该requires能力，旧ABI4.1 APP接口及结构不变。接受完整RIFF PCM16 WAV，容器12..69632B、data最多65536B，mono/stereo 8..48kHz；与文件加载共享四句柄。未知/重复fmt/data、截断、越界和不对齐PCM长度均按现有WAV规则拒绝。
+
+Host在调用返回前将PCM复制到自身拥有的有界缓冲，Guest随后可释放/改写输入；不会保留Guest指针。此函数需要audio-out及能力支持，不需要fs权限，也不访问SD。返回正句柄或稳定ASTER错误，后续play_ex/set_params/stop/unload语义与原接口相同。容器无效、内存范围非法、超过容器上限返回EINVAL；四句柄满或分配失败返回ENOMEM；平台无音频时返回ENODEV。模拟器实现相同有界复制与WAV解析。
+
+此为本地源码候选ABI扩展，尚未发布为官方SDK版本。新APP不能在旧4.1 Host加载，旧APP可继续使用4.2 Host。

@@ -63,59 +63,82 @@ def uleb(b, i):
     r = 0
     s = 0
     while True:
+        assert i < len(b), "truncated wasm LEB128"
         x = b[i]
         i += 1
         r |= (x & 0x7F) << s
         if not (x & 0x80):
+            assert r < (1 << 64), "wasm LEB128 overflow"
             return r, i
         s += 7
+        assert s < 64, "wasm LEB128 overflow"
 
 
 def wasm_sections(b):
     """yield (section_id, payload bytes)"""
-    assert b[:4] == b"\x00asm", "not a wasm module"
+    assert len(b) >= 8 and b[:8] == b"\x00asm\x01\x00\x00\x00", "not a wasm v1 module"
     i = 8
     while i < len(b):
         sid = b[i]
         i += 1
         size, i = uleb(b, i)
+        assert size <= len(b) - i, "truncated wasm section"
         yield sid, b[i:i + size]
         i += size
 
 
 def wasm_io_symbols(wasm):
     """return (imports, exports) as lists of (module, name, kind) / name"""
+    def read_name(payload, j):
+        size, j = uleb(payload, j)
+        assert size <= len(payload) - j, "truncated wasm name"
+        return payload[j:j + size].decode("utf8"), j + size
+
+    def read_limits(payload, j):
+        flags, j = uleb(payload, j)
+        assert flags in (0, 1, 3, 4, 5, 7), "unsupported wasm limits flags"
+        _, j = uleb(payload, j)
+        if flags & 1:
+            _, j = uleb(payload, j)
+        return j
+
     imports, exports = [], []
     for sid, payload in wasm_sections(wasm):
         if sid == 2:  # import
             j = 0
             cnt, j = uleb(payload, j)
             for _ in range(cnt):
-                ml, j = uleb(payload, j)
-                mod = payload[j:j + ml].decode("utf8", "replace")
-                j += ml
-                nl, j = uleb(payload, j)
-                nm = payload[j:j + nl].decode("utf8", "replace")
-                j += nl
+                mod, j = read_name(payload, j)
+                nm, j = read_name(payload, j)
+                assert j < len(payload), "truncated wasm import kind"
                 kind = payload[j]
                 j += 1
                 if kind == 0:      # func
                     _, j = uleb(payload, j)
                 elif kind == 1:    # table
-                    j += 2 if payload[j] & 1 else 1
+                    assert j < len(payload) and payload[j] in (0x70, 0x6f), "unsupported wasm table type"
                     j += 1
+                    j = read_limits(payload, j)
                 elif kind == 2:    # memory
-                    j += 2 if payload[j] & 1 else 1
+                    j = read_limits(payload, j)
                 elif kind == 3:    # global
                     j += 2
+                else:
+                    raise AssertionError(f"unsupported wasm import kind {kind}")
+                assert j <= len(payload), "truncated wasm import descriptor"
                 imports.append((mod, nm, kind))
+            assert j == len(payload), "invalid wasm import section length"
         elif sid == 7:  # export
             j = 0
             cnt, j = uleb(payload, j)
             for _ in range(cnt):
-                nl, j = uleb(payload, j)
-                exports.append(payload[j:j + nl].decode("utf8", "replace"))
-                j += nl + 2  # kind byte + index
+                name, j = read_name(payload, j)
+                assert j < len(payload), "truncated wasm export kind"
+                assert payload[j] <= 4, "unsupported wasm export kind"
+                j += 1
+                _, j = uleb(payload, j)
+                exports.append(name)
+            assert j == len(payload), "invalid wasm export section length"
     return imports, exports
 
 

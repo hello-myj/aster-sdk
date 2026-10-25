@@ -94,7 +94,7 @@ LIFECYCLE_EXPORTS = [
 ]
 
 VALID_CAPS = {
-    "display", "touch", "mouse", "keyboard", "camera", "audio-in", "audio-out", "audio-stream", "audio-effects",
+    "display", "touch", "mouse", "keyboard", "camera", "audio-in", "audio-out", "audio-stream", "audio-effects", "audio-effects-memory",
     "wifi", "bluetooth", "accelerometer", "gyroscope", "filesystem", "storage.app",
     "rtc", "psram", "framebuffer", "network", "http", "tls", "mqtt", "websocket",
 }
@@ -306,11 +306,11 @@ class App:
             sys.exit(f"error: {toml}: unknown requires {bad} (valid: {sorted(VALID_CAPS)})")
 
 
-def capture_tool(cmd):
+def capture_tool(cmd, *, cwd=None):
     # Native Windows compilers may emit ANSI diagnostics even when Python
     # runs in UTF-8 mode. Read bytes first so a decoder thread cannot fail
     # and silently discard the compiler's diagnostic output.
-    result = subprocess.run(cmd, capture_output=True)
+    result = subprocess.run(cmd, capture_output=True, cwd=cwd)
     for name in ('stdout', 'stderr'):
         data = getattr(result, name)
         if isinstance(data, bytes):
@@ -322,8 +322,8 @@ def capture_tool(cmd):
     return result
 
 
-def run(cmd: list[str], what: str) -> None:
-    r = capture_tool(cmd)
+def run(cmd: list[str], what: str, cwd: Path | None = None) -> None:
+    r = capture_tool(cmd, cwd=cwd)
     if r.returncode != 0:
         print(f"[FAIL] {what}\n$ {' '.join(cmd)}\n{r.stderr or r.stdout}", file=sys.stderr)
         sys.exit(1)
@@ -340,14 +340,16 @@ def _flat_obj(obj_dir: Path, src: Path, roots: list[Path]) -> Path:
     collides. Map a source to <root-rel-path-with-separators-as-_>.o when it
     sits under a declared source_root; else fall back to the parent-dir tag.
     """
-    for r in roots:
+    for root_index, r in enumerate(roots):
         try:
             rel = src.relative_to(r)
         except ValueError:
             continue
         tag = "_".join(rel.parts[:-1] + (rel.stem,))
-        return obj_dir / (tag + ".o")
-    return obj_dir / (src.stem + ".o")
+        return obj_dir / (f"root{root_index}_" + tag + ".o")
+    import hashlib
+    identity = hashlib.sha256(str(src.resolve()).encode("utf-8")).hexdigest()[:16]
+    return obj_dir / (src.stem + "_" + identity + ".o")
 
 
 def build_wasm(app: App, obj_dir: Path, wasm_path: Path) -> None:
@@ -379,12 +381,12 @@ def build_wasm(app: App, obj_dir: Path, wasm_path: Path) -> None:
     objects: list[Path] = []
     obj_dir.mkdir(parents=True, exist_ok=True)
     for src in sources + [LIB_DIR / name for name in ("aster_printf.c", "aster_gfx.c", "aster_scene.c", "aster_layout.c", "aster_widgets.c", "aster_netlib.c")]:
-        obj = _flat_obj(obj_dir, src, app.source_roots)
+        obj = _flat_obj(obj_dir, src, app.source_roots + [app.dir, LIB_DIR])
         obj.parent.mkdir(parents=True, exist_ok=True)
-        run(cflags + ["-c", "-o", str(obj), str(src)], f"cc {src.name}")
+        run(cflags + ["-c", "-o", str(obj), str(src)], f"cc {src.name}", cwd=app.dir)
         objects.append(obj)
     crt = obj_dir / "crt.o"
-    run(cflags + ["-c", "-o", str(crt), str(LIB_DIR / "crt.c")], "cc crt.c")
+    run(cflags + ["-c", "-o", str(crt), str(LIB_DIR / "crt.c")], "cc crt.c", cwd=app.dir)
 
     # ar + whole-archive keeps the weak crt defaults without pulling in the
     # rest of libc; --allow-undefined lets the aster_* env imports stay imports.
@@ -414,7 +416,8 @@ def build_wasm(app: App, obj_dir: Path, wasm_path: Path) -> None:
     if app.entry:
         ldflags.append(f"-Wl,--export={app.entry}")
     ldflags += ["-o", str(wasm_path)] + [str(o) for o in objects]
-    run(ldflags, "link")
+    ldflags += app.extra_ldflags
+    run(ldflags, "link", cwd=app.dir)
 
     # verify every required export really landed
     nm = clang.parent / ("llvm-nm.exe" if os.name == "nt" else "llvm-nm")

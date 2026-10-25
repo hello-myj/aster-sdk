@@ -1,6 +1,6 @@
 # Aster APP SDK 开发手册（AI 可直接使用）
 
-适用版本：SDK ABI **4.1.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-4.1.0.zip`（工作区开发版），更新日期 2026-10-21。具体开发板由固件选择，SDK 不提供 `--board`。ABI 4.1 不兼容 3.x：网络只保留 `aster_net_info/open/io/status/cancel/close` 六个导入，旧的 `aster_network_*`、`aster_http_*`、`aster_mqtt_*`、`aster_ws_*` 由 SDK 库包装。已安装的 3.x 包必须用本 SDK 重新编译后再安装。
+适用版本：SDK ABI **4.2.0**；应用目标是 CPU 平台 **xtensa**（工具链目录目前只能编译 Xtensa，因此不提供 riscv/arm 目标文件）。契约基线为固件导出的 `aster-contract-4.2.0.zip`（工作区开发版），更新日期 2026-10-25。具体开发板由固件选择，SDK 不提供 `--board`。4.x 不兼容 3.x：网络只保留 `aster_net_info/open/io/status/cancel/close` 六个导入，旧的 `aster_network_*`、`aster_http_*`、`aster_mqtt_*`、`aster_ws_*` 由 SDK 库包装。已安装的 3.x 包必须用本 SDK 重新编译后再安装。
 
 本文是独立开发所需的完整参考：创建工程、配置、生命周期、绘图、输入、资源、设备接口、构建、部署及排错。本文中的类型和函数签名来自此版本 SDK 的公开契约。阅读本文即可编写 APP；不需要再读取固件代码、SDK 头文件、模板代码或工具实现。编译器会自动使用 SDK 自带的头文件和辅助库。
 
@@ -689,7 +689,7 @@ SDK 自带 `apps/imucube`：30 FPS 六轴采样、彩色 3D 立方体、重力�
 
 appmgr 需要 appmgr 权限：count 返回安装数；list 用 `aster_app_info_t` version=2 获取 ID、名称、状态、分类和图标信息。start 是单 APP 的切换，调用方会先 stop/destroy，然后启动目标，不是并行启动后台 APP；拒绝启动自己。uninstall 拒绝删除自己或正在运行/暂停的应用。
 
-当前 ABI 为 4.1.0。TCP/UDP 见第 15 节，HTTP/HTTPS 见第 16 节，MP3 流见第 17 节，MQTT 见第 18 节，WebSocket 见第 19 节。应用继续调用原来的函数名，SDK 转到 `aster_net_*`。网络句柄状态变化通过 `ASTER_EVENT_SYS` / `ASTER_SYS_NET_STATE` 通知，见第 5 节。DNS 在连接或发送时解析。Wi-Fi 仍使用 `wifi` 能力和权限。
+当前 ABI 为 4.2.0。TCP/UDP 见第 15 节，HTTP/HTTPS 见第 16 节，MP3 流见第 17 节，MQTT 见第 18 节，WebSocket 见第 19 节。应用继续调用原来的函数名，SDK 转到 `aster_net_*`。网络句柄状态变化通过 `ASTER_EVENT_SYS` / `ASTER_SYS_NET_STATE` 通知，见第 5 节。DNS 在连接或发送时解析。Wi-Fi 仍使用 `wifi` 能力和权限。
 
 其他不存在的接口：没有公开蓝牙通信、线程创建、异步任务通用框架、桌面式文件选择器、原生输入框/键盘、UI 控件树。需要这些功能时在现有能力内自行实现交互，或提出明确 SDK 扩展需求。
 
@@ -2449,4 +2449,13 @@ ASTER_I("aster_ws_close") int32_t aster_ws_close(uint32_t handle);
 
 配额与边界：全设备只有一个 WebSocket 客户端（与诊断 CLI 共用），占用时 connect 返回明确错误而不是排队；它的 TCP 连接与 HTTP/MQTT/TCP-UDP/CLI 共用两个全局传输名额，WSS 与 HTTPS/MQTTS 共用一个已验证 TLS 名额。单条消息最大 4096 字节；不能依据远端声明的长度分配缓存，超限在帧头阶段拒绝。证书由设备管理员信任源校验，APP 无跳过校验选项；WSS 需要已同步的时钟。
 
-完整工程见 `apps/ws-echo`。模拟器默认连 `127.0.0.1:17880`。真机把 URL 改成设备能访问的地址。当前 ABI 为 4.1.0。
+完整工程见 `apps/ws-echo`。模拟器默认连 `127.0.0.1:17880`。真机把 URL 改成设备能访问的地址。当前 ABI 为 4.2.0。
+
+
+## ABI 4.2 内存音效加载（本地源码候选）
+
+新增 `audio-effects-memory` 能力（feature 22）及 `aster_audio_effect_load_memory(const void *wav, uint32_t wav_bytes)`，签名 `(ii)i`。APP必须声明ABI/min 4.2和该requires能力，旧ABI4.1 APP接口及结构不变。接受完整RIFF PCM16 WAV，容器12..69632B、data最多65536B，mono/stereo 8..48kHz；与文件加载共享四句柄。未知/重复fmt/data、截断、越界和不对齐PCM长度均按现有WAV规则拒绝。
+
+Host在调用返回前将PCM复制到自身拥有的有界缓冲，Guest随后可释放/改写输入；不会保留Guest指针。此函数需要audio-out及能力支持，不需要fs权限，也不访问SD。返回正句柄或稳定ASTER错误，后续play_ex/set_params/stop/unload语义与原接口相同。容器无效、内存范围非法、超过容器上限返回EINVAL；四句柄满或分配失败返回ENOMEM；平台无音频时返回ENODEV。模拟器实现相同有界复制与WAV解析。
+
+此为本地源码候选ABI扩展，尚未发布为官方SDK版本。新APP不能在旧4.1 Host加载，旧APP可继续使用4.2 Host。

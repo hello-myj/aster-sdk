@@ -18,6 +18,11 @@
  * identically. gc-sections drops them from apps that never call them. */
 void *memcpy(void *dst, const void *src, size_t n)
 {
+#if defined(__wasm_bulk_memory__)
+	/* Native bulk operation retains WASM range/overlap semantics. */
+	__builtin_memcpy(dst, src, n);
+	return dst;
+#else
 	uint8_t *d = dst;
 	const uint8_t *s = src;
 
@@ -25,10 +30,16 @@ void *memcpy(void *dst, const void *src, size_t n)
 		d[i] = s[i];
 	}
 	return dst;
+#endif
 }
 
 void *memmove(void *dst, const void *src, size_t n)
 {
+#if defined(__wasm_bulk_memory__)
+	/* Native bulk operation retains WASM range/overlap semantics. */
+	__builtin_memmove(dst, src, n);
+	return dst;
+#else
 	uint8_t *d = dst;
 	const uint8_t *s = src;
 
@@ -45,16 +56,23 @@ void *memmove(void *dst, const void *src, size_t n)
 		}
 	}
 	return dst;
+#endif
 }
 
 void *memset(void *s, int c, size_t n)
 {
+#if defined(__wasm_bulk_memory__)
+	/* Native bulk operation retains WASM range/overlap semantics. */
+	__builtin_memset(s, c, n);
+	return s;
+#else
 	uint8_t *d = s;
 
 	for (size_t i = 0; i < n; i++) {
 		d[i] = (uint8_t)c;
 	}
 	return s;
+#endif
 }
 
 int memcmp(const void *a, const void *b, size_t n)

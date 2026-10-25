@@ -1,6 +1,6 @@
 # Aster SDK
 
-应用开发仓库。代码包含 `<aster/aster.h>`，通过 `aster_*` 调用设备功能。当前 ABI 为 4.1.0，CPU 目标是 `xtensa`，同一包可用于立创和微雪 ESP32-S3。3.x 包需要用本 SDK 重新编译后再安装。
+应用开发仓库。代码包含 `<aster/aster.h>`，通过 `aster_*` 调用设备功能。当前 ABI 为 4.2.0，CPU 目标是 `xtensa`，同一包可用于立创和微雪 ESP32-S3。3.x 包需要用本 SDK 重新编译后再安装。
 
 网络代码继续调用 `aster_network_*`、`aster_http_*`、`aster_mqtt_*`、`aster_ws_*`。这些函数在 `lib/aster/aster_netlib.c` 里转到六个导入：`aster_net_info`、`aster_net_open`、`aster_net_io`、`aster_net_status`、`aster_net_cancel`、`aster_net_close`。应用 manifest 的 `abi_min` 设为 `4.0`。
 
@@ -67,7 +67,7 @@ orientation = "landscape"
 ## 更新契约
 
 ```bash
-python tools/import_contract.py /path/to/aster-contract-4.1.0.zip
+python tools/import_contract.py /path/to/aster-contract-4.2.0.zip
 python -m unittest discover -s tests -v
 ```
 

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "product": "aster",
-  "abi": "4.1.0",
+  "abi": "4.2.0",
   "imports": {
     "env": [
       "__cxa_allocate_exception",
@@ -18,6 +18,7 @@
       "aster_appmgr_start",
       "aster_appmgr_uninstall",
       "aster_audio_effect_load",
+      "aster_audio_effect_load_memory",
       "aster_audio_effect_play",
       "aster_audio_effect_play_ex",
       "aster_audio_effect_set_params",
@@ -156,6 +157,7 @@
     "aster_audio_get_state": "(ii)i",
     "aster_audio_get_volume": "()i",
     "aster_audio_effect_load": "(ii)i",
+    "aster_audio_effect_load_memory": "(ii)i",
     "aster_audio_effect_play": "(i)i",
     "aster_audio_effect_play_ex": "(iii)i",
     "aster_audio_effect_set_params": "(iii)i",
@@ -267,6 +269,7 @@
     "audio-stream": 18,
     "websocket": 20,
     "audio-effects": 21,
+    "audio-effects-memory": 22,
     "storage.app": 11
   }
 }
