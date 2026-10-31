@@ -6,6 +6,26 @@
 
 接口说明在 [APP 开发手册](docs/app-development.md)。
 
+## 实验性 ESP32-P4 目标
+
+源码分支新增 `--target riscv`，供配套 ESP-IDF P4 固件使用，状态为
+`experimental-unverified`（尚未完成整板验收）。2026-10-31 已在配套 P4 v3.2
+固件上验证 Hello 和 2048 的 RISC-V AOT 执行，以及 2048 的显示、滑动、暂停/恢复
+和停止。其余功能仍需验收，现有 Windows 发布包不因此获得 P4 支持。
+默认稳定目标仍为 `xtensa`。
+
+```bash
+python tools/build.py apps/hello --target riscv --aot
+```
+
+此配置使用 RV32 ILP32F、M/A/F/C、软件内存/栈边界检查，并为 AOT 编译副本准备
+有上限的共享内存，以生成 WAMR 循环终止检查。原 portable WASM 不变。
+包输出到 `dist/riscv/`，目前通过 SD 卡和固件的 `aster app install` 安装；
+该端口尚未提供 USB ASTERFS 上传。需要包含 RISC-V 后端的 `wamrc`。
+
+P4 固件的 AOT 配置使用内部可执行 SRAM、关闭 IDF IDRAM 内存保护，并在加载前失败时
+回退解释器。AOT 输入须来自受信任的编译来源；具体硬件和能力限制以固件板级说明为准。
+
 ## 安装
 
 Linux 源码仓库：

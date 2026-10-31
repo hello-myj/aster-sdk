@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "id": "riscv",
+  "product": "aster",
+  "abi": "4.2.0",
+  "system": "esp-idf",
+  "cpu": "riscv32",
+  "aot_target": "riscv32",
+  "aot_profile": "rv32-ilp32f-interruptible",
+  "capabilities": [
+    "display", "touch", "audio-in", "audio-out", "filesystem", "storage.app",
+    "wifi", "rtc", "psram", "framebuffer", "network", "http", "tls",
+    "mqtt", "websocket", "audio-stream", "audio-effects", "audio-effects-memory"
+  ],
+  "deployment": {
+    "transport": "sdcard",
+    "console": "",
+    "data_glob": "",
+    "package_dir": "/SD:"
+  },
+  "status": "experimental-unverified",
+  "name": "ESP32-P4 RV32 ILP32F (experimental; hardware unverified)"
+}

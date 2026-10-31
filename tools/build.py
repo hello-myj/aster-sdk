@@ -453,8 +453,23 @@ def build_aot(app: App, wasm_path: Path, aot_path: Path, target: str = "xtensa")
         print(f"[{app.id}] wamrc not found; skipping AOT")
         print(f"  {WAMRC_BUILD_HINT}")
         raise SystemExit("AOT requested but wamrc unavailable; use --no-aot explicitly")
-    run([str(wamrc), f"--target={target}", "--size-level=s",
-         "-o", str(aot_path), str(wasm_path)], "wamrc")
+    command = [str(wamrc), f"--target={target}", "--size-level=s"]
+    source = wasm_path
+    if app.target.get("aot_profile") == "rv32-ilp32f-interruptible":
+        if target != "riscv32":
+            raise SystemExit("ESP32-P4 requires the riscv32 AOT backend")
+        from aot_memory import interruptible_wasm
+        # WAMR expects a numeric size level. The generic "s" spelling is
+        # parsed as zero and selects an unsupported RV32 large code model.
+        command[-1] = "--size-level=3"
+        maximum = app.max_memory or 8 * 1024 * 1024
+        if not 65536 <= maximum <= 16 * 1024 * 1024:
+            raise SystemExit("ESP32-P4 application memory must be 64 KiB..16 MiB")
+        source = aot_path.with_suffix(".interruptible.wasm")
+        source.write_bytes(interruptible_wasm(wasm_path.read_bytes(), maximum // 65536))
+        command += ["--target-abi=ilp32f", "--cpu=generic-rv32", "--cpu-features=+m,+a,+f,+c",
+                    "--enable-multi-thread", "--bounds-checks=1", "--stack-bounds-checks=1"]
+    run(command + ["-o", str(aot_path), str(source)], "wamrc")
     return True
 
 

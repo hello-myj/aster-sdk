@@ -94,7 +94,8 @@ class BuildPipeline(unittest.TestCase):
         self.assertEqual(manifest["target_id"], board)
         target = aster_board.get(board)
         self.assertNotIn("max_linear", target.get("memory", {}))
-        self.assertEqual(set(aster_board.targets()), {"xtensa"})
+        self.assertEqual(set(aster_board.targets()), {"xtensa", "riscv"})
+        self.assertEqual(aster_board.get("riscv")["status"], "experimental-unverified")
         abi = target["abi"]
         validate_manifest({"id": "test.hello", "product": "aster", "target_id": board,
                            "abi": {"min": ".".join(abi.split(".")[:2]), "target": abi},

@@ -65,6 +65,12 @@ def target_for(explicit=None, project=None):
     known = targets()
     if not selected and len(known) == 1:
         selected = known[0]
+    if not selected:
+        # An experimental port must not change the existing stable default.
+        stable = [name for name in known if json.loads((ROOT / 'targets' / (name + '.json')).read_text())
+                  .get('status') == 'build-supported']
+        if len(stable) == 1:
+            selected = stable[0]
     if selected not in known:
         raise ValueError('Select --target from: ' + ', '.join(known))
     return selected
