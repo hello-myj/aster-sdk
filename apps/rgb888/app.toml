@@ -1,0 +1,17 @@
+[app]
+id = "aster.example.rgb888"
+name = "RGB666 Color Lab"
+description = "Native RGB888 gradients, fonts, alpha and five-contact drawing on P4 RGB666 output."
+version = "0.1.0"
+abi = "4.2.0"
+abi_min = "4.2"
+aot = true
+stack = 16384
+initial_memory = 1048576
+max_memory = 4194304
+heap = 1048576
+requires = ["display", "touch"]
+permissions = []
+sources = ["src/main.c"]
+[sdk]
+target = "riscv"
