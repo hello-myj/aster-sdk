@@ -1,6 +1,6 @@
 # Aster APP SDK 开发手册（AI 可直接使用）
 
-适用版本：SDK ABI **4.2.0**；稳定应用目标是 CPU 平台 **xtensa**。源码另有实验性 **riscv** 目标，使用 ESP32-P4 的 RV32 ILP32F AOT 配置；仅验证 WSL/Linux 构建和主机测试，未完成实机验收，也不代表现有 Windows 发布包支持 P4。契约基线为固件导出的 `aster-contract-4.2.0.zip`（工作区开发版），更新日期 2026-10-31。具体开发板由固件选择，SDK 不提供 `--board`。4.x 不兼容 3.x：网络只保留 `aster_net_info/open/io/status/cancel/close` 六个导入，旧的 `aster_network_*`、`aster_http_*`、`aster_mqtt_*`、`aster_ws_*` 由 SDK 库包装。已安装的 3.x 包必须用本 SDK 重新编译后再安装。
+适用版本：SDK ABI **4.3.0**；稳定应用目标是 CPU 平台 **xtensa**。源码另有实验性 **riscv** 目标，使用 ESP32-P4 的 RV32 ILP32F AOT 配置；P4 已运行触控、绘图及商城下载安装流程，不代表现有 Windows 发布包支持 P4。契约基线见本工作区 `contract/lock.json`，更新日期 2026-11-02，尚未发布对应 SDK 安装包。具体开发板由固件选择，SDK 不提供 `--board`。4.x 不兼容 3.x：网络只保留 `aster_net_info/open/io/status/cancel/close` 六个导入，旧的 `aster_network_*`、`aster_http_*`、`aster_mqtt_*`、`aster_ws_*` 由 SDK 库包装。已安装的 3.x 包必须用本 SDK 重新编译后再安装。
 
 本文是独立开发所需的完整参考：创建工程、配置、生命周期、绘图、输入、资源、设备接口、构建、部署及排错。本文中的类型和函数签名来自此版本 SDK 的公开契约。阅读本文即可编写 APP；不需要再读取固件代码、SDK 头文件、模板代码或工具实现。编译器会自动使用 SDK 自带的头文件和辅助库。
 
@@ -689,7 +689,7 @@ SDK 自带 `apps/imucube`：30 FPS 六轴采样、彩色 3D 立方体、重力�
 
 appmgr 需要 appmgr 权限：count 返回安装数；list 用 `aster_app_info_t` version=2 获取 ID、名称、状态、分类和图标信息。start 是单 APP 的切换，调用方会先 stop/destroy，然后启动目标，不是并行启动后台 APP；拒绝启动自己。uninstall 拒绝删除自己或正在运行/暂停的应用。
 
-当前 ABI 为 4.2.0。TCP/UDP 见第 15 节，HTTP/HTTPS 见第 16 节，MP3 流见第 17 节，MQTT 见第 18 节，WebSocket 见第 19 节。应用继续调用原来的函数名，SDK 转到 `aster_net_*`。网络句柄状态变化通过 `ASTER_EVENT_SYS` / `ASTER_SYS_NET_STATE` 通知，见第 5 节。DNS 在连接或发送时解析。Wi-Fi 仍使用 `wifi` 能力和权限。
+当前 ABI 为 4.3.0。TCP/UDP 见第 15 节，HTTP/HTTPS 见第 16 节，MP3 流见第 17 节，MQTT 见第 18 节，WebSocket 见第 19 节。应用继续调用原来的函数名，SDK 转到 `aster_net_*`。网络句柄状态变化通过 `ASTER_EVENT_SYS` / `ASTER_SYS_NET_STATE` 通知，见第 5 节。DNS 在连接或发送时解析。Wi-Fi 仍使用 `wifi` 能力和权限。
 
 其他不存在的接口：没有公开蓝牙通信、线程创建、异步任务通用框架、桌面式文件选择器、原生输入框/键盘、UI 控件树。需要这些功能时在现有能力内自行实现交互，或提出明确 SDK 扩展需求。
 
@@ -2449,7 +2449,7 @@ ASTER_I("aster_ws_close") int32_t aster_ws_close(uint32_t handle);
 
 配额与边界：全设备只有一个 WebSocket 客户端（与诊断 CLI 共用），占用时 connect 返回明确错误而不是排队；它的 TCP 连接与 HTTP/MQTT/TCP-UDP/CLI 共用两个全局传输名额，WSS 与 HTTPS/MQTTS 共用一个已验证 TLS 名额。单条消息最大 4096 字节；不能依据远端声明的长度分配缓存，超限在帧头阶段拒绝。证书由设备管理员信任源校验，APP 无跳过校验选项；WSS 需要已同步的时钟。
 
-完整工程见 `apps/ws-echo`。模拟器默认连 `127.0.0.1:17880`。真机把 URL 改成设备能访问的地址。当前 ABI 为 4.2.0。
+完整工程见 `apps/ws-echo`。模拟器默认连 `127.0.0.1:17880`。真机把 URL 改成设备能访问的地址。当前 ABI 为 4.3.0。
 
 
 ## ABI 4.2 内存音效加载（本地源码候选）
@@ -2459,3 +2459,22 @@ ASTER_I("aster_ws_close") int32_t aster_ws_close(uint32_t handle);
 Host在调用返回前将PCM复制到自身拥有的有界缓冲，Guest随后可释放/改写输入；不会保留Guest指针。此函数需要audio-out及能力支持，不需要fs权限，也不访问SD。返回正句柄或稳定ASTER错误，后续play_ex/set_params/stop/unload语义与原接口相同。容器无效、内存范围非法、超过容器上限返回EINVAL；四句柄满或分配失败返回ENOMEM；平台无音频时返回ENODEV。模拟器实现相同有界复制与WAV解析。
 
 此为本地源码候选ABI扩展，尚未发布为官方SDK版本。新APP不能在旧4.1 Host加载，旧APP可继续使用4.2 Host。
+
+## ABI 4.3 设备身份与延迟安装（工作区开发版）
+
+新增 `aster_system_get_info(aster_system_info_t *info, uint32_t size)`，查询真实平台、开发板 ID、SoC、CPU、内存容量、ABI 和能力位。调用前将结构清零，设置 `info.size = sizeof(info)`、`info.version = 1`，第二参数同样传 `sizeof(info)`。当前结构为 128 字节，返回 0 成功。屏幕尺寸另通过 surface 查询；内存字段为容量，不是当前空闲堆。
+
+```c
+aster_system_info_t info = { .size = sizeof(info), .version = 1 };
+int32_t result = aster_system_get_info(&info, sizeof(info));
+```
+
+商城发布时应联合检查 `board`、AOT 目标、ABI、能力及显示尺寸；CPU 架构相同不能代替板级兼容验证。模拟器报告 `platform=simulator`、`board=aster.simulator`，使用 WASM 发布变体。
+
+新增 `aster_appmgr_install(package, package_len, resources, resources_len)`，要求 `appmgr`、`fs`、`kv` 三项权限。两个路径都必须位于调用者自己的 `/data` 沙箱中，分别指向完整 AST 文件与外部资源目录；调用前关闭下载文件并验证摘要。资源目录内的相对路径映射到被安装应用的 `/assets`。
+
+请求被接受后，运行时结束调用者，释放 VM，再执行安装；完成后重新启动调用者。重启后通过 `aster_kv_get("store.install.result", 20, &result, sizeof(result))` 获取 int32 结果，0 表示成功，负值为错误，读取后应删除该键。排队中的初始结果是 `ASTER_EAGAIN`，重启后看到它表示流程尚未完成。请求阶段的错误立即返回。
+
+安装器保持现有 ABI/AOT/签名检查，禁止调用者自更新；程序和资源写入非活动版本，完整成功后切换。失败保留原版本和用户 `/data`。最多 4096 个外部资源文件、总计 1 GiB，资源路径与目录深度受限。下载取消、暂存清理和网络来源信任由商城负责。
+
+ABI 4.3 为增量扩展，旧 4.x 应用仍可加载；导入这些新函数的应用应声明最低 ABI 4.3，不能安装到旧 Host。模拟器当前仅在同一会话内保留安装目录；实机将安装结果持久化到 SD 卡。

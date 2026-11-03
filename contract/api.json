@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "product": "aster",
-  "abi": "4.2.0",
+  "abi": "4.3.0",
   "imports": {
     "env": [
       "__cxa_allocate_exception",
@@ -14,6 +14,7 @@
       "aster_app_exit",
       "aster_app_set_framerate",
       "aster_appmgr_count",
+      "aster_appmgr_install",
       "aster_appmgr_list",
       "aster_appmgr_start",
       "aster_appmgr_uninstall",
@@ -84,6 +85,7 @@
       "aster_surface_flush",
       "aster_surface_present",
       "aster_system_get_abi_version",
+      "aster_system_get_info",
       "aster_system_has_feature",
       "aster_time_get",
       "aster_time_now_ms",
@@ -151,6 +153,8 @@
     "aster_appmgr_count": "()i",
     "aster_appmgr_list": "(iii)i",
     "aster_appmgr_start": "(ii)i",
+    "aster_appmgr_install": "(iiii)i",
+    "aster_system_get_info": "(ii)i",
     "aster_appmgr_uninstall": "(ii)i",
     "aster_audio_get_info": "(ii)i",
     "aster_audio_get_lyrics": "(ii)i",
