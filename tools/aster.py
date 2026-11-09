@@ -237,8 +237,12 @@ def main(argv=None):
     device_commands = {'ports', 'probe', 'push', 'shell', 'debug', 'screenshot', 'flash'}
     if argv and argv[0] in device_commands:
         return subprocess.call(tool_command('device') + argv)
+    if argv and argv[0] == 'server':
+        import setup_server
+        return setup_server.main(argv[1:])
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
+    commands.add_parser('server', add_help=False, help='First-boot resource server; use server --help')
     for name in ('targets', 'templates', 'doctor'):
         commands.add_parser(name)
     setup = commands.add_parser('install', help='Install isolated Python dependencies and environment scripts')

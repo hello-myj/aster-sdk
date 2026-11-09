@@ -6,6 +6,8 @@
 
 接口说明在 [APP 开发手册](docs/app-development.md)。
 
+首次开机的字体和商城资源可由 SDK 本地服务提供，参见 [初始化资源服务器](docs/setup-server.md)。
+
 ## 实验性 ESP32-P4 目标
 
 源码分支新增 `--target riscv`，供配套 ESP-IDF P4 固件使用，状态为
