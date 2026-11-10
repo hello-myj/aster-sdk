@@ -7,6 +7,7 @@
 接口说明在 [APP 开发手册](docs/app-development.md)。
 
 首次开机的字体和商城资源可由 SDK 本地服务提供，参见 [初始化资源服务器](docs/setup-server.md)。
+免服务器发布见 [GitHub 静态分发](docs/github-distribution.md)，包含自动编译、发布及设备源配置。
 
 ## 实验性 ESP32-P4 目标
 

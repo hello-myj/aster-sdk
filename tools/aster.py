@@ -240,9 +240,13 @@ def main(argv=None):
     if argv and argv[0] == 'server':
         import setup_server
         return setup_server.main(argv[1:])
+    if argv and argv[0] == 'distribute':
+        import static_distribution
+        return static_distribution.main(argv[1:])
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
     commands.add_parser('server', add_help=False, help='First-boot resource server; use server --help')
+    commands.add_parser('distribute', add_help=False, help='Static release export/publish; use distribute --help')
     for name in ('targets', 'templates', 'doctor'):
         commands.add_parser(name)
     setup = commands.add_parser('install', help='Install isolated Python dependencies and environment scripts')
