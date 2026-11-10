@@ -163,7 +163,36 @@ def export(setup_data, store_data, output, repository, tag, boards, notices=None
     return channel
 
 
+def validate_export(output, repository, tag):
+    if not REPO.fullmatch(repository) or not TAG.fullmatch(tag) or '..' in tag:
+        raise ValueError('Invalid repository/tag')
+    if not output.is_dir() or output.is_symlink():
+        raise ValueError('Expected an exported distribution directory')
+    manifest = output / 'SHA256SUMS'
+    if manifest.is_symlink():raise ValueError('Symlink manifest')
+    expected = {}
+    for line in manifest.read_text(encoding='utf8').splitlines():
+        parts = line.split('  ')
+        if len(parts) != 2 or not setup.DIGEST.fullmatch(parts[0]):
+            raise ValueError('Invalid SHA256SUMS')
+        digest, name = parts
+        if not re.fullmatch(r'[A-Za-z0-9_.-]+', name) or name in ('.', '..', 'SHA256SUMS') or name in expected:
+            raise ValueError('Unsafe or duplicate release filename')
+        expected[name] = digest
+    if set(p.name for p in output.iterdir()) != set(expected) | {'SHA256SUMS'}:
+        raise ValueError('Directory contains files outside the exported manifest')
+    for name, digest in expected.items():
+        path = output / name
+        if path.is_symlink() or not path.is_file() or setup.digest_file(path) != digest:
+            raise ValueError('Export changed: ' + name)
+    source = json.loads((output / 'aster-source.json').read_bytes())
+    if source != {'schema': 1, 'kind': 'aster-static-source',
+                  'base_url': f'https://github.com/{repository}/releases/download/{tag}'}:
+        raise ValueError('Export repository/tag differs from destination')
+
+
 def publish(output, repository, tag):
+    validate_export(output, repository, tag)
     # No shell interpolation and no token in argv. gh uses its own login or
     # GH_TOKEN supplied by the operator/Actions environment.
     existing = subprocess.run(['gh', 'release', 'view', tag, '--repo', repository], capture_output=True)

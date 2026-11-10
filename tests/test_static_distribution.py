@@ -58,6 +58,7 @@ class StaticDistribution(unittest.TestCase):
         self.assertEqual(len(list(self.output.glob('blob-*'))),4)
         for line in (self.output/'SHA256SUMS').read_text().splitlines():
             digest,name=line.split('  ');self.assertEqual(setup.digest_file(self.output/name),digest)
+        static.validate_export(self.output,'owner/repo','test-1')
     def test_corrupt_payload_never_creates_output(self):
         (self.store/'releases'/self.ids[0]/'payload/0').write_bytes(b'bad')
         with self.assertRaisesRegex(ValueError,'Payload'):self.export()
@@ -76,3 +77,13 @@ class StaticDistribution(unittest.TestCase):
         self.validator.side_effect=ValueError('bad AOT')
         with self.assertRaisesRegex(ValueError,'AOT'):self.export()
         self.assertFalse(self.output.exists())
+    def test_upload_refuses_extra_files_before_any_network_call(self):
+        self.export();(self.output/'private-notes.txt').write_text('not a release asset')
+        with patch.object(static.subprocess,'run') as run,self.assertRaisesRegex(ValueError,'outside'):
+            static.publish(self.output,'owner/repo','test-1')
+        run.assert_not_called()
+    def test_upload_refuses_wrong_tag_or_modified_export(self):
+        self.export()
+        with self.assertRaisesRegex(ValueError,'destination'):static.validate_export(self.output,'owner/repo','other')
+        next(self.output.glob('blob-*')).write_bytes(b'changed')
+        with self.assertRaisesRegex(ValueError,'changed'):static.validate_export(self.output,'owner/repo','test-1')
