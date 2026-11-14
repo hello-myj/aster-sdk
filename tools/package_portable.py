@@ -289,12 +289,15 @@ def package(platform, args):
         args.output.mkdir(parents=True, exist_ok=True)
         name = f'aster-sdk-{identity["abi"]}-{platform}-x64-{identity["build_id"][:12]}'
         if platform=='windows':
-            staging = shutil.make_archive(str(args.output / (name+'.partial')), 'zip', temporary, 'aster-sdk')
+            staging = str(args.output / (name+'.partial.zip'))
+            with zipfile.ZipFile(staging,'w',zipfile.ZIP_DEFLATED,compresslevel=1) as archive:
+                for path in sorted(out.rglob('*')):
+                    if path.is_file():archive.write(path,path.relative_to(out.parent))
             result = str(args.output / (name+'.zip'))
             os.replace(staging,result)
         else:
             result = str(args.output / (name+'.tar.gz'))
-            with tarfile.open(result+'.partial', 'w:gz') as archive:
+            with tarfile.open(result+'.partial', 'w:gz',compresslevel=1) as archive:
                 archive.add(out, arcname='aster-sdk')
             os.replace(result+'.partial',result)
         print('Packaged:', result, flush=True)

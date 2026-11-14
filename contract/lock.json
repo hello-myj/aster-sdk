@@ -34,7 +34,7 @@
     "include/aster/types.h": "0cb93a2d20fd26f58d568584de694aa559a085d239f177b0d14a332ee3764ce2",
     "include/aster/wifi.h": "e9eada9ad04236fee948162054577144c001c2babc6a9516c1683c89d39125e3",
     "include/aster/ws.h": "e8d11cf08158d4674b4a7ade620f1f950c898d367f70ed886b347185b59bc746",
-    "targets/riscv.json": "74830cc248d48d626d7770007811ff3277fa2bd2b33aa0b4cff32e555b471261",
+    "targets/riscv.json": "f04a87a7e68ea00d2f9b2e08340d02d9358d64e7bd5ca1587ff34f2a793bde72",
     "targets/xtensa.json": "50edc72bfa4e28cd90d609327ccae18d358f6c9211bb07347eba4831bcb449ed"
   }
 }
