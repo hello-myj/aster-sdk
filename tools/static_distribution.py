@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Export existing local setup/market releases to a static GitHub Release.
+"""Export local setup/market releases to GitHub Releases or an HTTPS bucket.
 
 No credentials are needed for export. Publishing requires the operator's gh
 login or GitHub Actions GH_TOKEN; credentials never enter the exported files.
@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import struct
 import tempfile
+from urllib.parse import urlsplit
 
 import setup_server as setup
 
@@ -47,8 +48,24 @@ def load_release(root, key):
     return json.loads(raw)
 
 
-def export(setup_data, store_data, output, repository, tag, boards, notices=None):
-    if not REPO.fullmatch(repository) or not TAG.fullmatch(tag):
+def source_urls(repository, tag, origin=None):
+    if origin is None:
+        return (f'https://github.com/{repository}/releases/download/{tag}',
+                f'https://github.com/{repository}/releases/latest/download/aster-source.json')
+    parsed = urlsplit(origin)
+    if (parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password
+        or parsed.query or parsed.fragment or parsed.path not in ('', '/') or parsed.port
+        or any(c.isspace() for c in origin)):
+        raise ValueError('Expected a plain HTTPS bucket origin')
+    root = origin.rstrip('/')
+    base, channel = root + '/releases/' + tag, root + '/aster-source.json'
+    if len(base.encode()) >= 192 or len(channel.encode()) >= 192:
+        raise ValueError('Source URL exceeds device limits')
+    return base, channel
+
+
+def export(setup_data, store_data, output, repository, tag, boards, notices=None, origin=None):
+    if not REPO.fullmatch(repository) or not TAG.fullmatch(tag) or '..' in tag:
         raise ValueError('Expected owner/repository and a simple immutable release tag')
     if output.exists():
         raise ValueError('Output already exists; choose a new directory/tag')
@@ -56,8 +73,7 @@ def export(setup_data, store_data, output, repository, tag, boards, notices=None
         raise ValueError('An explicit board allowlist is required')
     from aster_board import API
     bits = API['feature_bits']
-    base = f'https://github.com/{repository}/releases/download/{tag}'
-    channel = f'https://github.com/{repository}/releases/latest/download/aster-source.json'
+    base, channel = source_urls(repository, tag, origin)
     sdk = Path(__file__).resolve().parents[1]
     records = []
     for path in sorted((store_data / 'releases').glob('*/release.json')):
@@ -157,13 +173,13 @@ def export(setup_data, store_data, output, repository, tag, boards, notices=None
         document('aster-source.json', {'schema': 1, 'kind': 'aster-static-source', 'base_url': base}, 4095)
         if notices:(dest / 'LICENSES.txt').write_text(notices, encoding='utf8')
         (dest / 'SHA256SUMS').write_text(''.join(f'{setup.digest_file(p)}  {p.name}\n' for p in sorted(dest.iterdir())), encoding='utf8')
-        if len(list(dest.iterdir())) > 1000:
+        if origin is None and len(list(dest.iterdir())) > 1000:
             raise ValueError('GitHub limit: more than 1000 assets; publish fewer applications in this release')
         dest.rename(output)
     return channel
 
 
-def validate_export(output, repository, tag):
+def validate_export(output, repository, tag, origin=None):
     if not REPO.fullmatch(repository) or not TAG.fullmatch(tag) or '..' in tag:
         raise ValueError('Invalid repository/tag')
     if not output.is_dir() or output.is_symlink():
@@ -187,7 +203,7 @@ def validate_export(output, repository, tag):
             raise ValueError('Export changed: ' + name)
     source = json.loads((output / 'aster-source.json').read_bytes())
     if source != {'schema': 1, 'kind': 'aster-static-source',
-                  'base_url': f'https://github.com/{repository}/releases/download/{tag}'}:
+                  'base_url': source_urls(repository, tag, origin)[0]}:
         raise ValueError('Export repository/tag differs from destination')
 
 
@@ -207,17 +223,20 @@ def publish(output, repository, tag):
 
 
 def main(argv=None):
+    import sys
+    argv = sys.argv[1:] if argv is None else argv
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
     p = sub.add_parser('export')
     p.add_argument('--setup-data', type=Path, required=True);p.add_argument('--store-data', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True);p.add_argument('--board', action='append', required=True)
     p.add_argument('--repository', required=True);p.add_argument('--tag', required=True)
+    p.add_argument('--origin', help='HTTPS bucket origin (omit for GitHub Releases)')
     p = sub.add_parser('publish')
     p.add_argument('--output', type=Path, required=True);p.add_argument('--repository', required=True);p.add_argument('--tag', required=True)
     args = parser.parse_args(argv)
     if args.command == 'export':
-        print(export(args.setup_data, args.store_data, args.output, args.repository, args.tag, args.board))
+        print(export(args.setup_data, args.store_data, args.output, args.repository, args.tag, args.board, origin=args.origin))
     else:
         publish(args.output, args.repository, args.tag)
     return 0

@@ -68,5 +68,9 @@ This is resource initialization/repair, not automatic firmware OTA or Store self
 Static payload requests retain Range across origin redirects, while authentication
 and cookies are stripped. Hosting ETags are opaque; the complete downloaded bytes
 are still checked against the catalog's SHA256. HTTPS-to-HTTP downgrade is rejected.
-The trust bundle includes ISRG Root X1 and USERTrust ECC; peer/name/time validation
+The trust bundle includes ISRG Root X1, USERTrust ECC and GlobalSign Root CA - R3; peer/name/time validation
 remain enabled. Never disable TLS validation to work around a download failure.
+
+Cloud-specific upload tools live in `hello-myj/aster-releases`. The SDK only
+exports the hosting-independent files with `--origin`; devices use the same
+static protocol for GitHub and HTTPS object storage.

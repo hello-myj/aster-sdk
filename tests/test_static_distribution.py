@@ -40,7 +40,19 @@ class StaticDistribution(unittest.TestCase):
         self.validate.stop();self.temp.cleanup()
     def export(self,**kw):
         return static.export(self.setup,self.store,self.output,kw.get('repository','owner/repo'),kw.get('tag','test-1'),
-                             kw.get('boards',['osptek-p4-st7102','aster.esp32s3.lckfb']))
+                             kw.get('boards',['osptek-p4-st7102','aster.esp32s3.lckfb']),origin=kw.get('origin'))
+    def test_bucket_origin_addresses(self):
+        origin='https://aster-releases.obs.cn-south-1.myhuaweicloud.com'
+        channel=self.export(origin=origin)
+        self.assertEqual(channel,origin+'/aster-source.json')
+        plan=json.loads(next(self.output.glob('setup-*-riscv.json')).read_bytes())
+        self.assertEqual(plan['market_url'],channel)
+        static.validate_export(self.output,'owner/repo','test-1',origin)
+    def test_rejects_unsafe_origins(self):
+        for origin in ['http://bucket.test','https://u:p@bucket.test','https://bucket.test/path',
+                       'https://bucket.test?token=x','https://bucket.test/#fragment','https://'+'x'*190+'.test']:
+            with self.subTest(origin=origin),self.assertRaises(ValueError):
+                static.source_urls('owner/repo','test-1',origin)
     def test_profiles_catalogs_pin_release_and_deduplicate(self):
         channel=self.export();self.assertTrue(channel.endswith('/latest/download/aster-source.json'))
         source=json.loads((self.output/'aster-source.json').read_bytes())
