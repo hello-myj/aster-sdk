@@ -1,7 +1,16 @@
 {
   "schema": 1,
   "boards": {
-    "xtensa": {"cpu": "xtensa", "aot_backend": "xtensa", "profile": "esp32s3-wamr-2.4.3-v6"}
+    "xtensa": {
+      "cpu": "xtensa",
+      "aot_backend": "xtensa",
+      "profile": "esp32s3-wamr-2.4.3-v6"
+    },
+    "riscv": {
+      "cpu": "riscv32",
+      "aot_backend": "riscv32",
+      "profile": "esp32p4-wamr-2.4.3-v6"
+    }
   },
   "profiles": {
     "esp32s3-wamr-2.4.3-v6": {
@@ -12,6 +21,22 @@
           "wasi": "build/windows-downloads/wasi-sdk-app",
           "wamrc": "build/windows-downloads/wamrc-xtensa/wamrc.exe",
           "wamrc_sha256": "cae253b32834bb01b8aef79caff012e0dcdd44d5f354a556af78a625467b251a"
+        },
+        "linux-x64": {
+          "wasi": "toolchain/wasi-sdk-24.0-x86_64-linux",
+          "wamrc": "toolchain/wamrc",
+          "wamrc_sha256": "460265bdeec01b5ae22ab17825fcba9e57ccba4f868043cbb6910c215497f647"
+        }
+      }
+    },
+    "esp32p4-wamr-2.4.3-v6": {
+      "aot_format": 6,
+      "wasi_sdk": "24.0",
+      "hosts": {
+        "windows-x64": {
+          "wasi": "build/windows-downloads/wasi-sdk-app",
+          "wamrc": "build/windows-downloads/wamrc-riscv/wamrc.exe",
+          "wamrc_sha256": "c025da8c68ebb9a86ca33d77f8d815df86c008491567cd18be57d3fea2668d57"
         },
         "linux-x64": {
           "wasi": "toolchain/wasi-sdk-24.0-x86_64-linux",

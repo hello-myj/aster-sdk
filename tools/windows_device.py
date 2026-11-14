@@ -135,7 +135,7 @@ def main(argv=None) -> int:
     flash.add_argument("--port", required=True, help="bootloader UART, e.g. COM3")
     flash.add_argument("--address", default="0x0")
     flash.add_argument("--baud", type=int, default=460800)
-    flash.add_argument("--chip", default="esp32s3", choices=("esp32s3",))
+    flash.add_argument("--chip", default="esp32s3", choices=("esp32s3","esp32p4"))
     args = parser.parse_args(argv)
 
     if args.command == "ports":

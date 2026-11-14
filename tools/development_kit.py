@@ -14,6 +14,14 @@ def stage(root, out, host, cache, bundles=None):
         return
     family = json.loads(document.read_text())
     abi = json.loads((root / 'contract/lock.json').read_text())['abi']
+    if family.get('schema')==2:
+        if family['abi']!=abi:raise ValueError('Development kit ABI differs from SDK')
+        for component in family['components'].values():
+            if component['abi']!=abi or len(component['revision'])!=40:raise ValueError('Development kit component identity differs from SDK')
+        shutil.copy2(document,out/'development-kit.json')
+        info=json.loads((out/'release.json').read_text());info['development_kit']={'family':family['family'],'sdk_tag':family['sdk_tag'],'components':family['components']}
+        (out/'release.json').write_text(json.dumps(info,indent=2)+'\n')
+        return
     if family['schema'] != 1 or family['abi'] != abi:
         raise ValueError('Development kit ABI differs from SDK')
     if family.get('contract_api_sha256') and hashlib.sha256((root / 'contract/api.json').read_bytes()).hexdigest() != family['contract_api_sha256']:

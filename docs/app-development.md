@@ -1,6 +1,8 @@
 # Aster APP SDK 开发手册（AI 可直接使用）
 
-适用版本：SDK ABI **4.3.0**；稳定应用目标是 CPU 平台 **xtensa**。源码另有实验性 **riscv** 目标，使用 ESP32-P4 的 RV32 ILP32F AOT 配置；P4 已运行触控、绘图及商城下载安装流程，不代表现有 Windows 发布包支持 P4。契约基线见本工作区 `contract/lock.json`，更新日期 2026-11-02，尚未发布对应 SDK 安装包。具体开发板由固件选择，SDK 不提供 `--board`。4.x 不兼容 3.x：网络只保留 `aster_net_info/open/io/status/cancel/close` 六个导入，旧的 `aster_network_*`、`aster_http_*`、`aster_mqtt_*`、`aster_ws_*` 由 SDK 库包装。已安装的 3.x 包必须用本 SDK 重新编译后再安装。
+配套固件和桌面调试命令见 [开发包使用说明](使用说明.md)。P4 使用 `--target riscv`，lckfb 使用 `--target xtensa`。编译后通过串口部署，或用 `aster sim --profile p4 --app 工程目录` 在桌面调试；外部资源默认从安装包旁的 `resources` 导入，也可用 `--resources` 指定。串口包应通过工程的 `assets` 声明包含资源，不能仅传商城分离的主程序包。模拟器执行 WASM，设备执行匹配 CPU 的 AOT，分别验证行为与实机性能。
+
+适用版本：SDK ABI **4.3.0**；应用 CPU 目标为 **xtensa**（ESP32-S3）与 **riscv**（ESP32-P4 RV32 ILP32F）。P4 和 lckfb 已验证显示、触摸、串口安装及商城下载。契约基线见 `contract/lock.json`。应用编译使用 `--target`；设备固件由 `aster firmware` 管理。4.x 不兼容 3.x，旧应用需重新编译。
 
 本文是独立开发所需的完整参考：创建工程、配置、生命周期、绘图、输入、资源、设备接口、构建、部署及排错。本文中的类型和函数签名来自此版本 SDK 的公开契约。阅读本文即可编写 APP；不需要再读取固件代码、SDK 头文件、模板代码或工具实现。编译器会自动使用 SDK 自带的头文件和辅助库。
 

@@ -28,11 +28,11 @@
     "audio-effects-memory"
   ],
   "deployment": {
-    "transport": "sdcard",
+    "transport": "serial",
     "console": "",
     "data_glob": "",
     "package_dir": "/SD:"
   },
-  "status": "experimental-unverified",
-  "name": "ESP32-P4 RV32 ILP32F (experimental; hardware unverified)"
+  "status": "hardware-verified",
+  "name": "ESP32-P4 RV32 ILP32F"
 }

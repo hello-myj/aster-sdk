@@ -85,16 +85,16 @@ def copy_sdk(out, boards, platform):
 
 
 def wheels(out, cache, windows):
-    wheel_dir = cache / ('wheels-win313' if windows else 'wheels-linux'+str(sys.version_info.major)+str(sys.version_info.minor))
+    wheel_dir = cache / ('wheels-win312' if windows else 'wheels-linux'+str(sys.version_info.major)+str(sys.version_info.minor))
     wheel_dir.mkdir(parents=True, exist_ok=True)
     pure = cache / 'pure-wheels'
     pure.mkdir(exist_ok=True)
     if not list(pure.glob('esptool-*.whl')) or not list(pure.glob('reedsolo-*.whl')):
-        run(sys.executable, '-m', 'pip', 'wheel', '--no-deps', '--wheel-dir', pure, 'esptool==5.1.0', 'reedsolo==1.7.0')
+        run(sys.executable, '-m', 'pip', 'wheel', '--no-deps', '--wheel-dir', pure, 'esptool==5.6.0', 'reedsolo==1.7.0')
     args = [sys.executable, '-m', 'pip', 'download', '--only-binary=:all:', '--find-links', str(pure), '--dest', str(wheel_dir)]
     if windows:
-        args += ['--platform', 'win_amd64', '--python-version', '313', '--implementation', 'cp', '--abi', 'cp313', '--abi', 'abi3', '--abi', 'none']
-    args += ['pyserial==3.5', 'cryptography==46.0.5', 'esptool==5.1.0']
+        args += ['--platform', 'win_amd64', '--python-version', '312', '--implementation', 'cp', '--abi', 'cp312', '--abi', 'abi3', '--abi', 'none']
+    args += ['pyserial==3.5', 'cryptography==46.0.5', 'esptool==5.6.0']
     lock=wheel_dir/'resolved.json'
     if lock.exists():
         dependencies=json.loads(lock.read_text())
@@ -188,15 +188,15 @@ def stage_compilers(args, plan, host, cache):
 
 def windows_package(out, cache, args, plan):
     runtime = out / 'runtime'
-    archive = args.windows_python_zip or cache / 'python-3.13.16-embed-amd64.zip'
+    archive = args.windows_python_zip or cache / 'python-3.12.10-embed-amd64.zip'
     if not archive.is_file():
-        print('Downloading official Windows embedded Python 3.13.16', flush=True)
-        with urllib.request.urlopen('https://www.python.org/ftp/python/3.13.16/python-3.13.16-embed-amd64.zip', timeout=60) as response:
+        print('Downloading official Windows embedded Python 3.12.10', flush=True)
+        with urllib.request.urlopen('https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip', timeout=60) as response:
             archive.write_bytes(response.read())
-    if hashlib.sha256(archive.read_bytes()).hexdigest()!='97dae5274cc54867065e8d5a3226e48c35017ed332a0fdb0e27d5b5821961297':
-        raise ValueError('Windows Python 3.13.16 embedded runtime checksum mismatch')
+    if hashlib.sha256(archive.read_bytes()).hexdigest()!='4acbed6dd1c744b0376e3b1cf57ce906f9dc9e95e68824584c8099a63025a3c3':
+        raise ValueError('Windows Python 3.12.10 embedded runtime checksum mismatch')
     extract_zip(archive, runtime)
-    (runtime / 'python313._pth').write_text('python313.zip\n.\nsite-packages\n../tools\n../\nimport site\n')
+    (runtime / 'python312._pth').write_text('python312.zip\n.\nsite-packages\n../tools\n../\nimport site\n')
     wheels(out, cache, True)
     if args.windows_toolchain_url:
         if not args.windows_toolchain_sha256:
@@ -218,6 +218,10 @@ def windows_package(out, cache, args, plan):
         shutil.copy2(compiler, dest / 'wamrc.exe')
     for dll in wasi.glob('bin/*.dll'):
         shutil.copy2(dll, out / 'toolchain' / dll.name)
+    for backend in wamrcs:
+        dest=out/('toolchain/backends/'+backend if len(plan)>1 else 'toolchain')
+        for dll in (out/'toolchain').glob('*.dll'):
+            if dll.parent!=dest:shutil.copy2(dll,dest/dll.name)
     compiler = shutil.which('x86_64-w64-mingw32-gcc')
     if not compiler:
         raise ValueError('Install gcc-mingw-w64-x86-64 on Ubuntu to cross-build the small EXE launchers')

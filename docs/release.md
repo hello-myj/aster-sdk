@@ -1,52 +1,19 @@
-# 发布 Windows 和 Linux 包
+# 发布开发包
 
-在 Ubuntu x86_64 上一次打出两个主机包。Windows 包是便携目录 ZIP，带 `aster.exe`、`aster-toolchain.exe`、`aster-device.exe`。Linux 包是 tar.gz，运行需要 Python 3.12。当前 ABI 为 4.3.0，CPU 目标是 `xtensa`。
+发布配置位于 `contract/release-family.json`。组件使用固定 Release URL、提交和 SHA256；本地开发包不需要固件源码。
 
-## 准备
-
-```bash
-python3.12 -m venv .venv-linux
-.venv-linux/bin/python -m pip install -r requirements.txt
-```
-
-Windows 编译器使用固定 ZIP，不要把 Linux 的 `wamrc` 当作 Windows 程序。已有缓存时可以导出：
+先发布配套固件镜像和桌面模拟器，再更新组件引用。使用 Python 3.12 在 Linux 构建两种主机包：
 
 ```bash
-.venv-linux/bin/python tools/toolchain_bundle.py \
-  --target xtensa \
-  --output dist/toolchains/windows-x64-esp32s3-wamr-2.4.3-v6.zip
+bash release.sh --hosts linux-x64,windows-x64
 ```
 
-## 打包
+编译器配置由 `toolchains/catalog.json` 固定，包含 Xtensa 与 ESP32-P4 RV32 ILP32F。Windows 编译器依赖需提前放入配置所指定的缓存目录。输出在 `dist/portable/`。
 
-```bash
-bash release.sh \
-  --hosts linux-x64,windows-x64 \
-  --windows-toolchain-bundle /path/to/windows-x64-esp32s3-wamr-2.4.3-v6.zip
-```
-
-契约已经在仓库里时省略 `--contract`。本机已有 Windows 编译器缓存时可以省略 `--windows-toolchain-bundle`。输出在 `dist/portable/`，每个主机一个包。
-
-Linux 包生成前会用包内工具编译并检查一个 `xtensa` 应用。Windows 包在 Windows 上检查：
+Linux 包会使用包内工具创建独立工程，逐一编译并校验各 CPU 的 AOT。Windows 包解压后验证：
 
 ```powershell
 .\runtime\python.exe .\tools\verify_windows_release.py .
 ```
 
-## 检查文档
-
-```bash
-python tools/check_docs.py
-```
-
-打包前也会检查 README、手册、CLI 文档和示例里的 `--target` 与当前 ABI。固件仓库用同名脚本检查架构文档和硬件清单。
-
-三仓库集成：
-
-```bash
-python tools/release_check.py --sdk ../aster-sdk --sim ../aster-sim --require-clean --output build/release-check
-```
-
-该命令在固件仓库执行，不刷机，也不创建 Release。
-
-有 `contract/release-family.json` 时，打包会把已固定的固件镜像和模拟器放进同一个包。用法见 [development-kit.md](development-kit.md)。
+发布附件清单包含文件大小、SHA256 与固定下载 URL。发布任务先校验文件，再创建 Release。已有同名 Release 不会覆盖。

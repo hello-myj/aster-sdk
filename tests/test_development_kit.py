@@ -4,6 +4,13 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
 from development_kit import stage
 
 class DevelopmentKit(unittest.TestCase):
+    def test_component_references_do_not_download_legacy_payloads(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);out,_,_=self.fixture(root)
+            path=root/'contract/release-family.json';family=json.loads(path.read_text());family['schema']=2;family.pop('payloads');path.write_text(json.dumps(family))
+            stage(root,out,'windows-x64',root/'cache')
+            self.assertFalse((root/'cache').exists());self.assertFalse((out/'firmware').exists())
+            self.assertEqual(json.loads((out/'development-kit.json').read_text())['schema'],2)
     def fixture(self, root, members=None):
         (root/'contract').mkdir()
         (root/'contract/lock.json').write_text('{"abi":"3.7.0"}')

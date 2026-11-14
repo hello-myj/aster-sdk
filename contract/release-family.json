@@ -1,67 +1,61 @@
 {
-  "schema": 1,
-  "family": "aster-4.1.0-20261022",
-  "sdk_tag": "sdk-v4.1.0",
-  "abi": "4.1.0",
-  "release_url": "https://github.com/hello-myj/aster-sdk/releases/tag/sdk-v4.1.0",
-  "download_base": "https://github.com/hello-myj/aster-sdk/releases/download/sdk-v4.1.0",
+  "schema": 2,
+  "family": "aster-4.3.0-20261114",
+  "sdk_tag": "sdk-v4.3.0",
+  "abi": "4.3.0",
+  "contract_api_sha256": "82fb63af187d25c9e59f295e1b32a1fed786c7c8d2905f4e2354ba6bcdd36400",
   "components": {
     "firmware": {
       "repository": "hello-myj/aster-firmware",
-      "tag": "firmware-v4.1.0",
-      "revision": "3d8ea31a25b5e0252b50eadfc2616f31179eee1e",
-      "abi": "4.1.0",
-      "aot_format": 6,
+      "tag": "firmware-v4.3.0",
+      "revision": "b78f15760eaffa1b0e3d9b5172d92d31a5b7e160",
+      "abi": "4.3.0",
       "images": {
-        "lckfb-s3": {
-          "path": "firmware/aster-firmware-4.1.0-lckfb-s3.bin",
-          "sha256": "4879cb45502a1f229883333d8d0ef61e486a66e85c54154ca4c37b069b9c9a5d",
+        "osptek-p4-st7102": {
+          "file": "aster-firmware-4.3.0-osptek-p4-st7102.bin",
+          "sha256": "c2a4e5b711e08b39f70a14be4a512c65ac4fa1a05d61b1aa483ebcd2407c9fb1",
+          "bytes": 2170320,
+          "url": "https://github.com/hello-myj/aster-firmware/releases/download/firmware-v4.3.0/aster-firmware-4.3.0-osptek-p4-st7102.bin",
+          "mirrors": [
+            "https://aster-releases.obs.cn-south-1.myhuaweicloud.com/artifacts/c2a4e5b711e08b39f70a14be4a512c65ac4fa1a05d61b1aa483ebcd2407c9fb1/aster-firmware-4.3.0-osptek-p4-st7102.bin"
+          ],
+          "chip": "esp32p4",
           "flash_address": "0x0",
-          "build_identity": "firmware/lckfb-s3-identity.json"
+          "no_stub": true
         },
-        "waveshare-35b": {
-          "path": "firmware/aster-firmware-4.1.0-waveshare-35b.bin",
-          "sha256": "2700c1baa86619b2d5bbcc35b880536f4b4b1f4478286360020268542ca669f0",
+        "lckfb-s3": {
+          "file": "aster-firmware-4.3.0-lckfb-s3.bin",
+          "sha256": "b7d0486d07a1a34882272970ce72496a0eba0aaedc0139a90d78a274d89fedef",
+          "bytes": 1724580,
+          "url": "https://github.com/hello-myj/aster-firmware/releases/download/firmware-v4.3.0/aster-firmware-4.3.0-lckfb-s3.bin",
+          "mirrors": [
+            "https://aster-releases.obs.cn-south-1.myhuaweicloud.com/artifacts/b7d0486d07a1a34882272970ce72496a0eba0aaedc0139a90d78a274d89fedef/aster-firmware-4.3.0-lckfb-s3.bin"
+          ],
+          "chip": "esp32s3",
           "flash_address": "0x0",
-          "build_identity": "firmware/waveshare-35b-identity.json"
+          "no_stub": false
         }
       }
     },
     "simulator": {
       "repository": "hello-myj/aster-sim",
-      "tag": "sim-v0.3.0",
-      "revision": "9814d0c02f28c4653c4dc17c41bb975efed6ffb0",
-      "version": "0.3.0",
-      "abi": "4.1.0",
-      "execution": "WASM API model; not an ESP32/Zephyr emulator",
-      "firmware_reference": {
-        "tag": "firmware-v4.1.0",
-        "revision": "3d8ea31a25b5e0252b50eadfc2616f31179eee1e"
-      },
-      "sdk_contract_revision": "b01c7a1097e26840f293e70124f2c9e4daa5247b"
+      "tag": "sim-v1.0.0",
+      "revision": "0d1095992eaf48ba232fc2736e79296426e8ea77",
+      "version": "1.0.0",
+      "abi": "4.3.0",
+      "hosts": {
+        "windows-x64": {
+          "file": "aster-sim-1.0.0-windows-x64.zip",
+          "sha256": "dc3b7d7877f08fd727a8eb6a0cfd4f6f96c22a43765e71dd27827a5fefa9d203",
+          "bytes": 201797724,
+          "url": "https://github.com/hello-myj/aster-sim/releases/download/sim-v1.0.0/aster-sim-1.0.0-windows-x64.zip",
+          "mirrors": [
+            "https://aster-releases.obs.cn-south-1.myhuaweicloud.com/artifacts/dc3b7d7877f08fd727a8eb6a0cfd4f6f96c22a43765e71dd27827a5fefa9d203/aster-sim-1.0.0-windows-x64.zip"
+          ],
+          "format": "zip",
+          "entry": "aster-sim/aster-sim.exe"
+        }
+      }
     }
-  },
-  "payloads": {
-    "linux-x64": {
-      "file": "aster-development-kit-4.1.0-linux-x64.tar.gz",
-      "sha256": "f2ea98ae882ae95798eb3eefe0b9d1aa32cdb21a718fb04f5900002bd077f203",
-      "format": "tar.gz"
-    },
-    "windows-x64": {
-      "file": "aster-development-kit-4.1.0-windows-x64.zip",
-      "sha256": "66907eb24713d0a8f80ff2b8afb95fe0c18797d94339ae5b2384c6c99133bd0f",
-      "format": "zip"
-    }
-  },
-  "contract_api_sha256": "740a2510fd027b29e029838e43f2a4f17bd8691f635fc4dc896b02f26a302149",
-  "release_channel": "stable",
-  "validation": {
-    "scope": "Two-board normal audio/UI acceptance; firmware and SDK host tests; SDK examples and native templates; Linux/Windows simulator regression.",
-    "known_issues": [
-      "Seamless music switching, independent output thread, and application-specific game integration are outside this version.",
-      "Hardware DMA depth/underrun telemetry is unavailable; injected SD/allocation faults and long combined stress remain unverified.",
-      "Waveshare has a pre-existing invalid touch report warning; normal user interaction passed."
-    ],
-    "hardware_record": "aster-firmware/docs/continuous-audio-implementation.zh-CN.md"
   }
 }

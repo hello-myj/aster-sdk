@@ -5,6 +5,8 @@ description: 使用 Aster APP SDK ABI 4.3 开发 C/WASM/AOT 应用。当用户�
 
 # Aster APP 开发
 
+配套固件与桌面调试见 [开发包使用说明](../../../docs/使用说明.md)。P4 构建选 `riscv`，lckfb 选 `xtensa`。`aster firmware` 下载固定固件并校验，烧录时显式选择板型和串口。先编译，再用 `aster sim --profile p4`（或 `lckfb`）`--app 工程目录` 导入程序和资源；也可用 `--resources` 指定资源根目录。模拟器运行 WASM，实机运行 AOT。串口安装前返回设备桌面，资源应包含在安装包内。
+
 首先完整读取 [SDK 开发手册](../../../docs/app-development.md)。该路径相对本 SKILL.md；它是唯一开发参考，包含完整示例、公开 ABI、辅助库、工程配置和命令。
 
 按手册第 1 节执行流程：确定 SDK 路径和项目目录，创建 app.toml 与 C 源码，执行构建与包校验，用户需要时部署。命令可执行，工具源码不需要阅读。不要扫描固件、SDK 头文件或模板实现来补充知识，也不要修改 SDK 固定契约。

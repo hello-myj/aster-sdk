@@ -38,7 +38,7 @@ def check(root=ROOT):
             for value in current_versions:
                 if tuple(map(int, value.split('.'))) != tuple(map(int, abi.split('.')))[:len(value.split('.'))]:
                     errors.append(f'{where}: current ABI {value} differs from contract {abi}')
-            if re.search(r'--board(?:\s|=|[\x60])', line) and '不接受' not in line and '不提供' not in line:
+            if re.search(r'--board(?:\s|=|[\x60])', line) and re.search(r'aster(?:\.exe|\.py)?\s+(?:init|new|build|run|deploy|verify)\b',line) and '不接受' not in line and '不提供' not in line:
                 errors.append(f'{where}: SDK CLI uses --target CPU; --board is not supported')
             for value in re.findall(r'(?:dist|build)[/\\]([a-z0-9-]+)[/\\]', line):
                 if value in ('lckfb-s3', 'waveshare-35b'):

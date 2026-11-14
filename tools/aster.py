@@ -234,6 +234,9 @@ def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if version_requested(argv):
         return 0
+    if argv and argv[0] in ('firmware','sim'):
+        import components
+        return (components.firmware if argv[0]=='firmware' else components.simulator)(argv[1:])
     device_commands = {'ports', 'probe', 'push', 'shell', 'debug', 'screenshot', 'flash'}
     if argv and argv[0] in device_commands:
         return subprocess.call(tool_command('device') + argv)
@@ -245,6 +248,8 @@ def main(argv=None):
         return static_distribution.main(argv[1:])
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
+    commands.add_parser('firmware',add_help=False,help='List, download or flash pinned firmware')
+    commands.add_parser('sim',add_help=False,help='Launch the desktop system simulator')
     commands.add_parser('server', add_help=False, help='First-boot resource server; use server --help')
     commands.add_parser('distribute', add_help=False, help='Static release export/publish; use distribute --help')
     for name in ('targets', 'templates', 'doctor'):
