@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "tag": "sdk-v4.3.0",
+  "abi": "4.3.0",
+  "source_revision": "4bc73b810dc4a1440bb1194c5fede5b74e3102ff",
+  "assets": [
+    {
+      "file": "aster-sdk-4.3.0-linux-x64-9bc9a5b114c9.tar.gz",
+      "sha256": "8f66f632bbe384a3d6bf53fe1dfd0ec85a08e1e30352bcfdc57b1ae141e40bf2",
+      "bytes": 122904201,
+      "url": "https://aster-releases.obs.cn-south-1.myhuaweicloud.com/artifacts/8f66f632bbe384a3d6bf53fe1dfd0ec85a08e1e30352bcfdc57b1ae141e40bf2/aster-sdk-4.3.0-linux-x64-9bc9a5b114c9.tar.gz"
+    },
+    {
+      "file": "aster-sdk-4.3.0-windows-x64-9bc9a5b114c9.zip",
+      "sha256": "d928acf10aa156db52d1cb69415248e3e94fe094464323b3d9e09b55b906ace9",
+      "bytes": 116002851,
+      "url": "https://aster-releases.obs.cn-south-1.myhuaweicloud.com/artifacts/d928acf10aa156db52d1cb69415248e3e94fe094464323b3d9e09b55b906ace9/aster-sdk-4.3.0-windows-x64-9bc9a5b114c9.zip"
+    }
+  ]
+}
