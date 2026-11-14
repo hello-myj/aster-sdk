@@ -470,6 +470,11 @@ def build_aot(app: App, wasm_path: Path, aot_path: Path, target: str = "xtensa")
         command += ["--target-abi=ilp32f", "--cpu=generic-rv32", "--cpu-features=+m,+a,+f,+c",
                     "--enable-multi-thread", "--bounds-checks=1", "--stack-bounds-checks=1"]
     run(command + ["-o", str(aot_path), str(source)], "wamrc")
+    if os.name=='nt' and target=='riscv32':
+        from toolchain_catalog import select
+        from aot_format import normalize
+        _,_,profile,host=select(SDK_ROOT,app.target['id'],'windows-x64')
+        normalize(aot_path,Path(wamrc),host,profile['aot_format'])
     return True
 
 

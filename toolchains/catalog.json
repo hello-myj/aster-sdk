@@ -36,7 +36,8 @@
         "windows-x64": {
           "wasi": "build/windows-downloads/wasi-sdk-app",
           "wamrc": "build/windows-downloads/wamrc-riscv/wamrc.exe",
-          "wamrc_sha256": "c025da8c68ebb9a86ca33d77f8d815df86c008491567cd18be57d3fea2668d57"
+          "wamrc_sha256": "c025da8c68ebb9a86ca33d77f8d815df86c008491567cd18be57d3fea2668d57",
+          "emitted_aot_format": 5
         },
         "linux-x64": {
           "wasi": "toolchain/wasi-sdk-24.0-x86_64-linux",
