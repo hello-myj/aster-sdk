@@ -1,6 +1,6 @@
 # OpenOMF 移植所需工具修复
 
-2026-10-25 当前状态：本地工作树另含已获授权的ABI4.2内存音效扩展，见continuous-audio.md；下文“未修改ABI4.1”仅指早期工具修复，不代表当前工作树仍是纯4.1。
+这份记录对应 2026-10-25 的 OpenOMF 工具修复。ABI 4.2 后提供内存音效，当前游戏公开版本面向鱼鹰 P4C5。[音效接口](continuous-audio.md) · [当前游戏工程](https://github.com/hello-myj/aster-apps/tree/main/OpenOMF)
 
 CRT的memcpy/memmove/memset在编译目标定义__wasm_bulk_memory__时改用编译器内建操作，生成memory.copy/fill；其他目标保留原字节循环。APP需同时传递-mbulk-memory编译/链接参数。WAMR保留源/目标完整范围检查，重叠复制由memmove语义处理；没有增加env libc导入，也不放宽包校验。OpenOMF0.2.13真实模拟器360帧Exit0，并在微雪板实际原版DEMO中运行150秒结束RUNNING。此项独立于内存音效的新公开接口。
 

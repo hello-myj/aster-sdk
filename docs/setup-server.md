@@ -1,5 +1,7 @@
 # 首次开机资源服务器
 
+本地初始化需要针对设备上报的板型准备配置，商城程序按 RISC-V 或 Xtensa 选包。新增同架构配置不会改变 SDK 编译器；对外发布时由分发方为该板生成对应的首次开机清单。[设备引导](https://github.com/hello-myj/aster-firmware/blob/main/docs/first-boot-setup.md)
+
 SDK 提供 `aster server`，使用 Python 标准库；Windows、WSL 已验证，macOS 尚未实测。
 当前用于局域网初始化。与 APPS 仓库的商城服务器配合使用：初始化服务默认 9081，
 商城目录与游戏包由商城服务器的 9080 提供。默认公网源使用 OBS，此处的本地服务器用于开发或自托管。两者职责和数据目录独立。

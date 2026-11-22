@@ -1,6 +1,8 @@
 # TCP/UDP Echo
 
-在帧事件里收发 TCP 和 UDP，并核对回包。需要 `network` 能力和 `net` 权限。当前 ABI 为 4.5.0。
+在帧事件里收发 TCP 和 UDP，并核对回包。需要 `network` 能力和 `net` 权限。
+
+清单中的应用 ID 为 `aster.network.echo`，最低 ABI 为 `4.0`，启动所需能力为 `network`。
 
 ```bash
 node tools/network_echo_server.cjs

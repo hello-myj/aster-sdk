@@ -1,5 +1,7 @@
 # Aster SDK 4.3.0
 
+本页随 `sdk-v4.3.0` 便携开发包发布。使用当前源码编译前，请按[配套组件](../docs/development-kit.md)核对设备 ABI 与下载的模拟器版本。
+
 Windows x64 与 Linux x64 APP 开发包，包含编译器、命令行工具、手册、示例和开发 Skill。支持 ESP32-S3 Xtensa 与 ESP32-P4 RV32 ILP32F AOT。
 
 - 使用 `aster firmware list/download/flash` 获取并校验配套固件。

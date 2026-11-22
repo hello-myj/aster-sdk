@@ -1,6 +1,8 @@
 # HTTP Fetch
 
-用 GET 读取一小段 JSON，并在画面上显示结果。需要 `http` 和 `net`。当前 ABI 为 4.5.0。
+用 GET 读取一小段 JSON，并在画面上显示结果。需要 `http` 和 `net`。
+
+清单中的应用 ID 为 `aster.http.fetch`，最低 ABI 为 `4.0`，启动所需能力为 `http`。
 
 ```bash
 aster build apps/http-fetch --target xtensa --aot

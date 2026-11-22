@@ -1,6 +1,6 @@
 # Scene 列表模板
 
-使用带 G7 Scene 能力的固件/模拟器；仅 ABI 3.7 版本号不足以判断，初始化会查询可选能力。
+模板清单要求最低 ABI 4.1 和 `display`、`touch`，初始化时还会查询可选 Scene 绘图能力。
 
 ```text
 aster init my-settings --template scene-list --id com.example.settings --target xtensa

@@ -4,7 +4,7 @@
 
 网络代码继续调用 `aster_network_*`、`aster_http_*`、`aster_mqtt_*`、`aster_ws_*`。这些函数在 `lib/aster/aster_netlib.c` 里转到六个导入：`aster_net_info`、`aster_net_open`、`aster_net_io`、`aster_net_status`、`aster_net_cancel`、`aster_net_close`。仅使用上述网络接口时，最低 ABI 可设为 4.0。使用后续新增导入时，按所用接口提高 `abi_min`；例如系统播放器的蓝牙设备枚举需要 4.5。
 
-接口说明在 [APP 开发手册](docs/app-development.md)。
+从[开发包使用说明](docs/使用说明.md)选择源码或便携包，再从 [APP 开发手册](docs/app-development.md)查询接口、权限和最低 ABI。每个示例 README 列出其清单声明的启动条件。
 
 首次开机的字体和商城资源可由 SDK 本地服务提供，参见 [初始化资源服务器](docs/setup-server.md)。
 免服务器发布见 [GitHub 静态分发](docs/github-distribution.md)，包含自动编译、发布及设备源配置。

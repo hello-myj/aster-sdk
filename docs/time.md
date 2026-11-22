@@ -21,7 +21,7 @@ if (aster_time_get(&now, sizeof(now)) == ASTER_OK) {
 }
 ```
 
-The LCKFB S3 firmware retries SNTP in the background after Wi-Fi receives an
+Check the synchronization flag on every board before treating a value as network-synchronized. In particular, the LCKFB S3 firmware retries SNTP in the background after Wi-Fi receives an
 IPv4 address. Its local calendar currently uses UTC+8. Until the first
 successful sync, it reports the configured default of 2026-01-01 00:00:00
 local time with `ASTER_TIME_FLAG_SYNCED` clear. The Unix timestamp remains UTC

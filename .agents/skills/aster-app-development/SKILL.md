@@ -38,3 +38,5 @@ ABI 4.4 起提供可选 `media-player` 服务，先读手册文末 ABI 4.4 节�
 音乐 APP 可检查 `ASTER_PLAYER_CAP_SYSTEM_OUTPUT`。支持时给 `PLAY_FILE` 传 `ASTER_PLAYER_OUTPUT_SYSTEM`，由固件在音箱连接后接管当前播放。旧固件的选路方式见手册 ABI 4.5 蓝牙音频输出一节。
 
 蓝牙耳机/音箱输出使用手册 ABI 4.5 节，先检查 BT_SOURCE capability，查询有界设备列表，再按蓝牙地址连接。发送模式和接收模式互斥，文件路径仍受沙箱约束；SBC 是有损，不能标作无损输出。
+
+安装前用 `aster verify PACKAGE` 读取包内架构、`supported_boards` 和 `requires`。串口 `aster deploy` 接受一个 AST；独立资源目录走商城安装或桌面 `aster sim --resources`。示例的最低 ABI 以其 `app.toml` 为准。

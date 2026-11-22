@@ -2,6 +2,8 @@
 
 滑动合并数字。右上角分别开关背景音乐和音效，设置保存在应用 KV。达到 2048 后点屏幕继续，失败后点屏幕重开。
 
+清单中的应用 ID 为 `aster.game.2048`，最低 ABI 为 `4.0`，启动所需能力为 `display`、`touch`。
+
 ```text
 aster build apps/game.2048 --target xtensa --aot
 aster deploy apps/game.2048/dist/xtensa/aster.game.2048.ast --target xtensa --port <串口> --run

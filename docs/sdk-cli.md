@@ -78,4 +78,4 @@ aster shell --console <串口> aster sys info
 
 保留旧命令 `aster new`、`aster build --all --target xtensa`，底层 `tools/build.py` 和原有两种 Windows EXE 也可以继续使用。`aster build --clean` 删除当前项目的整个 build/dist 目录（项目构建产物）；不要在这些目录保存源码。
 
-从工程到设备的步骤见固件仓库 `docs/quickstart.md`。模拟器执行 WASM，设备运行匹配 CPU 的 AOT。
+`aster deploy --help` 列出串口安装参数。该命令传输一个 AST，安装时处理包内素材；`--resources` 属于桌面模拟器。独立游戏资源可借助应用商城安装器部署。完整示例见[从工程到设备](https://github.com/hello-myj/aster-firmware/blob/main/docs/quickstart.md)。模拟器执行 WASM，设备运行匹配 CPU 的 AOT。

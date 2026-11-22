@@ -1,5 +1,7 @@
 # 压缩音频流
 
+`audio-stream` 用于 APP 分段喂入压缩 MP3；同一首歌若来自 FAKE POD 本地曲库，则由系统 `media-player` 打开文件、维护播放位置和输出路由。两项能力应分别查询。[公开音频流头文件](../include/aster/audio_stream.h) · [开发手册](app-development.md)
+
 `aster_audio_stream_*` 接受分段 MP3，收到足够数据即按 MP3 原采样率输出到立体声 I²S（8–48 kHz 标准 MP3 采样率），不需要文件、整首下载或整首内存副本。现有文件播放接口保持不变。网络读取由 APP 自己推进，固件音频线程不执行 HTTP。
 
 工程设置：`abi="3.10.0"`、`abi_min="3.10"`、`requires=["audio-out","audio-stream"]`。HTTP 来源另需 `http`、HTTPS 另需 `tls`，权限 `net`；仅向音频流写字节不需要 `fs` 或 `net` 权限。

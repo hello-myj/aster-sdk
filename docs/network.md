@@ -19,8 +19,8 @@ python tools/aster.py deploy apps/network-echo/dist/xtensa/aster.network.echo.as
 
 电脑运行 `node tools/network_echo_server.cjs`。真机把示例 `app.toml` 里的 `NETWORK_HOST` 改成电脑的 IPv4。模拟器保留 `127.0.0.1`，启动时加 `--network`。
 
-在 FRAME 或 TIMER 里轮询。`ASTER_EAGAIN` 留到下一次事件。全设备两个连接槽，与 HTTP、MQTT、WebSocket 共用。HTTPS、MQTTS、WSS 另共用一个 TLS 名额。终态句柄要 `close` 才释放。
+在 FRAME 或 TIMER 里轮询。`ASTER_EAGAIN` 留到下一次事件。Zephyr 参考后端的两个连接槽由 HTTP、MQTT、WebSocket 和 TCP/UDP 共用。HTTPS、MQTTS、WSS 另共用一个 TLS 名额。终态句柄要 `close` 才释放。
 
 单次 IO 最多 2048 字节，UDP 最多 1200 字节。TCP 发送返回的是已入队字节数。UDP 容量不足时返回 `ASTER_EMSGSIZE`，原包保留。TCP 读到 0 表示对端关闭，之后不能再发送。
 
-签名和结构见开发手册与 `include/aster/network.h`。
+签名和结构见 [network.h](../include/aster/network.h) 和[底层公共契约](../include/aster/net.h)。其他板由平台后端提供连接和事件，应用应处理暂忙并关闭终态句柄。

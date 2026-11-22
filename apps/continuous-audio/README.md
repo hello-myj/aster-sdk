@@ -1,6 +1,8 @@
 # Continuous Audio
 
-当前 ABI 为 4.5.0。测试素材由应用生成，以 5 FPS 绘制，后台只启动一次循环音效。左侧点按平滑切换音高，右侧淡出停止/重启。暂停由固件生命周期自动冻结相位。
+测试素材由应用生成，以 5 FPS 绘制，后台只启动一次循环音效。左侧点按平滑切换音高，右侧淡出停止/重启。暂停由固件生命周期自动冻结相位。
+
+清单中的应用 ID 为 `aster.example.continuousaudio`，最低 ABI 为 `4.1`，启动所需能力为 `display`、`touch`、`audio-out`、`audio-effects`。
 
 构建：`python tools/build.py apps/continuous-audio --target xtensa`。
 

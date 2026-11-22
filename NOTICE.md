@@ -16,3 +16,5 @@ Firmware includes WAMR (Apache-2.0 with LLVM exception), LVGL (MIT), minimp3 (CC
 image codecs, pretty-poly and font resources with their own notices. The SDK includes
 wasi-sdk/LLVM, WAMR compiler, Binaryen and icon assets with their respective licenses.
 Only the components present in this repository are distributed by it.
+
+See the [toolchain guide](toolchain/README.md) for the compiler and AOT backends, and the [icon guide](assets/icons/README.md) for icon sources. Firmware images and desktop simulator packages referenced by [SDK releases](docs/release.md) carry the notices from their own repositories.

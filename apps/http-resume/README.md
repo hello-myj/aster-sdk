@@ -1,6 +1,8 @@
 # HTTP Resume
 
-下载到 `/data/file.part`。中断后用 `Range` 和 `If-Range` 续传。服务器返回 200 或校验子不匹配时从头重下。提交前再核对整份临时文件，然后复制到最终文件名。当前 ABI 为 4.5.0。
+下载到 `/data/file.part`。中断后用 `Range` 和 `If-Range` 续传。服务器返回 200 或校验子不匹配时从头重下。提交前再核对整份临时文件，然后复制到最终文件名。
+
+清单中的应用 ID 为 `aster.http.resume`，最低 ABI 为 `4.0`，启动所需能力为 `http`、`filesystem`、`network`。
 
 ```bash
 node <固件仓库>/tools/validation/network_resume_server.cjs

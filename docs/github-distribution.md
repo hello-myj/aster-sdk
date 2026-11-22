@@ -1,5 +1,7 @@
 # GitHub static distribution
 
+The GitHub workflow builds TouchTest and the bootstrap packages. The full OBS catalog is selected by [publication.json](https://github.com/hello-myj/aster-releases/blob/main/publication.json). For an OBS release, use the [OBS publishing procedure](https://github.com/hello-myj/aster-releases/blob/main/docs/obs-distribution.md) with the bucket origin.
+
 The default device channel is [Huawei OBS](https://aster-releases.obs.cn-south-1.myhuaweicloud.com/aster-source.json). The separate GitHub mirror needs no running Python server or device credentials. Its entry
 is `https://github.com/hello-myj/aster-releases/releases/latest/download/aster-source.json`.
 The descriptor contains a pinned immutable `base_url`. Setup profiles, catalogs,

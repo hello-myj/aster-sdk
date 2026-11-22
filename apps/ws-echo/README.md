@@ -1,6 +1,8 @@
 # WebSocket Echo
 
-连接 `ws://` 或 `wss://`，发送并收回一条消息。需要 `websocket` 和 `net`。WSS 再声明 `tls`。当前 ABI 为 4.5.0。
+连接 `ws://` 或 `wss://`，发送并收回一条消息。需要 `websocket` 和 `net`。WSS 再声明 `tls`。
+
+清单中的应用 ID 为 `aster.ws.echo`，最低 ABI 为 `4.0`，启动所需能力为 `websocket`、`network`。
 
 ```bash
 aster build apps/ws-echo --target xtensa --aot

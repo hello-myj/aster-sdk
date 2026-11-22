@@ -1,12 +1,12 @@
-> 日常开发推荐统一 `aster.exe`：安装、PATH、模板创建和编译运行见 [跨平台命令指南](sdk-cli.md)。下面的两个底层 EXE 仍兼容。
+# Windows APP 开发与设备工具
+
+日常开发推荐统一 `aster.exe`：安装、PATH、模板创建和编译运行见 [跨平台命令指南](sdk-cli.md)。下面的两个底层 EXE 仍兼容。
 
 ## 推荐发布流程
 
 现在推荐由 Ubuntu 统一生成 Windows 和 Linux 便携 SDK，Windows 保留 EXE 启动入口。固件契约同步、CPU 平台工具链选择、一键发布和 CI 配置见 [发布指南](release.md)。
 
 下文保留旧的 Windows 单文件 EXE 构建方式，供兼容用途；普通 SDK 更新无需使用这条路径。
-
-# Windows APP 开发与设备工具
 
 Windows x86-64 使用两个命令行 EXE：
 
@@ -21,8 +21,7 @@ Windows x86-64 使用两个命令行 EXE：
 然后用 PyInstaller 在 `dist/windows/` 输出两个 EXE。首次 LLVM 构建可能需要较长时间，后续会复用 `build/windows-downloads/` 的构建缓存。
 已有本机工具链可传入 `-WasiSdk C:\path\to\wasi-sdk` 和
 `-Wamrc C:\path\to\wamrc.exe`。自备的 `wamrc.exe` 也必须能编译 Xtensa；打包脚本会用真实 Wasm 进行 AOT 冒烟测试，并核对输出的格式版本为 v6。wasi-sdk 下载包校验固定 SHA-256。
-`.github/workflows/windows-tools.yml` 在 Windows runner 上打包，并用 `apps/hello`
-验证 AOT 构建与包校验。Windows EXE 必须在 Windows 上构建和验证；运行这些 EXE 的用户无需安装 WSL、Visual Studio 或 LLVM。
+旧单文件工具可用 `apps/hello` 做 AOT 冒烟。当前便携发行流程见[发布配置](../.github/workflows/publish-release.yml)。旧版 PyInstaller 单文件工具在 Windows 上构建和验证；运行这些 EXE 的用户无需安装 WSL、Visual Studio 或 LLVM。
 
 在 APP 项目所在目录运行示例：
 

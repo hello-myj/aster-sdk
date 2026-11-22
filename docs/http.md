@@ -15,7 +15,7 @@ HTTPS 再加 `"tls"`。写文件再加权限 `"fs"` 和能力 `"filesystem"`。
 - 与 TCP/UDP、MQTT 共用两个连接槽；HTTPS 与 MQTTS、WSS 共用一个 TLS 名额。
 - 请求体最多 2048 字节，URL 最多 1024 字节，头部最多 2048 字节 / 32 个字段，响应队列 2048 字节，单次读取 1..2048 字节。
 - 超时 1..600000 ms。重定向最多 3 次，拒绝从 HTTPS 降到 HTTP。
-- 默认信任根是 ISRG Root X1。应用不能更换根证书或跳过校验。
+- HTTPS 使用固件配置的 CA 集合；当前默认集合包括 ISRG Root X1、USERTrust ECC 和 GlobalSign Root CA - R3。APP 不能更换信任根或跳过校验。[固件证书配置](https://github.com/hello-myj/aster-firmware/blob/main/docs/distribution-config.md)
 
 ```bash
 aster build apps/http-fetch --target xtensa

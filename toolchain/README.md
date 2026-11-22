@@ -4,7 +4,7 @@ Linux x86_64 自带 wasi-sdk 24 (clang 18)、WAMR 2.4.3 的 wamrc 和 Binaryen�
 工具链作为本 SDK 的独立副本提供，不访问固件或原 mjx 目录。
 
 选择顺序：`ASTER_WASI_SDK` / `ASTER_WAMRC` → 本目录 → 系统工具。
-Windows x86-64 发行包通过 `tools/package_windows.ps1` 构建：下载官方 wasi-sdk 24
+便携开发包按 [toolchains/catalog.json](../toolchains/catalog.json) 选择编译器并使用[统一发布入口](../docs/release.md)。旧版 Windows 单文件工具通过 `tools/package_windows.ps1` 构建：下载官方 wasi-sdk 24
 Windows 版本，并从 WAMR 2.4.3 和 Espressif LLVM 18 固定提交构建支持 Xtensa 的 Windows `wamrc.exe`，封装为独立的
 `aster-toolchain.exe`。打包程序内的资源从 PyInstaller 解包目录读取，构建产物
 写入当前工作目录（或 `ASTER_WORKSPACE` 指定目录）的 `build/`、`dist/`。

@@ -1,5 +1,7 @@
 # 串口传输
 
+`aster deploy` 接受一个已构建的 AST，包内图标和素材随程序一起写入。设备显示接收、安装及结果页。商城的独立资源树由安装接口一并处理；`aster sim --resources` 则用于桌面调试。[安装与升级](https://github.com/hello-myj/aster-firmware/blob/main/docs/package-installation.md)
+
 当前固件在 shell 串口上同时提供日志、命令和文件传输。`aster probe` 看到 `serial=shared` 后，安装和启动使用同一个端口。
 
 ```text

@@ -30,4 +30,4 @@ aster_wifi_connect(ssid, strlen(ssid), password, strlen(password));
 
 设备保存最近一次成功的配置，SD 挂载后自动重连。相关函数是 `aster_wifi_reconnect()`、`aster_wifi_get_saved_ssid()` 和 `aster_wifi_forget()`。密码以明文存在系统 KV 里。
 
-当前支持 2.4 GHz 的开放网络和个人网络。TCP/UDP 使用 `net` 权限，见 [network.md](network.md)。
+SSID、频段和认证方式的支持范围取决于开发板的无线后端。鱼鹰 P4C5 通过外接 C5 提供网络，APP 仍走相同的 station 接口。只需要下载内容时可以使用系统已建立的网络连接。TCP/UDP 使用 `net` 权限，见 [network.md](network.md)。
