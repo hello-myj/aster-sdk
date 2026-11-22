@@ -1,6 +1,6 @@
 # 发布开发包
 
-`contract/lock.json` 标识本次源码使用的公开 ABI，`contract/release-family.json` 固定已发布的开发包及配套组件。源代码当前使用 4.5.0，已发布的 `sdk-v4.3.0` 仍配套 ABI 4.3 的固件与模拟器。打新的发行包前须确定实际发布的组件和摘要。[开发包配套关系](development-kit.md)
+`contract/lock.json` 标识源码公开 ABI，`contract/release-family.json` 固定开发包与配套组件。4.5.0 系列配套固件 4.5.0 和 Windows 模拟器 1.1.0。[组件说明](development-kit.md)
 
 发布配置位于 `contract/release-family.json`。组件使用固定 Release URL、提交和 SHA256；本地开发包不需要固件源码。
 

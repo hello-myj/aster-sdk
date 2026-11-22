@@ -82,4 +82,4 @@ python -m unittest discover -s tests -v
 
 发布步骤见 [docs/release.md](docs/release.md)。命令说明见 [docs/sdk-cli.md](docs/sdk-cli.md)。许可见 [NOTICE.md](NOTICE.md)。
 
-源码契约为 ABI 4.5.0。已发布的便携开发包 `sdk-v4.3.0` 提供 ABI 4.3 工具，按需下载该版本固定的固件镜像和 Windows 桌面模拟器。开发 FAKE POD 的系统播放器请使用 4.5 源码工具链和相应固件。[SDK Release](https://github.com/hello-myj/aster-sdk/releases) · [组件与镜像](docs/development-kit.md)
+便携 SDK 4.5.0 提供 Windows x64、Linux x64 开发工具，并引用固件 4.5.0 与 Windows 模拟器 1.1.0。首次开机需要的离线 SD 卡包可从固件 Release 下载。[SDK 下载](https://github.com/hello-myj/aster-sdk/releases/tag/sdk-v4.5.0) · [固件与资源](https://github.com/hello-myj/aster-firmware/releases/tag/firmware-v4.5.0)
