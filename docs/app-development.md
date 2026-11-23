@@ -2,7 +2,7 @@
 
 日常开发按 CPU 架构创建工程，例如 `aster init my-app --template hello --id com.example.hello --target riscv`，之后执行 `aster build my-app`。在立创 ESP32-S3 实战派上选 `xtensa`，在鱼鹰光电 P4C5 和 FAKE POD NANO PRO 上选 `riscv`。可通过串口部署，或用 `aster sim --profile osptek-p4 --app 工程目录` 在桌面调试。模拟器执行 WASM，实机执行对应架构的 AOT。串口 `aster deploy` 传输一个已构建的 AST，包内 `assets` 随包安装。商城可额外安装独立资源树；桌面 `aster sim --resources` 可将同一资源树导入虚拟 SD。详见[开发包使用说明](使用说明.md)。
 
-适用版本：SDK ABI **4.5.0**；应用 CPU 目标为 **xtensa**（ESP32-S3）与 **riscv**（ESP32-P4、ESP32-S31，RV32 ILP32F）。P4 和 lckfb 已验证显示、触摸、串口安装及商城下载。源码契约基线见 `contract/lock.json`；已发布的便携包与组件版本见 [配套组件](development-kit.md)。源码模拟器可调试声明 ABI 4.5 的通用逻辑，系统播放器后端和蓝牙音频链路由实机验证。应用编译使用 `--target`；设备固件由 `aster firmware` 管理。4.x 不兼容 3.x，旧应用需重新编译。
+适用版本：SDK ABI **4.6.0**；应用 CPU 目标为 **xtensa**（ESP32-S3）与 **riscv**（ESP32-P4、ESP32-S31，RV32 ILP32F）。P4 和 lckfb 已验证显示、触摸、串口安装及商城下载。源码契约基线见 `contract/lock.json`；已发布的便携包与组件版本见 [配套组件](development-kit.md)。源码模拟器可调试声明 ABI 4.6 的通用逻辑，系统播放器后端和蓝牙音频链路由实机验证。应用编译使用 `--target`；设备固件由 `aster firmware` 管理。4.x 不兼容 3.x，旧应用需重新编译。
 
 本文是独立开发所需的完整参考：创建工程、配置、生命周期、绘图、输入、资源、设备接口、构建、部署及排错。本文中的类型和函数签名来自此版本 SDK 的公开契约。阅读本文即可编写 APP；不需要再读取固件代码、SDK 头文件、模板代码或工具实现。编译器会自动使用 SDK 自带的头文件和辅助库。
 
@@ -590,7 +590,7 @@ if (cue > 0) aster_audio_effect_unload((uint32_t)cue);
 
 上例路径长度 23，也可以统一用 strlen 防止改文件名后漏改长度。volume 范围 0–100；get_volume 返回该数值或负错误。seek 参数毫秒，MP3 为近似定位。get_lyrics 返回 UTF-8 字节数，不保证 NUL，准备 `capacity-1` 并手动终止。
 
-record 需要 AUDIO_INPUT，填满指定 PCM 缓冲前会阻塞；根据 get_info 计算时长，避免把数秒大录音放在小栈。没有公开流式录音 start/read/stop 接口。旧 aster_audio_play/start 已删除，不能使用。
+record 需要 AUDIO_INPUT，填满指定 PCM 缓冲前会阻塞；根据 get_info 计算时长，避免把数秒大录音放在小栈。持续录音使用 ABI 4.6 的采集会话。旧 aster_audio_play/start 已删除，不能使用。
 
 ### 连续音效（ABI 4.1 开发分支）
 
@@ -692,7 +692,7 @@ SDK 自带 `apps/imucube`：30 FPS 六轴采样、彩色 3D 立方体、重力�
 
 appmgr 需要 appmgr 权限：count 返回安装数；list 用 `aster_app_info_t` version=2 获取 ID、名称、状态、分类和图标信息。start 是单 APP 的切换，调用方会先 stop/destroy，然后启动目标，不是并行启动后台 APP；拒绝启动自己。uninstall 拒绝删除自己或正在运行/暂停的应用。
 
-当前 ABI 为 4.5.0。TCP/UDP 见第 15 节，HTTP/HTTPS 见第 16 节，MP3 流见第 17 节，MQTT 见第 18 节，WebSocket 见第 19 节。应用继续调用原来的函数名，SDK 转到 `aster_net_*`。网络句柄状态变化通过 `ASTER_EVENT_SYS` / `ASTER_SYS_NET_STATE` 通知，见第 5 节。DNS 在连接或发送时解析。Wi-Fi 仍使用 `wifi` 能力和权限。
+当前 ABI 为 4.6.0。TCP/UDP 见第 15 节，HTTP/HTTPS 见第 16 节，MP3 流见第 17 节，MQTT 见第 18 节，WebSocket 见第 19 节。应用继续调用原来的函数名，SDK 转到 `aster_net_*`。网络句柄状态变化通过 `ASTER_EVENT_SYS` / `ASTER_SYS_NET_STATE` 通知，见第 5 节。DNS 在连接或发送时解析。Wi-Fi 仍使用 `wifi` 能力和权限。
 
 其他不存在的接口：没有公开蓝牙通信、线程创建、异步任务通用框架、桌面式文件选择器、原生输入框/键盘、UI 控件树。需要这些功能时在现有能力内自行实现交互，或提出明确 SDK 扩展需求。
 
@@ -2452,7 +2452,7 @@ ASTER_I("aster_ws_close") int32_t aster_ws_close(uint32_t handle);
 
 配额与边界：全设备只有一个 WebSocket 客户端（与诊断 CLI 共用），占用时 connect 返回明确错误而不是排队；它的 TCP 连接与 HTTP/MQTT/TCP-UDP/CLI 共用两个全局传输名额，WSS 与 HTTPS/MQTTS 共用一个已验证 TLS 名额。单条消息最大 4096 字节；不能依据远端声明的长度分配缓存，超限在帧头阶段拒绝。证书由设备管理员信任源校验，APP 无跳过校验选项；WSS 需要已同步的时钟。
 
-完整工程见 `apps/ws-echo`。模拟器默认连 `127.0.0.1:17880`。真机把 URL 改成设备能访问的地址。当前 ABI 为 4.5.0。
+完整工程见 `apps/ws-echo`。模拟器默认连 `127.0.0.1:17880`。真机把 URL 改成设备能访问的地址。当前 ABI 为 4.6.0。
 
 
 ## ABI 4.2 内存音效加载（本地源码候选）
@@ -2632,3 +2632,11 @@ requires = ["display", "touch", "media-player"]
 新版固件在每次启动前按自身 `board` 标识和实际能力放行。旧包缺少 `supported_boards` 时继续按架构和能力运行；引入此字段之前的固件会忽略板型限制。
 
 商城读取安装包的同一份声明。发布配置中的 `boards` 可缩小分发范围。详情页按当前版本显示本机型的实测记录。
+
+## ABI 4.6 连续麦克风
+
+APP 在 manifest 中设置 `abi_min = "4.6"` 并声明 `audio-in`。`aster_audio_capture_open(&info, sizeof(info))` 成功返回正数句柄，并填写实际采样率、声道数和位宽。没有输入设备返回 `ASTER_ENODEV`，缺少连续采集实现返回 `ASTER_ENOTSUP`，音频硬件被占用返回 `ASTER_EBUSY`。
+
+每帧调用 `aster_audio_capture_read(handle, buf, sizeof(buf))`，每次提供整数个 PCM 帧的空间。正数是本次字节数，拷贝后由 APP 持有。返回 `ASTER_EAGAIN` 时让出控制，等下一帧。采集设备按自己的采样时钟持续运行。正常停止先调 `aster_audio_capture_finish(handle)`，继续读到 0，再调 `aster_audio_capture_close(handle)`。缓冲溢出时可以先读完连续有效的数据，随后收到 `ASTER_ENOSPC`。中途退出可以直接 close 丢弃尾部，运行时会在 APP 卸载时兜底释放。
+
+录制 WAV 按采样数计算时长，最终回填 RIFF 和 data 长度。存放到 SD 公共目录需要 `fs` 和 `sd` 权限。桌面模拟器通过 `--pcm-input` 提供测试音频，实机参数以 open 返回的格式为准。

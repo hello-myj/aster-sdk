@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "product": "aster",
-  "abi": "4.5.0",
+  "abi": "4.6.0",
   "imports": {
     "env": [
       "__cxa_allocate_exception",
@@ -18,6 +18,10 @@
       "aster_appmgr_list",
       "aster_appmgr_start",
       "aster_appmgr_uninstall",
+      "aster_audio_capture_close",
+      "aster_audio_capture_finish",
+      "aster_audio_capture_open",
+      "aster_audio_capture_read",
       "aster_audio_effect_load",
       "aster_audio_effect_load_memory",
       "aster_audio_effect_play",
@@ -174,6 +178,10 @@
     "aster_audio_effect_stop": "(ii)i",
     "aster_audio_effect_unload": "(i)i",
     "aster_audio_pause": "()i",
+    "aster_audio_capture_open": "(ii)i",
+    "aster_audio_capture_read": "(iii)i",
+    "aster_audio_capture_finish": "(i)i",
+    "aster_audio_capture_close": "(i)i",
     "aster_audio_record": "(ii)i",
     "aster_audio_resume": "()i",
     "aster_audio_seek": "(i)i",

@@ -24,7 +24,9 @@ class HardwareProfiles(unittest.TestCase):
         self.assertEqual(p4['display']['width'],480)
         self.assertEqual(s31['display']['width'],460)
         self.assertIn('鱼鹰光电',p4['hardware_name'])
-        self.assertNotIn('media-player',p4['capabilities'])
+        self.assertIn('media-player',p4['capabilities'])
+        self.assertIn('audio-in',p4['capabilities'])
+        self.assertIn('audio-in',s31['capabilities'])
         self.assertIn('media-player',s31['capabilities'])
         self.assertEqual(aster_board.get_hardware('lckfb-s3')['id'],'xtensa')
         with self.assertRaisesRegex(SystemExit,'requires --target riscv'):

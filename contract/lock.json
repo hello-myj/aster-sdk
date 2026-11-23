@@ -1,17 +1,17 @@
 {
   "schema": 1,
   "product": "aster",
-  "abi": "4.5.0",
+  "abi": "4.6.0",
   "sha256": {
-    "contract/api.json": "cdbba924f57f4dce748cc7b8831839109c0ef2855f3882c4e1702a76dc8e9a4d",
-    "hardware/fakepod-s31.json": "25172bb9ec6757a8f1efa1c086664d01e48ae1e0dff7f859773bf3c0e64b21ba",
-    "hardware/lckfb-s3.json": "d3455b8bf5b141ec3b2ea5dd737a8e0cc74e810239a6dd6437f1e27927299513",
-    "hardware/osptek-p4.json": "f3a46e0c3b9134f3b3c95b89ef6aaef9edfa71b508be4c248e8ddbe7ef28af2f",
-    "hardware/waveshare-35b.json": "93f3e4ac47ea0ad3ed1afa6f7dd3b48d0faaeeeb622b7bf8332029364eb9a285",
+    "contract/api.json": "1b035c21bb0cfd4080d6821121f91c20f585a43244e9edce075b352ad3ba686d",
+    "hardware/fakepod-s31.json": "ca35029e873adb7a088538a99ff80aa3e06591848bcfa9ad89f4ad24670ba3c5",
+    "hardware/lckfb-s3.json": "482d091249cbcd9031a6f8a344a6d0ac873ddba87278a4de7c06fc1bad24871b",
+    "hardware/osptek-p4.json": "c55cd96ca86542827d15ee406adf4d53a9738a9199ff512aa69a0ee5ccc0eba8",
+    "hardware/waveshare-35b.json": "4dbc17cdf9c81c4ff37831201939287c37d65bd4d436984c6bdfac02f7a9ae5a",
     "include/aster/app.h": "9c067bce70ee9d969301975ec310b06c739d7f258136787a0039383ad1069ecf",
     "include/aster/appmgr.h": "d5485cd34eaca8f17b56ea369d6799c08dc9615395f4d449455b070e4a167121",
     "include/aster/aster.h": "56d53e0c988ecf8ceeae89f9b8b11b70f76ef32aed887e1117cc9e2f4b1183e0",
-    "include/aster/audio.h": "57889c209a4bc013ea3bb218385ed276de69952a4e93c1232ddcc72edab425f2",
+    "include/aster/audio.h": "a7727972728b8455be6122f22b427003c4864442840ab9d4c2ce811488165ed5",
     "include/aster/audio_stream.h": "53439e0f3931ded95fa8532d16dee143f52772b00c48b04ef570358f59d65547",
     "include/aster/camera.h": "1f0f719f1de70331454fe9743e5c4a3f5d37605ecff660b7a7dc1dff1f82d194",
     "include/aster/display.h": "324f406354060434933ef7020abeb86960a7abbd671036dc4856a41133d05962",
@@ -33,13 +33,13 @@
     "include/aster/player.h": "33c75b2d94c0e6dfb9b09bd0e0d450975bf9e00fb76dbe4d56dcae65d149a6f5",
     "include/aster/sensor.h": "5d8b2b6f211d1cb06d4e5378f0b083100ad48db40d068f6317ae61fb634aca72",
     "include/aster/surface.h": "8cd5d99b21da830c4945e652a2a5981dc844dcc0f06fa5af198dd144d21e54f8",
-    "include/aster/system.h": "64c4c3fd4b1362adb9c37793c097e0d80f5434365bc7cfa928ba13b45c838b16",
+    "include/aster/system.h": "71789b6d6c39b7d0efcf6e3c99e326d9e625aee2670396100064b626c858f59a",
     "include/aster/time.h": "6f6832715655566df7be77cc878634eb27ce202872bdc656319a680a4ce3e9a9",
     "include/aster/timer.h": "24bc78986dc054fa1cb1af45dc890cf2a046487349bcc33ccb915f23db4aad6a",
     "include/aster/types.h": "0cb93a2d20fd26f58d568584de694aa559a085d239f177b0d14a332ee3764ce2",
     "include/aster/wifi.h": "e9eada9ad04236fee948162054577144c001c2babc6a9516c1683c89d39125e3",
     "include/aster/ws.h": "e8d11cf08158d4674b4a7ade620f1f950c898d367f70ed886b347185b59bc746",
-    "targets/riscv.json": "48ecfc1e78fcb34c2d6b30b15fce91e6c2f0bd282d33b33edd5eceb984026a80",
-    "targets/xtensa.json": "adad872ed78e2d3857401f55d13f7bcf68e609c202077840b98bfa3e7b689d5a"
+    "targets/riscv.json": "9f96a7508062cf62989edcda03ad0c09de043e752e11afee936bdde7f0f2328d",
+    "targets/xtensa.json": "24a3e3c4df6ad9b843aa15f94a10837744a82dcf317da53391dfbe775705f262"
   }
 }

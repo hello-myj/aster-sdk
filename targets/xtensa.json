@@ -2,7 +2,7 @@
   "schema": 1,
   "id": "xtensa",
   "product": "aster",
-  "abi": "4.5.0",
+  "abi": "4.6.0",
   "system": "zephyr",
   "cpu": "xtensa",
   "aot_target": "xtensa",

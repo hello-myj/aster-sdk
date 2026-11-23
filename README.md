@@ -1,6 +1,6 @@
 # Aster SDK
 
-应用开发仓库。代码包含 `<aster/aster.h>`，通过 `aster_*` 调用设备功能。当前 ABI 为 4.5.0，CPU 目标为 `xtensa`（ESP32-S3）和 `riscv`（ESP32-P4、ESP32-S31）。3.x 包需要用本 SDK 重新编译后再安装。
+应用开发仓库。代码包含 `<aster/aster.h>`，通过 `aster_*` 调用设备功能。当前 ABI 为 4.6.0，CPU 目标为 `xtensa`（ESP32-S3）和 `riscv`（ESP32-P4、ESP32-S31）。3.x 包需要用本 SDK 重新编译后再安装。
 
 网络代码继续调用 `aster_network_*`、`aster_http_*`、`aster_mqtt_*`、`aster_ws_*`。这些函数在 `lib/aster/aster_netlib.c` 里转到六个导入：`aster_net_info`、`aster_net_open`、`aster_net_io`、`aster_net_status`、`aster_net_cancel`、`aster_net_close`。仅使用上述网络接口时，最低 ABI 可设为 4.0。使用后续新增导入时，按所用接口提高 `abi_min`；例如系统播放器的蓝牙设备枚举需要 4.5。
 

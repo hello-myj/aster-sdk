@@ -2,7 +2,7 @@
   "schema": 1,
   "id": "riscv",
   "product": "aster",
-  "abi": "4.5.0",
+  "abi": "4.6.0",
   "system": "esp-idf",
   "cpu": "riscv32",
   "aot_target": "riscv32",
