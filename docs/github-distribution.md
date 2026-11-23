@@ -65,7 +65,7 @@ To verify/install from a chosen source while preserving fonts, apps and saves,
 stop all APPs, then run P4 `aster ui setup-source URL` or lckfb
 `aster sys setup-source URL`. It uses saved Wi-Fi, verifies existing fonts, skips
 matching files, installs the published Store and sets its source URL.
-This is resource initialization/repair, not automatic firmware OTA or Store self-update.
+For a Store-only update, Store 0.3.4 and compatible firmware provide **Settings → Store update**. The Store uses the board's setup manifest and fetches only the Store package after confirmation. Devices running an earlier Store can install the new package over serial.
 
 Static payload requests retain Range across origin redirects, while authentication
 and cookies are stripped. Hosting ETags are opaque; the complete downloaded bytes
